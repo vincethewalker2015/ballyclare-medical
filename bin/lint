@@ -1,0 +1,38 @@
+#!/usr/bin/env ruby
+
+require 'bundler/setup'
+
+puts "🔍 Running linting tools..."
+puts "=" * 50
+
+puts "\n📋 RuboCop (Ruby code):"
+rubocop_result = system("RUBYOPT='-W0' bundle exec rubocop --format progress --display-cop-names")
+
+puts "\n📝 ERB Lint (Templates):"
+erb_lint_result = system("RUBYOPT='-W0' bundle exec erb_lint --lint-all --show-linter-names")
+
+puts "\n🔒 Brakeman (Security):"
+brakeman_result = system("RUBYOPT='-W0' bundle exec brakeman --quiet --no-pager")
+
+puts "\n" + "=" * 50
+if rubocop_result && erb_lint_result && brakeman_result
+  puts "✅ All linting checks passed!"
+else
+  puts "❌ Some linting issues found. Run with --fix to auto-correct:"
+  puts "   bundle exec rubocop -a"
+  puts "   bundle exec erb_lint -a --lint-all"
+end
+
+# Check for autocorrect flag
+if ARGV.include?('--fix') || ARGV.include?('-a')
+  puts "\n🔧 Auto-correcting issues..."
+  puts "\n📋 RuboCop autocorrect:"
+  system("RUBYOPT='-W0' bundle exec rubocop -a")
+
+  puts "\n📝 ERB Lint autocorrect:"
+  system("RUBYOPT='-W0' bundle exec erb_lint -a --lint-all")
+
+  puts "\n✅ Auto-correction complete!"
+end
+
+puts "\nLinting complete!"

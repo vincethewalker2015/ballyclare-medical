@@ -18,7 +18,7 @@ gem "stimulus-rails"
 gem "cssbundling-rails"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
-
+gem "json", "~> 2.21"
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"
 
@@ -54,6 +54,10 @@ group :development, :test do
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
+
+  gem "dotenv-rails"
+  gem "letter_opener_web"
+  gem "erb_lint", "~> 0.6", require: false
 end
 
 group :development do
@@ -64,3 +68,5 @@ end
 gem "rspec-rails", ">= 8.0"
 
 gem "devise", ">= 5.0"
+
+gem "factory_bot_rails", ">= 6.5", groups: [ :development, :test ]

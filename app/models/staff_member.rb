@@ -1,5 +1,5 @@
 class StaffMember < ApplicationRecord
-  STAFF_TYPES = %w[doctor nurse admin].freeze
+  STAFF_TYPES = %w[doctor nurse administrator].freeze
 
   belongs_to :practice
   belongs_to :user

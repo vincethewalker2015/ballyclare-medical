@@ -135,5 +135,27 @@ RSpec.describe Payment do
       )
       expect(payment).to be_valid
     end
+    it "is valid with an appointment hold and without an appointment" do
+      appointment_slot = appointment.appointment_slot
+
+      hold = AppointmentHold.create!(
+        appointment_slot: appointment_slot,
+        patient: patient,
+        expires_at: 10.minutes.from_now
+      )
+
+      payment.assign_attributes(
+        appointment: nil,
+        appointment_hold: hold,
+        patient: patient,
+        provider: "stripe",
+        currency: "GBP",
+        amount_cents: 5000,
+        idempotency_key: "hold-payment-key",
+        status: "pending"
+      )
+
+      expect(payment).to be_valid
+    end
   end
 end

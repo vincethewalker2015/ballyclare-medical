@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_22_122730) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_25_140103) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -198,7 +198,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_122730) do
 
   create_table "payments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.integer "amount_cents", null: false
-    t.uuid "appointment_id", null: false
+    t.uuid "appointment_hold_id"
+    t.uuid "appointment_id"
     t.string "card_brand"
     t.string "card_last_four"
     t.datetime "created_at", null: false
@@ -214,6 +215,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_122730) do
     t.string "provider_payment_id"
     t.string "status", default: "pending", null: false
     t.datetime "updated_at", null: false
+    t.index ["appointment_hold_id"], name: "index_payments_on_appointment_hold_id"
     t.index ["appointment_id", "created_at"], name: "index_payments_on_appointment_id_and_created_at"
     t.index ["idempotency_key"], name: "index_payments_on_idempotency_key", unique: true
     t.index ["patient_id", "created_at"], name: "index_payments_on_patient_id_and_created_at"
@@ -333,6 +335,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_122730) do
   add_foreign_key "patient_identifiers", "patients"
   add_foreign_key "patients", "practices"
   add_foreign_key "patients", "users"
+  add_foreign_key "payments", "appointment_holds"
   add_foreign_key "payments", "appointments"
   add_foreign_key "payments", "patients"
   add_foreign_key "refunds", "payments"

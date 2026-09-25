@@ -96,7 +96,7 @@ RSpec.describe Booking::CreateAppointment do
 
       expect(Appointment.where(appointment_slot: appointment_slot)).to be_empty
 
-      # An expired hold can subsequently be cleaned/replaced by CreateHold.
+      # An expired hold can subsequently be cleaned/replaced by AppointmentSlot#hold_for!.
       expect(AppointmentHold.exists?(hold.id)).to be(true)
     end
     it "does not create another appointment when the slot is already booked" do

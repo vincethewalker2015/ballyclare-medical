@@ -7,5 +7,5 @@ class Practice < ApplicationRecord
   has_many :encounters, dependent: :restrict_with_error
   has_many :audit_events, dependent: :restrict_with_error
 
-  validates :name, :timezone, :currency, presence: true
+  validates :name, :timezone, :currency, :country_code, presence: true
 end

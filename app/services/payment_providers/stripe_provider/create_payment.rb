@@ -1,5 +1,5 @@
 module PaymentProviders
-  module Stripe
+  module StripeProvider
     class CreatePayment
       def initialize(payment:)
         @payment = payment

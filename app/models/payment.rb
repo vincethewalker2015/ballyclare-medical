@@ -5,6 +5,7 @@ class Payment < ApplicationRecord
     succeeded
     failed
     cancelled
+    requires_refund
   ].freeze
 
   belongs_to :appointment, optional: true

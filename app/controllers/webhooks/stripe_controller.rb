@@ -25,14 +25,22 @@ module Webhooks
     def handle_event(event)
       case event.type
       when "payment_intent.succeeded"
-        Payments::HandleSucceeded.new(
-          payment_intent: event.data.object
-        ).call
+        handle_payment_succeeded(event.data.object)
       else
         Rails.logger.info(
           "Unhandled Stripe webhook event: #{event.type}"
         )
       end
+    end
+
+    def handle_payment_succeeded(payment_intent)
+      Payments::HandleSucceeded.new(
+        payment_intent: payment_intent
+      ).call
+    rescue Payments::HandleSucceeded::PaymentNotFound => e
+      Rails.logger.warn(
+        "Ignoring Stripe payment_intent.succeeded: #{e.message}"
+      )
     end
   end
 end

@@ -46,3 +46,17 @@ Stripe provider tests can be run with:
 
 Stripe API calls are mocked in the automated test suite and do not make
 real Stripe requests.
+
+### Stripe configuration
+
+Development credentials are loaded using `dotenv-rails`.
+
+Copy the example environment configuration:
+
+    cp .env.example .env.development
+
+Add your Stripe test secret key:
+
+    STRIPE_SECRET_KEY=your_test_secret_key
+
+Do not commit `.env` or `.env.development` files containing credentials.

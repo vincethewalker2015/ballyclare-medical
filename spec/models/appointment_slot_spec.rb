@@ -217,5 +217,10 @@ RSpec.describe AppointmentSlot do
 
       expect(appointment_slot.reload.appointment_hold).to be_nil
     end
+    it "requires a patient" do
+      expect {
+        appointment_slot.hold_for!(patient: nil)
+      }.to raise_error(ArgumentError, "patient is required")
+    end
   end
 end

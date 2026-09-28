@@ -18,6 +18,8 @@ class AppointmentSlot < ApplicationRecord
   scope :upcoming, -> { where(starts_at: Time.current..) }
 
   def hold_for!(patient:)
+    raise ArgumentError, "patient is required" unless patient
+
     self.class.transaction do
       with_lock do
         ensure_patient_belongs_to_practice!(patient)

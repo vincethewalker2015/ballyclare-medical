@@ -6,7 +6,26 @@ module PaymentProviders
       end
 
       def call
-        raise NotImplementedError, "Stripe payment creation is not implemented yet"
+        payment_intent = Stripe::PaymentIntent.create(
+          {
+            amount: payment.amount_cents,
+            currency: payment.currency.downcase,
+            metadata: {
+              payment_id: payment.id,
+              appointment_hold_id: payment.appointment_hold_id
+            }
+          },
+          {
+            idempotency_key: payment.idempotency_key
+          }
+        )
+
+        payment.update!(
+          provider_payment_id: payment_intent.id,
+          status: "processing"
+        )
+
+        payment_intent
       end
 
       private

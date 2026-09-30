@@ -12,6 +12,9 @@ module Payments
       payment = find_payment
 
       record_success!(payment)
+
+      return payment.reload if payment.reload.status == "requires_refund"
+
       complete_booking!(payment)
 
       payment.reload

@@ -153,29 +153,29 @@ RSpec.describe Payments::HandleSucceeded do
     end
 
     it "marks the payment as requiring a refund when the slot is unavailable" do
-  booking_service = instance_double(Payments::CompleteBooking)
+      booking_service = instance_double(Payments::CompleteBooking)
 
-  allow(Payments::CompleteBooking)
-    .to receive(:new)
-    .with(payment: payment)
-    .and_return(booking_service)
+      allow(Payments::CompleteBooking)
+        .to receive(:new)
+        .with(payment: payment)
+        .and_return(booking_service)
 
-  allow(booking_service)
-    .to receive(:call)
-    .and_raise(
-      Payments::CompleteBooking::SlotUnavailable,
-      "Appointment slot has already been booked"
-    )
+      allow(booking_service)
+        .to receive(:call)
+        .and_raise(
+          Payments::CompleteBooking::SlotUnavailable,
+          "Appointment slot has already been booked"
+        )
 
-  described_class.new(
-    payment_intent: payment_intent
-  ).call
+      described_class.new(
+        payment_intent: payment_intent
+      ).call
 
-  payment.reload
+      payment.reload
 
-  expect(payment.status).to eq("requires_refund")
-  expect(payment.paid_at).to be_present
-end
+      expect(payment.status).to eq("requires_refund")
+      expect(payment.paid_at).to be_present
+    end
 
     it "marks the payment as requiring a refund when the hold has expired" do
       booking_service = instance_double(Payments::CompleteBooking)
@@ -200,6 +200,21 @@ end
 
       expect(payment.status).to eq("requires_refund")
       expect(payment.paid_at).to be_present
+    end
+    it "does not retry booking when payment already requires a refund" do
+      payment.update!(
+        status: "requires_refund",
+        paid_at: 5.minutes.ago
+      )
+
+      expect(Payments::CompleteBooking).not_to receive(:new)
+
+      result = described_class.new(
+        payment_intent: payment_intent
+      ).call
+
+      expect(result.status).to eq("requires_refund")
+      expect(result.paid_at).to eq(payment.paid_at)
     end
   end
 end

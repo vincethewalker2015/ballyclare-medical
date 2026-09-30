@@ -37,3 +37,13 @@ temporarily while payment is being completed.
 
 Further instructions for taking payments, viewing payment status and
 processing refunds will be added as these features become available.
+
+## Appointment payments
+
+When payment is required for an appointment, the system records the payment against the patient and appointment.
+
+A successful payment completes the appointment booking automatically.
+
+If payment succeeds but the appointment cannot be completed, the payment is flagged for refund so that staff can identify and resolve it.
+
+Payment and refund records are retained as part of the financial history and are not removed when related clinical or scheduling records change.

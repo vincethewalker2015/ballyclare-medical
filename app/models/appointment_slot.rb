@@ -9,7 +9,7 @@ class AppointmentSlot < ApplicationRecord
   belongs_to :availability_block
 
   has_one :appointment, dependent: :restrict_with_error
-  has_one :appointment_hold, dependent: :destroy
+  has_many :appointment_holds, dependent: :restrict_with_error
 
   validates :starts_at, :ends_at, presence: true
 
@@ -25,7 +25,7 @@ class AppointmentSlot < ApplicationRecord
         ensure_patient_belongs_to_practice!(patient)
         ensure_available_for_hold!
 
-        create_appointment_hold!(
+        appointment_holds.create!(
           patient: patient,
           expires_at: HOLD_DURATION.from_now
         )
@@ -49,18 +49,14 @@ class AppointmentSlot < ApplicationRecord
   end
 
   def ensure_available_for_hold!
-    if appointment.present?
-      raise Unavailable, "Appointment slot has already been booked"
+    if Appointment.exists?(appointment_slot_id: id)
+      raise Unavailable,
+            "Appointment slot has already been booked"
     end
 
-    active_hold = appointment_hold
-
-    return unless active_hold
-
-    if active_hold.expired?
-      active_hold.destroy!
-    else
-      raise Unavailable, "Appointment slot is currently being held"
+    if AppointmentHold.active.exists?(appointment_slot_id: id)
+      raise Unavailable,
+            "Appointment slot is currently being held"
     end
   end
 end

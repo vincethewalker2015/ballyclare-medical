@@ -1,8 +1,23 @@
 # Omakase Ruby styling for Rails
 inherit_gem: { rubocop-rails-omakase: rubocop.yml }
 
+inherit_mode:
+  merge:
+    - Exclude
+    - Include
+
 AllCops:
   TargetRubyVersion: 4.0
+  NewCops: enable
+  Exclude:
+    - "db/schema.rb"
+    - "db/cache_schema.rb"
+    - "db/queue_schema.rb"
+    - "db/cable_schema.rb"
+
+Style/StringLiterals:
+  Include:
+    - "spec/**/*"
 
 # Overwrite or add rules to create your own house style
 #

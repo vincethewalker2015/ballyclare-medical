@@ -128,21 +128,53 @@ RSpec.describe AppointmentSlot do
       }.to raise_error(AppointmentSlot::Unavailable)
     end
 
-    it "replaces an expired hold" do
-      old_hold = create(
-        :appointment_hold,
-        appointment_slot: appointment_slot,
+    it "allows a new hold after an existing hold expires" do
+      expired_hold = appointment_slot.appointment_holds.create!(
         patient: patient,
         expires_at: 1.minute.ago
       )
-      second_patient = create(:patient, practice: practice)
 
-      new_hold = appointment_slot.hold_for!(patient: second_patient)
+      new_hold = appointment_slot.hold_for!(
+        patient: patient
+      )
 
-      expect(AppointmentHold.exists?(old_hold.id)).to be(false)
       expect(new_hold).to be_persisted
-      expect(new_hold.patient).to eq(second_patient)
-      expect(new_hold.appointment_slot).to eq(appointment_slot)
+      expect(new_hold).not_to eq(expired_hold)
+      expect(new_hold.expires_at).to be > Time.current
+
+      expect(AppointmentHold.exists?(expired_hold.id)).to be(true)
+
+      expect(
+        appointment_slot.appointment_holds.count
+      ).to eq(2)
+    end
+
+    it "preserves an expired hold that has payment history" do
+      expired_hold = appointment_slot.appointment_holds.create!(
+        patient: patient,
+        expires_at: 1.minute.ago
+      )
+
+      payment = create(
+        :payment,
+        appointment: nil,
+        appointment_hold: expired_hold,
+        patient: patient,
+        status: "processing"
+      )
+
+      new_hold = appointment_slot.hold_for!(
+        patient: patient
+      )
+
+      expect(new_hold).to be_persisted
+
+      expect(expired_hold.reload).to be_persisted
+      expect(payment.reload.appointment_hold).to eq(expired_hold)
+
+      expect(
+        appointment_slot.appointment_holds.count
+      ).to eq(2)
     end
 
     it "does not allow a hold on an already booked slot" do
@@ -162,7 +194,7 @@ RSpec.describe AppointmentSlot do
         "Appointment slot has already been booked"
       )
 
-      expect(appointment_slot.reload.appointment_hold).to be_nil
+      expect(appointment_slot.reload.appointment_holds).to be_empty
     end
 
     it "allows only one patient to hold a slot when requests are concurrent" do
@@ -215,7 +247,7 @@ RSpec.describe AppointmentSlot do
         AppointmentSlot::PracticeMismatch
       )
 
-      expect(appointment_slot.reload.appointment_hold).to be_nil
+      expect(appointment_slot.reload.appointment_holds).to be_empty
     end
     it "requires a patient" do
       expect {

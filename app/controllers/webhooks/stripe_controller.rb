@@ -26,11 +26,38 @@ module Webhooks
       case event.type
       when "payment_intent.succeeded"
         handle_payment_succeeded(event.data.object)
+      when "refund.updated"
+        handle_refund_updated(event.data.object)
       else
         Rails.logger.info(
           "Unhandled Stripe webhook event: #{event.type}"
         )
       end
+    end
+
+    def handle_event(event)
+      case event.type
+      when "payment_intent.succeeded"
+        handle_payment_succeeded(event.data.object)
+      when "refund.updated"
+        handle_refund_updated(event.data.object)
+      else
+        Rails.logger.info(
+          "Unhandled Stripe webhook event: #{event.type}"
+        )
+      end
+    end
+
+    def handle_refund_updated(stripe_refund)
+      return unless stripe_refund.status == "succeeded"
+
+      Payments::HandleRefundSucceeded.new(
+        stripe_refund: stripe_refund
+      ).call
+    rescue Payments::HandleRefundSucceeded::RefundNotFound => e
+      Rails.logger.warn(
+        "Ignoring Stripe refund.updated: #{e.message}"
+      )
     end
 
     def handle_payment_succeeded(payment_intent)

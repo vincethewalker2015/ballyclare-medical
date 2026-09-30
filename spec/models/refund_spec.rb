@@ -73,6 +73,31 @@ RSpec.describe Refund do
       refund.valid?
       expect(refund.errors[:status]).to be_present
     end
+    it "is not valid without an idempotency key" do
+      refund.assign_attributes(
+        payment: payment,
+        amount_cents: 2500,
+        currency: "GBP",
+        requested_at: Time.current,
+        status: "pending"
+      )
+
+      expect(refund).not_to be_valid
+    end
+
+    it "has an error on idempotency_key" do
+      refund.assign_attributes(
+        payment: payment,
+        amount_cents: 2500,
+        currency: "GBP",
+        requested_at: Time.current,
+        status: "pending"
+      )
+
+      refund.valid?
+
+      expect(refund.errors[:idempotency_key]).to be_present
+    end
 
     it "is valid with required attributes" do
       refund.assign_attributes(
@@ -80,7 +105,8 @@ RSpec.describe Refund do
         amount_cents: 2500,
         currency: "GBP",
         requested_at: Time.current,
-        status: "pending"
+        status: "pending",
+        idempotency_key: SecureRandom.uuid
       )
       expect(refund).to be_valid
     end

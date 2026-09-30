@@ -113,7 +113,7 @@ Authenticate the Stripe CLI:
 Start webhook forwarding:
 
     stripe listen \
-      --events payment_intent.succeeded \
+      --events payment_intent.succeeded,refund.updated \
       --forward-to http://localhost:3000/webhooks/stripe
 
 The listener prints a webhook signing secret beginning with `whsec_`.
@@ -163,3 +163,97 @@ Stripe API calls are mocked in the automated test suite. Running the test suite 
 Run:
 
     bundle exec rspec
+
+### Refund flow
+
+If Stripe successfully takes payment but the appointment cannot be created, the local payment is marked `requires_refund`.
+
+Refunds are represented by separate local refund records. This preserves the relationship between the original payment and any subsequent refund activity.
+
+A refund:
+
+1. belongs to the original payment;
+2. records the amount and currency being refunded;
+3. has its own idempotency key;
+4. is initially created with a `pending` status;
+5. is submitted to Stripe through the payment-provider layer;
+6. records the Stripe refund identifier; and
+7. is updated when Stripe confirms the refund result.
+
+Stripe refund creation is implemented under:
+
+    app/services/payment_providers/stripe_provider/create_refund.rb
+
+Local refund creation and successful-refund handling are implemented under:
+
+    app/services/payments/
+
+Refund creation supports partial refunds. Refunds with `pending`, `processing` or `succeeded` status count towards the amount already allocated for refund, preventing the cumulative refund amount from exceeding the original payment amount.
+
+The payment row is locked while the refundable amount is calculated and the local refund is created. This prevents concurrent refund requests from independently allocating the same refundable balance.
+
+Stripe refund requests use the local refund's idempotency key. If a Stripe request fails before the local refund is updated, the same local refund can therefore be retried without generating a new idempotency key.
+
+### Refund webhooks
+
+Local development should listen for both successful payment events and refund updates:
+
+    stripe listen \
+      --events payment_intent.succeeded,refund.updated \
+      --forward-to http://localhost:3000/webhooks/stripe
+
+When Stripe sends a successful `refund.updated` event, the application:
+
+1. verifies the Stripe webhook signature;
+2. locates the local refund using the Stripe refund identifier;
+3. validates the refund amount and currency;
+4. marks the local refund as `succeeded`; and
+5. records the refund completion time.
+
+Successful refund webhook processing is idempotent. Reprocessing the same successful refund does not replace the original `refunded_at` value.
+
+Refund updates that have not reached the successful state are currently ignored by the webhook handler.
+
+### Appointment hold history
+
+Appointment slots can have multiple appointment holds over their lifetime.
+
+Only an active, unexpired hold prevents another patient from holding the slot. Once a hold expires, the slot may be held again provided that it has not been booked.
+
+Expired holds are retained rather than automatically destroyed. This is important because payments may reference an expired hold as part of the financial and booking history.
+
+Appointment hold creation locks the appointment slot row before checking for an existing appointment or active hold. This serializes competing hold attempts through the application booking workflow.
+
+The database therefore retains historical holds while allowing a slot to be reused after an earlier hold expires.
+
+### Stripe sandbox refund verification
+
+The payment and refund workflow has also been exercised against the Stripe sandbox.
+
+The verified failure path is:
+
+    appointment hold created
+        ↓
+    Stripe PaymentIntent created
+        ↓
+    appointment hold expires
+        ↓
+    Stripe payment succeeds
+        ↓
+    payment_intent.succeeded webhook received
+        ↓
+    appointment creation rejected
+        ↓
+    payment marked requires_refund
+        ↓
+    local refund created
+        ↓
+    Stripe refund created
+        ↓
+    refund.updated webhook received
+        ↓
+    local refund marked succeeded
+
+This verifies that a successful Stripe payment does not create an appointment from an expired hold and that the resulting refund can complete through the Stripe webhook workflow.
+
+The original payment currently remains `requires_refund` after its associated refund succeeds. Refund completion is represented by the refund record itself. Payment-level representation of full and partial refund state is a separate lifecycle concern and should not be inferred solely from the payment status.

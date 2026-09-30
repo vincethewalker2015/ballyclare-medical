@@ -42,12 +42,12 @@ RSpec.describe Payments::HandleRefundSucceeded do
   end
 
   it "is idempotent when the refund is already succeeded" do
-    original_time = 5.minutes.ago
-
     refund.update!(
       status: "succeeded",
-      refunded_at: original_time
+      refunded_at: Time.current
     )
+
+    original_time = refund.reload.refunded_at
 
     described_class.new(
       stripe_refund: stripe_refund

@@ -6,7 +6,7 @@ puts "🔍 Running linting tools..."
 puts "=" * 50
 
 puts "\n📋 RuboCop (Ruby code):"
-rubocop_result = system("RUBYOPT='-W0' bundle exec rubocop --format progress --display-cop-names")
+rubocop_result = system("RUBYOPT='-W0' bin/rubocop --format progress --display-cop-names")
 
 puts "\n📝 ERB Lint (Templates):"
 erb_lint_result = system("RUBYOPT='-W0' bundle exec erb_lint --lint-all --show-linter-names")
@@ -27,7 +27,7 @@ end
 if ARGV.include?('--fix') || ARGV.include?('-a')
   puts "\n🔧 Auto-correcting issues..."
   puts "\n📋 RuboCop autocorrect:"
-  system("RUBYOPT='-W0' bundle exec rubocop -a")
+  system("RUBYOPT='-W0' bin/rubocop -a")
 
   puts "\n📝 ERB Lint autocorrect:"
   system("RUBYOPT='-W0' bundle exec erb_lint -a --lint-all")
@@ -36,3 +36,5 @@ if ARGV.include?('--fix') || ARGV.include?('-a')
 end
 
 puts "\nLinting complete!"
+
+exit 1 unless rubocop_result && erb_lint_result && brakeman_result

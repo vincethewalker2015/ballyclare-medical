@@ -107,11 +107,13 @@ FactoryBot.define do
   end
 
   factory :refund do
-    payment
-    amount_cents { 2500 }
-    currency { "GBP" }
-    requested_at { Time.current }
+    association :payment
+
+    amount_cents { 1000 }
+    currency { payment.currency }
     status { "pending" }
+    requested_at { Time.current }
+    idempotency_key { SecureRandom.uuid }
   end
 
   factory :audit_event do

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_25_140103) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_30_150725) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -20,7 +20,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_25_140103) do
     t.datetime "expires_at", null: false
     t.uuid "patient_id", null: false
     t.datetime "updated_at", null: false
-    t.index ["appointment_slot_id"], name: "index_appointment_holds_on_appointment_slot_id", unique: true
+    t.index ["appointment_slot_id", "expires_at"], name: "index_appointment_holds_on_slot_and_expires_at"
     t.index ["expires_at"], name: "index_appointment_holds_on_expires_at"
     t.index ["patient_id", "expires_at"], name: "index_appointment_holds_on_patient_id_and_expires_at"
     t.index ["patient_id"], name: "index_appointment_holds_on_patient_id"
@@ -247,6 +247,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_25_140103) do
     t.datetime "created_at", null: false
     t.string "currency", null: false
     t.text "failure_reason"
+    t.string "idempotency_key", null: false
     t.uuid "payment_id", null: false
     t.jsonb "provider_data", default: {}, null: false
     t.string "provider_refund_id"
@@ -256,6 +257,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_25_140103) do
     t.uuid "requested_by_id"
     t.string "status", default: "pending", null: false
     t.datetime "updated_at", null: false
+    t.index ["idempotency_key"], name: "index_refunds_on_idempotency_key", unique: true
     t.index ["payment_id", "created_at"], name: "index_refunds_on_payment_id_and_created_at"
     t.index ["provider_refund_id"], name: "index_refunds_on_provider_refund_id", unique: true, where: "(provider_refund_id IS NOT NULL)"
     t.index ["requested_by_id"], name: "index_refunds_on_requested_by_id"

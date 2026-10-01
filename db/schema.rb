@@ -10,9 +10,35 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_30_150725) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_01_120425) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "appointment_charges", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "appointment_id", null: false
+    t.uuid "patient_id", null: false
+    t.uuid "practice_id", null: false
+    t.uuid "created_by_id"
+    t.string "description", null: false
+    t.string "charge_type", null: false
+    t.integer "amount_cents", null: false
+    t.string "currency", null: false
+    t.string "status", default: "active", null: false
+    t.datetime "charged_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["appointment_id", "charged_at"], name: "index_appointment_charges_on_appointment_id_and_charged_at"
+    t.index ["appointment_id"], name: "index_appointment_charges_on_appointment_id"
+    t.index ["created_by_id"], name: "index_appointment_charges_on_created_by_id"
+    t.index ["patient_id", "charged_at"], name: "index_appointment_charges_on_patient_id_and_charged_at"
+    t.index ["patient_id"], name: "index_appointment_charges_on_patient_id"
+    t.index ["practice_id", "charged_at"], name: "index_appointment_charges_on_practice_id_and_charged_at"
+    t.index ["practice_id"], name: "index_appointment_charges_on_practice_id"
+    t.check_constraint "amount_cents > 0", name: "appointment_charges_amount_must_be_positive"
+    t.check_constraint "charge_type::text = ANY (ARRAY['appointment'::character varying, 'additional'::character varying]::text[])", name: "appointment_charges_type_must_be_valid"
+    t.check_constraint "currency::text <> ''::text", name: "appointment_charges_currency_must_not_be_empty"
+    t.check_constraint "status::text = ANY (ARRAY['active'::character varying, 'voided'::character varying]::text[])", name: "appointment_charges_status_must_be_valid"
+  end
 
   create_table "appointment_holds", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "appointment_slot_id", null: false
@@ -287,7 +313,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_30_150725) do
     t.index ["practice_id", "user_id"], name: "index_staff_members_on_practice_id_and_user_id", unique: true
     t.index ["practice_id"], name: "index_staff_members_on_practice_id"
     t.index ["user_id"], name: "index_staff_members_on_user_id"
-    t.check_constraint "staff_type::text = ANY (ARRAY['doctor'::character varying, 'nurse'::character varying, 'administrator'::character varying]::text[])", name: "staff_members_appointment_duration_must_be_positive"
+    t.check_constraint "staff_type::text = ANY (ARRAY['doctor'::character varying::text, 'nurse'::character varying::text, 'administrator'::character varying::text])", name: "staff_members_appointment_duration_must_be_positive"
   end
 
   create_table "user_roles", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -311,6 +337,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_30_150725) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  add_foreign_key "appointment_charges", "appointments"
+  add_foreign_key "appointment_charges", "patients"
+  add_foreign_key "appointment_charges", "practices"
+  add_foreign_key "appointment_charges", "users", column: "created_by_id"
   add_foreign_key "appointment_holds", "appointment_slots"
   add_foreign_key "appointment_holds", "patients"
   add_foreign_key "appointment_slots", "availability_blocks"

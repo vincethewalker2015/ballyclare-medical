@@ -1,4 +1,17 @@
 FactoryBot.define do
+  factory :appointment_charge do
+    appointment_id { "" }
+    patient_id { "" }
+    practice_id { "" }
+    created_by_id { "" }
+    description { "MyString" }
+    charge_type { "MyString" }
+    amount_cents { 1 }
+    currency { "MyString" }
+    status { "MyString" }
+    charged_at { "2026-10-01 13:04:25" }
+  end
+
   factory :practice do
     sequence(:name) { |n| "Practice #{n}" }
     timezone { "Europe/London" }

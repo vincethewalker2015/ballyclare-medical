@@ -61,5 +61,18 @@ RSpec.describe Payments::TakeAppointmentPayment do
       expect(stripe_provider)
         .to have_received(:call)
     end
+    it "marks the payment as failed when Stripe cannot create the payment intent" do
+      allow(stripe_provider)
+        .to receive(:call)
+        .and_raise(
+          Stripe::APIConnectionError.new("Stripe is unavailable")
+        )
+
+      expect {
+        call_service
+      }.to raise_error(Stripe::APIConnectionError)
+
+      expect(Payment.last.status).to eq("failed")
+    end
   end
 end

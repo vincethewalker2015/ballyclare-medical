@@ -23,15 +23,6 @@ RSpec.describe Booking::CreateStaffAppointment do
         appointment_slot: appointment_slot,
         patient: patient,
         booked_by: booked_by,
-        reason: "Routine consultation"
-      ).call
-    end
-
-    subject(:call_service) do
-      described_class.new(
-        appointment_slot: appointment_slot,
-        patient: patient,
-        booked_by: booked_by,
         reason: "Routine consultation",
         amount_cents: 5000
       ).call

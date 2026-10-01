@@ -14,9 +14,14 @@ module Payments
         amount_cents: amount_cents
       ).call
 
-      PaymentProviders::StripeProvider::CreatePayment.new(
-        payment: payment
-      ).call
+      begin
+        PaymentProviders::StripeProvider::CreatePayment.new(
+          payment: payment
+        ).call
+      rescue Stripe::StripeError
+        payment.update!(status: "failed")
+        raise
+      end
 
       payment
     end

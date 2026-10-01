@@ -1,4 +1,4 @@
-# In the case where an admin books an appointment for a patient and takes a payment from them
+# In the case where a staff member books an appointment for a patient and takes a payment from them
 #
 module Payments
   class CreateForAppointment

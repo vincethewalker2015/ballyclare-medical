@@ -17,6 +17,7 @@ class Appointment < ApplicationRecord
   belongs_to :cancelled_by, class_name: "User", optional: true
 
   has_many :appointment_status_changes, dependent: :restrict_with_error
+  has_many :appointment_charges, dependent: :restrict_with_error
   has_many :payments, dependent: :restrict_with_error
   has_one :encounter, dependent: :restrict_with_error
 

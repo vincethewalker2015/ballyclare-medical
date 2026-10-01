@@ -39,6 +39,8 @@ module Webhooks
       case event.type
       when "payment_intent.succeeded"
         handle_payment_succeeded(event.data.object)
+      when "payment_intent.payment_failed"
+        handle_payment_failed(event.data.object)
       when "refund.updated"
         handle_refund_updated(event.data.object)
       else
@@ -67,6 +69,16 @@ module Webhooks
     rescue Payments::HandleSucceeded::PaymentNotFound => e
       Rails.logger.warn(
         "Ignoring Stripe payment_intent.succeeded: #{e.message}"
+      )
+    end
+
+    def handle_payment_failed(payment_intent)
+      Payments::HandleFailed.new(
+        payment_intent: payment_intent
+      ).call
+    rescue Payments::HandleFailed::PaymentNotFound => e
+      Rails.logger.warn(
+        "Ignoring Stripe payment_intent.payment_failed: #{e.message}"
       )
     end
   end

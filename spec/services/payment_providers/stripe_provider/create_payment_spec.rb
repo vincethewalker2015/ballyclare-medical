@@ -8,7 +8,8 @@ RSpec.describe PaymentProviders::StripeProvider::CreatePayment do
       amount_cents: 5000,
       currency: "GBP",
       idempotency_key: "idempotency-123",
-      appointment_hold_id: "hold-123"
+      appointment_hold_id: "hold-123",
+      appointment_id: nil
     )
   end
 
@@ -29,7 +30,8 @@ RSpec.describe PaymentProviders::StripeProvider::CreatePayment do
             currency: "gbp",
             metadata: {
               payment_id: "payment-123",
-              appointment_hold_id: "hold-123"
+              appointment_hold_id: "hold-123",
+              appointment_id: nil
             }
           },
           {
@@ -73,6 +75,40 @@ RSpec.describe PaymentProviders::StripeProvider::CreatePayment do
       expect {
         described_class.new(payment: payment).call
       }.to raise_error(Stripe::APIConnectionError)
+    end
+    it "includes the appointment ID for an existing appointment payment" do
+      allow(payment)
+        .to receive(:appointment_hold_id)
+        .and_return(nil)
+
+      allow(payment)
+        .to receive(:appointment_id)
+        .and_return("appointment-123")
+
+      expect(Stripe::PaymentIntent)
+        .to receive(:create)
+        .with(
+          {
+            amount: 5000,
+            currency: "gbp",
+            metadata: {
+              payment_id: "payment-123",
+              appointment_hold_id: nil,
+              appointment_id: "appointment-123"
+            }
+          },
+          {
+            idempotency_key: "idempotency-123"
+          }
+        )
+        .and_return(payment_intent)
+
+      allow(payment)
+        .to receive(:update!)
+
+      described_class.new(
+        payment: payment
+      ).call
     end
   end
 end

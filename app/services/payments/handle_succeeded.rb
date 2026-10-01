@@ -9,22 +9,34 @@ module Payments
     end
 
     def call
-      payment = find_payment
+      payment = find_payment!
 
-      record_success!(payment)
+      payment.with_lock do
+        validate_amount!(payment)
+        validate_currency!(payment)
 
-      return payment.reload if payment.reload.status == "requires_refund"
+        return payment if payment.status == "requires_refund"
 
-      complete_booking!(payment)
+        unless payment.status == "succeeded"
+          payment.update!(
+            status: "succeeded",
+            paid_at: Time.current
+          )
+        end
 
-      payment.reload
+        return payment if payment.appointment.present?
+
+        complete_booking!(payment)
+
+        payment
+      end
     end
 
     private
 
     attr_reader :payment_intent
 
-    def find_payment
+    def find_payment!
       Payment.find_by(
         provider: "stripe",
         provider_payment_id: payment_intent.id
@@ -32,20 +44,6 @@ module Payments
         PaymentNotFound,
         "Payment not found for Stripe PaymentIntent #{payment_intent.id}"
       )
-    end
-
-    def record_success!(payment)
-      payment.with_lock do
-        validate_amount!(payment)
-        validate_currency!(payment)
-
-        return if %w[succeeded requires_refund].include?(payment.status)
-
-        payment.update!(
-          status: "succeeded",
-          paid_at: Time.current
-        )
-      end
     end
 
     def complete_booking!(payment)

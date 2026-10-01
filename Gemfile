@@ -70,3 +70,7 @@ gem "rspec-rails", ">= 8.0"
 gem "devise", ">= 5.0"
 
 gem "factory_bot_rails", ">= 6.5", groups: [ :development, :test ]
+
+group :test do
+  gem "shoulda-matchers"
+end

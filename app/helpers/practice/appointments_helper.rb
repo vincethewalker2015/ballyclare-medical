@@ -1,0 +1,2 @@
+module Practice::AppointmentsHelper
+end

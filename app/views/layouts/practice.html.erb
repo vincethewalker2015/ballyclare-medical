@@ -2,31 +2,35 @@
 <html>
   <head>
     <title><%= content_for(:title) || "Ballyclare Medical" %></title>
+
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="application-name" content="Ballyclare Medical">
     <meta name="mobile-web-app-capable" content="yes">
+
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
     <%= yield :head %>
 
-    <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
-    <%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
-
     <link rel="icon" href="/icon.png" type="image/png">
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.png">
 
-    <%# Includes all stylesheet files in app/assets/stylesheets %>
-    <%= stylesheet_link_tag :application, "data-turbo-track": "reload" %>
-    <%= javascript_include_tag "application", "data-turbo-track": "reload", type: "module" %>
+    <%= stylesheet_link_tag :application,
+          "data-turbo-track": "reload" %>
+
+    <%= javascript_include_tag "application",
+          "data-turbo-track": "reload",
+          type: "module" %>
   </head>
 
   <body class="min-h-screen bg-medical-cream text-medical-ink antialiased">
     <header class="border-b border-medical-border bg-white">
       <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-8">
-        <div class="flex items-center gap-3">
+        <%= link_to practice_appointments_path,
+                    class: "flex items-center gap-3" do %>
+
           <span class="flex size-10 items-center justify-center rounded-full bg-medical-navy text-sm font-semibold text-white">
             BM
           </span>
@@ -37,31 +41,36 @@
             </span>
 
             <span class="block text-xs font-medium uppercase tracking-[0.18em] text-medical-teal">
-              Medical Centre
+              Practice
             </span>
           </span>
+        <% end %>
+
+        <div class="text-sm text-medical-muted">
+          Staff workspace
         </div>
       </div>
     </header>
 
-    <main>
-      <% if notice.present? %>
-        <div class="mx-auto max-w-md px-6 pt-6">
-          <div class="rounded-xl bg-medical-teal-soft px-4 py-3 text-sm text-medical-teal-dark">
-            <%= notice %>
-          </div>
-        </div>
-      <% end %>
+    <div class="mx-auto grid min-h-[calc(100vh-81px)] max-w-7xl lg:grid-cols-[240px_1fr]">
+      <aside class="border-r border-medical-border bg-white px-4 py-8">
+        <nav class="space-y-1" aria-label="Practice navigation">
+          <%= link_to practice_appointments_path,
+                      class: "flex items-center rounded-xl bg-medical-teal-soft px-4 py-3 text-sm font-semibold text-medical-navy" do %>
+            Appointments
+          <% end %>
 
-      <% if alert.present? %>
-        <div class="mx-auto max-w-md px-6 pt-6">
-          <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            <%= alert %>
-          </div>
-        </div>
-      <% end %>
+          <% %w[Patients Payments Clinical Administration].each do |item| %>
+            <span class="flex cursor-not-allowed items-center rounded-xl px-4 py-3 text-sm font-medium text-medical-muted opacity-60">
+              <%= item %>
+            </span>
+          <% end %>
+        </nav>
+      </aside>
 
-      <%= yield %>
-    </main>
+      <main class="min-w-0 px-6 py-10 lg:px-10">
+        <%= yield %>
+      </main>
+    </div>
   </body>
 </html>

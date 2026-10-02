@@ -1,26 +1,78 @@
-<h2>Log in</h2>
+<% content_for :title, "Sign in | Ballyclare Medical" %>
 
-<%= form_for(resource, as: resource_name, url: session_path(resource_name)) do |f| %>
-  <div class="field">
-    <p><%= f.label :email %></p>
-    <p><%= f.email_field :email, autofocus: true, autocomplete: "email" %></p>
-  </div>
+<div class="px-6 py-16 sm:py-24">
+  <div class="mx-auto max-w-md">
+    <div class="mb-8 text-center">
+      <p class="mb-3 text-sm font-semibold uppercase tracking-[0.16em] text-medical-teal">
+        Staff & patient access
+      </p>
 
-  <div class="field">
-    <p><%= f.label :password %></p>
-    <p><%= f.password_field :password, autocomplete: "current-password" %></p>
-  </div>
+      <h1 class="text-4xl font-semibold tracking-tight text-medical-navy">
+        Welcome back
+      </h1>
 
-  <% if devise_mapping.rememberable? %>
-    <div class="field">
-      <p><%= f.check_box :remember_me %></p>
-      <p><%= f.label :remember_me %></p>
+      <p class="mt-3 text-base leading-7 text-medical-muted">
+        Sign in securely to access Ballyclare Medical.
+      </p>
     </div>
-  <% end %>
 
-  <div class="actions">
-    <%= f.submit "Log in" %>
+    <div class="rounded-2xl border border-medical-border bg-white p-8 shadow-sm">
+      <%= form_for(
+            resource,
+            as: resource_name,
+            url: session_path(resource_name),
+            html: { class: "space-y-6" }
+          ) do |f| %>
+
+        <div>
+          <%= f.label :email,
+                      class: "mb-2 block text-sm font-semibold text-medical-navy" %>
+
+          <%= f.email_field :email,
+                            autofocus: true,
+                            autocomplete: "email",
+                            placeholder: "you@example.com",
+                            class: "block w-full rounded-xl border border-medical-border bg-white px-4 py-3 text-base text-medical-ink shadow-sm outline-none transition placeholder:text-medical-muted/60 focus:border-medical-teal focus:ring-4 focus:ring-medical-teal/10" %>
+        </div>
+
+        <div>
+          <div class="mb-2 flex items-center justify-between gap-4">
+            <%= f.label :password,
+                        class: "block text-sm font-semibold text-medical-navy" %>
+
+            <% if devise_mapping.recoverable? %>
+              <%= link_to "Forgot password?",
+                          new_password_path(resource_name),
+                          class: "text-sm font-semibold text-medical-teal transition hover:text-medical-teal-dark" %>
+            <% end %>
+          </div>
+
+          <%= f.password_field :password,
+                               autocomplete: "current-password",
+                               placeholder: "Enter your password",
+                               class: "block w-full rounded-xl border border-medical-border bg-white px-4 py-3 text-base text-medical-ink shadow-sm outline-none transition placeholder:text-medical-muted/60 focus:border-medical-teal focus:ring-4 focus:ring-medical-teal/10" %>
+        </div>
+
+        <% if devise_mapping.rememberable? %>
+          <div class="flex items-center">
+            <%= f.check_box :remember_me,
+                            class: "size-4 rounded border-medical-border text-medical-teal focus:ring-medical-teal" %>
+
+            <%= f.label :remember_me,
+                        class: "ml-3 text-sm text-medical-muted" %>
+          </div>
+        <% end %>
+
+        <div class="pt-1">
+          <%= f.submit "Sign in",
+                       class: "w-full cursor-pointer rounded-full bg-medical-navy px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-medical-navy-deep focus:outline-none focus:ring-2 focus:ring-medical-teal focus:ring-offset-2" %>
+        </div>
+      <% end %>
+    </div>
+
+    <p class="mt-6 text-center text-sm text-medical-muted">
+      Your account access is protected and intended only for
+      authorised use.
+    </p>
   </div>
-<% end %>
-
-<%= render "devise/shared/links" %>
+</div>

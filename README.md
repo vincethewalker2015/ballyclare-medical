@@ -257,3 +257,115 @@ The verified failure path is:
 This verifies that a successful Stripe payment does not create an appointment from an expired hold and that the resulting refund can complete through the Stripe webhook workflow.
 
 The original payment currently remains `requires_refund` after its associated refund succeeds. Refund completion is represented by the refund record itself. Payment-level representation of full and partial refund state is a separate lifecycle concern and should not be inferred solely from the payment status.
+
+## Development setup
+
+### Create a development staff user
+
+A fresh development database may not contain any roles or staff users. To access the staff-facing application, create a development user and associate it with a practice.
+
+Start the Rails console:
+
+```bash
+bin/rails console
+```
+
+Check the available practices:
+
+```ruby
+Practice.pluck(:id, :name)
+```
+
+Create the standard staff roles if they do not already exist:
+
+```ruby
+%w[administrator doctor nurse].each do |name|
+  Role.find_or_create_by!(name: name)
+end
+```
+
+Select the practice you want the development user to access:
+
+```ruby
+practice = Practice.first
+```
+
+Create a user. Choose your own local development password:
+
+```ruby
+user = User.find_or_initialize_by(email: "admin@demo-medical.test")
+
+if user.new_record?
+  user.password = "YOUR_LOCAL_DEV_PASSWORD"
+  user.password_confirmation = "YOUR_LOCAL_DEV_PASSWORD"
+  user.save!
+end
+```
+
+Give the development user all currently defined roles:
+
+```ruby
+Role.find_each do |role|
+  UserRole.find_or_create_by!(
+    user: user,
+    role: role
+  )
+end
+```
+
+Create the staff membership:
+
+```ruby
+StaffMember.find_or_create_by!(
+  user: user,
+  practice: practice
+) do |staff|
+  staff.staff_type = "administrator"
+  staff.default_appointment_duration = 30
+end
+```
+
+Verify the setup:
+
+```ruby
+user.reload
+
+user.roles.pluck(:name)
+user.staff_members.map { |staff| [staff.practice.name, staff.staff_type] }
+```
+
+For a max-access development account, the roles should include:
+
+```ruby
+["administrator", "doctor", "nurse"]
+```
+
+The staff membership should show the selected practice and administrator staff type, for example:
+
+```ruby
+[["Demo Medical Practice", "administrator"]]
+```
+
+Exit the Rails console:
+
+```ruby
+exit
+```
+
+The user can then sign in at:
+
+```text
+/users/sign_in
+```
+
+and access the staff application at:
+
+```text
+/practice/appointments
+```
+
+> **Development only:** Never commit real passwords, API keys, payment credentials, or production credentials to the repository.
+>
+> `StaffMember#staff_type` and `Role` represent different concepts. A staff member's type describes their staff identity within a practice, while roles are used for authorization. The development account above intentionally receives all currently defined roles to make local development and testing easier.
+>
+> A `User` can have multiple `StaffMember` records and may therefore be associated with multiple practices. The current staff UI uses a temporary single-practice context. Explicit practice selection should be used when multi-practice staff access is implemented.

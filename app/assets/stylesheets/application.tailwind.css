@@ -1,1 +1,21 @@
+@source "../../../app/views";
+@source "../../../app/helpers";
+@source "../../../app/javascript";
+
 @import "tailwindcss";
+
+@theme {
+  --color-medical-navy: #16324f;
+  --color-medical-navy-deep: #10263d;
+
+  --color-medical-teal: #2f7f78;
+  --color-medical-teal-dark: #256861;
+  --color-medical-teal-soft: #e8f3f1;
+
+  --color-medical-cream: #f7f5ef;
+  --color-medical-surface: #ffffff;
+
+  --color-medical-ink: #17252f;
+  --color-medical-muted: #66747d;
+  --color-medical-border: #dde3df;
+}

@@ -137,5 +137,84 @@ RSpec.describe "Stripe webhooks", type: :request do
 
       expect(response).to have_http_status(:ok)
     end
+    it "handles a failed payment intent" do
+      payment_intent = double(
+        id: "pi_failed_123"
+      )
+
+      event = instance_double(
+        Stripe::Event,
+        type: "payment_intent.payment_failed",
+        data: double(object: payment_intent)
+      )
+
+      allow(Stripe::Webhook)
+        .to receive(:construct_event)
+        .and_return(event)
+
+      handler = instance_double(Payments::HandleFailed)
+
+      expect(Payments::HandleFailed)
+        .to receive(:new)
+        .with(payment_intent: payment_intent)
+        .and_return(handler)
+
+      expect(handler)
+        .to receive(:call)
+
+      post "/webhooks/stripe",
+          params: "{}",
+          headers: {
+            "Stripe-Signature" => "valid-signature",
+            "CONTENT_TYPE" => "application/json"
+          }
+
+      expect(response).to have_http_status(:ok)
+    end
+    it "acknowledges a failed event for an unknown payment" do
+      payment_intent = double(
+        id: "pi_unknown"
+      )
+
+      event = instance_double(
+        Stripe::Event,
+        type: "payment_intent.payment_failed",
+        data: double(object: payment_intent)
+      )
+
+      allow(Stripe::Webhook)
+        .to receive(:construct_event)
+        .and_return(event)
+
+      handler = instance_double(Payments::HandleFailed)
+
+      allow(Payments::HandleFailed)
+        .to receive(:new)
+        .with(payment_intent: payment_intent)
+        .and_return(handler)
+
+      allow(handler)
+        .to receive(:call)
+        .and_raise(
+          Payments::HandleFailed::PaymentNotFound,
+          "Payment not found for Stripe PaymentIntent pi_unknown"
+        )
+
+      expect(Rails.logger)
+        .to receive(:warn)
+        .with(
+          "Ignoring Stripe payment_intent.payment_failed: " \
+          "Payment not found for Stripe PaymentIntent pi_unknown"
+        )
+
+      post "/webhooks/stripe",
+          params: "{}",
+          headers: {
+            "Stripe-Signature" => "valid-signature",
+            "CONTENT_TYPE" => "application/json"
+          }
+
+      expect(response).to have_http_status(:ok)
+    end
   end
 end

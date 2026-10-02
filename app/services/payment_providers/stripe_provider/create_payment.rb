@@ -12,7 +12,8 @@ module PaymentProviders
             currency: payment.currency.downcase,
             metadata: {
               payment_id: payment.id,
-              appointment_hold_id: payment.appointment_hold_id
+              appointment_hold_id: payment.appointment_hold_id,
+              appointment_id: payment.appointment_id
             }
           },
           {

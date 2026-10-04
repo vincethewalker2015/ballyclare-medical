@@ -11,6 +11,15 @@ module Staff
     end
 
     def new
+      @patients = current_practice
+        .patients
+        .order(:last_name, :first_name)
+
+      @clinicians = current_practice
+        .staff_members
+        .where(staff_type: %w[doctor nurse])
+        .includes(:user)
+        .order(:last_name, :first_name)
     end
 
     def create

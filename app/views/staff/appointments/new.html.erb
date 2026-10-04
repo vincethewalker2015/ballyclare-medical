@@ -1,2 +1,59 @@
-<h1>Practice::Appointments#new</h1>
-<p>Find me in app/views/practice/appointments/new.html.erb</p>
+<% content_for :title, "Book appointment | Ballyclare Medical" %>
+
+<div class="mx-auto max-w-5xl">
+  <div class="mb-8 flex items-start justify-between gap-6">
+    <div>
+      <p class="text-sm font-semibold uppercase tracking-[0.16em] text-medical-teal">
+        Appointments
+      </p>
+
+      <h1 class="mt-2 text-3xl font-semibold tracking-tight text-medical-navy">
+        Book appointment
+      </h1>
+
+      <p class="mt-2 max-w-2xl text-sm leading-6 text-medical-muted">
+        Book an appointment on behalf of a patient.
+      </p>
+    </div>
+
+    <%= link_to "Back to appointments",
+                practice_appointments_path,
+                class: "text-sm font-semibold text-medical-teal hover:text-medical-teal-dark" %>
+  </div>
+
+  <div class="rounded-2xl border border-medical-border bg-white p-8 shadow-sm">
+    <%= form_with url: practice_appointments_path, method: :post do |form| %>
+      <div class="space-y-8">
+        <div>
+          <%= form.label :patient_id,
+                         "Patient",
+                         class: "mb-2 block text-sm font-semibold text-medical-navy" %>
+
+           <%= render "shared/select_field",
+                form: form,
+                field: :patient_id,
+                collection: @patients,
+                value_method: :id,
+                text_method: ->(patient) {
+                "#{patient.last_name}, #{patient.first_name} — #{patient.patient_number}"
+                },
+                options: { prompt: "Select a patient" } %>
+        </div>
+
+        <div>
+          <%= form.label :clinician_id,
+                         "Clinician",
+                         class: "mb-2 block text-sm font-semibold text-medical-navy" %>
+
+          <%= render "shared/select_field",
+                form: form,
+                field: :clinician_id,
+                collection: @clinicians,
+                value_method: :id,
+                text_method: ->(clinician) { clinician.full_name },
+                options: { prompt: "Select a clinician" } %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>

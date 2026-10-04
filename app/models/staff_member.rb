@@ -30,4 +30,8 @@ class StaffMember < ApplicationRecord
 
   validates :default_appointment_duration,
     numericality: { only_integer: true, greater_than: 0 }
+
+  def full_name
+    [ first_name, last_name ].compact_blank.join(" ")
+  end
 end

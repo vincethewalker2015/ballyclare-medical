@@ -15,5 +15,5 @@ Rails.application.routes.draw do
        to: "webhooks/stripe#create",
        as: :stripe_webhook
 
-  # root "posts#index"
+  resources :appointments, only: %i[index show new create]
 end

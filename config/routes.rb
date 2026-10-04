@@ -8,12 +8,14 @@ Rails.application.routes.draw do
   scope "/practice",
         module: "staff",
         as: "practice" do
-    resources :appointments, only: %i[index show new create]
+    resources :appointments, only: %i[index show new create] do
+      collection do
+        get :available_slots
+      end
+    end
   end
 
   post "/webhooks/stripe",
        to: "webhooks/stripe#create",
        as: :stripe_webhook
-
-  resources :appointments, only: %i[index show new create]
 end

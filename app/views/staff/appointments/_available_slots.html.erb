@@ -1,0 +1,36 @@
+<%= turbo_frame_tag "available_appointment_slots" do %>
+  <% if appointment_slots.any? %>
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <% appointment_slots.each do |slot| %>
+        <label class="cursor-pointer">
+          <input
+            type="radio"
+            name="appointment_slot_id"
+            value="<%= slot.id %>"
+            class="peer sr-only"
+          >
+
+          <span class="block rounded-xl border border-medical-border bg-white px-4 py-3 transition hover:border-medical-teal peer-checked:border-medical-teal peer-checked:bg-medical-teal-soft peer-checked:ring-2 peer-checked:ring-medical-teal/20">
+            <span class="block text-sm font-semibold text-medical-navy">
+              <%= slot.starts_at.strftime("%A, %d %B") %>
+            </span>
+
+            <span class="mt-1 block text-sm text-medical-muted">
+              <%= slot.starts_at.strftime("%H:%M") %>
+            </span>
+          </span>
+        </label>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="rounded-xl border border-medical-border bg-medical-cream px-5 py-4">
+      <p class="text-sm font-medium text-medical-navy">
+        No upcoming appointments available
+      </p>
+
+      <p class="mt-1 text-sm text-medical-muted">
+        Try another clinician or add future availability.
+      </p>
+    </div>
+  <% end %>
+<% end %>

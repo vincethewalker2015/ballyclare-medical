@@ -5,7 +5,9 @@
         value_method,
         text_method,
         options,
-        class: "block w-full appearance-none rounded-xl border border-medical-border bg-white px-4 py-3 pr-11 text-base text-medical-ink shadow-sm outline-none transition focus:border-medical-teal focus:ring-4 focus:ring-medical-teal/10"
+        {
+          class: "block w-full appearance-none rounded-xl border border-medical-border bg-white px-4 py-3 pr-11 text-base text-medical-ink shadow-sm outline-none transition focus:border-medical-teal focus:ring-4 focus:ring-medical-teal/10"
+        }.merge(local_assigns.fetch(:html_options, {}))
       ) %>
 
   <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-medical-muted">

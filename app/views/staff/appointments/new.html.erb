@@ -22,22 +22,28 @@
   </div>
 
   <div class="rounded-2xl border border-medical-border bg-white p-8 shadow-sm">
-    <%= form_with url: practice_appointments_path, method: :post do |form| %>
+    <%= form_with url: practice_appointments_path,
+                  method: :post,
+                  data: {
+                    controller: "appointment-booking",
+                    slots_url: available_slots_practice_appointments_path
+                  } do |form| %>
+
       <div class="space-y-8">
         <div>
           <%= form.label :patient_id,
                          "Patient",
                          class: "mb-2 block text-sm font-semibold text-medical-navy" %>
 
-           <%= render "shared/select_field",
-                form: form,
-                field: :patient_id,
-                collection: @patients,
-                value_method: :id,
-                text_method: ->(patient) {
-                "#{patient.last_name}, #{patient.first_name} — #{patient.patient_number}"
-                },
-                options: { prompt: "Select a patient" } %>
+          <%= render "shared/select_field",
+                     form: form,
+                     field: :patient_id,
+                     collection: @patients,
+                     value_method: :id,
+                     text_method: ->(patient) {
+                       "#{patient.last_name}, #{patient.first_name} — #{patient.patient_number}"
+                     },
+                     options: { prompt: "Select a patient" } %>
         </div>
 
         <div>
@@ -46,12 +52,38 @@
                          class: "mb-2 block text-sm font-semibold text-medical-navy" %>
 
           <%= render "shared/select_field",
-                form: form,
-                field: :clinician_id,
-                collection: @clinicians,
-                value_method: :id,
-                text_method: ->(clinician) { clinician.full_name },
-                options: { prompt: "Select a clinician" } %>
+                     form: form,
+                     field: :clinician_id,
+                     collection: @clinicians,
+                     value_method: :id,
+                     text_method: ->(clinician) { clinician.full_name },
+                     options: { prompt: "Select a clinician" },
+                     html_options: {
+                       data: {
+                         appointment_booking_target: "clinician",
+                         action: "change->appointment-booking#loadSlots"
+                       }
+                     } %>
+        </div>
+
+        <div>
+          <div class="mb-3">
+            <h2 class="text-sm font-semibold text-medical-navy">
+              Available appointment
+            </h2>
+
+            <p class="mt-1 text-sm leading-6 text-medical-muted">
+              Choose an available time for the selected clinician.
+            </p>
+          </div>
+
+          <%= turbo_frame_tag "available_appointment_slots" do %>
+            <div class="rounded-xl border border-medical-border bg-medical-cream px-5 py-4">
+              <p class="text-sm text-medical-muted">
+                Select a clinician to view available appointments.
+              </p>
+            </div>
+          <% end %>
         </div>
       </div>
     <% end %>

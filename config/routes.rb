@@ -12,6 +12,10 @@ Rails.application.routes.draw do
       collection do
         get :available_slots
       end
+
+      resource :payment,
+              only: %i[new create],
+              controller: "appointment_payments"
     end
   end
 

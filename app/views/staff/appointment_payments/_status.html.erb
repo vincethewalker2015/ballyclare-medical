@@ -1,0 +1,67 @@
+<div id="payment_status">
+  <% if payment.present? %>
+    <div class="mb-6">
+      <% case payment.status %>
+      <% when "succeeded" %>
+        <div class="rounded-xl border border-green-200 bg-green-50 px-5 py-4">
+          <p class="font-semibold text-green-800">
+            Payment received
+          </p>
+
+          <p class="mt-1 text-sm text-green-700">
+            <%= payment.currency %>
+            <%= number_with_precision(
+                  payment.amount_cents / 100.0,
+                  precision: 2
+                ) %>
+            was paid successfully.
+          </p>
+        </div>
+
+      <% when "failed", "cancelled" %>
+        <div class="rounded-xl border border-red-200 bg-red-50 px-5 py-4">
+          <p class="font-semibold text-red-800">
+            Payment failed
+          </p>
+
+          <p class="mt-1 text-sm text-red-700">
+            This payment attempt was not completed. The outstanding balance has not been reduced by this payment.
+          </p>
+
+          <% if balance[:balance_cents].positive? %>
+            <div class="mt-3">
+              <%= link_to "Try payment again",
+                          new_practice_appointment_payment_path(appointment),
+                          class: "text-sm font-semibold text-red-800 underline underline-offset-2" %>
+            </div>
+          <% end %>
+        </div>
+
+      <% when "pending", "processing" %>
+        <div
+          class="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4"
+          data-controller="payment-status"
+          data-payment-status-url-value="<%= status_practice_appointment_payment_path(
+            appointment,
+            payment_id: payment.id
+          ) %>">
+          <div class="flex items-center gap-3">
+            <div
+              class="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-amber-600 border-t-transparent"
+              aria-hidden="true"></div>
+
+            <div>
+              <p class="font-semibold text-amber-900">
+                Confirming payment…
+              </p>
+
+              <p class="mt-1 text-sm text-amber-800">
+                We're waiting for confirmation from the payment provider.
+              </p>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

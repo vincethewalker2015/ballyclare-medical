@@ -33,7 +33,8 @@
     </div>
 
     <%= form_with url: practice_appointment_payment_path(@appointment),
-                  method: :post do |form| %>
+                  method: :post,
+                  data: { turbo: false } do |form| %>
 
       <div>
         <%= form.label :amount,

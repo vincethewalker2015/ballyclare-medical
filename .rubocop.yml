@@ -19,6 +19,10 @@ Style/StringLiterals:
   Include:
     - "spec/**/*"
 
+Layout/IndentationWidth:
+  Enabled: true
+  Width: 2
+
 # Overwrite or add rules to create your own house style
 #
 # # Use `[a, [b, c]]` not `[ a, [ b, c ] ]`

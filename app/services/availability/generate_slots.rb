@@ -10,7 +10,7 @@ module Availability
 
     private
 
-    attr_reader :availability_block
+      attr_reader :availability_block
 
     def generate_slots
       current_start = availability_block.starts_at

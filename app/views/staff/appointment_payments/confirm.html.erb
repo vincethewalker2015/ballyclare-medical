@@ -1,0 +1,63 @@
+<% content_for :title, "Complete payment | Ballyclare Medical" %>
+
+<div class="mx-auto max-w-3xl">
+  <div class="mb-8">
+    <p class="text-sm font-semibold uppercase tracking-[0.16em] text-medical-teal">
+      Payments
+    </p>
+
+    <h1 class="mt-2 text-3xl font-semibold tracking-tight text-medical-navy">
+      Complete payment
+    </h1>
+
+    <p class="mt-2 text-sm leading-6 text-medical-muted">
+      Payment for
+      <%= @appointment.patient.first_name %>
+      <%= @appointment.patient.last_name %>.
+    </p>
+  </div>
+
+  <div
+    class="rounded-2xl border border-medical-border bg-white p-8 shadow-sm"
+    data-controller="stripe-payment"
+    data-stripe-payment-publishable-key-value="<%= ENV.fetch("STRIPE_PUBLISHABLE_KEY") %>"
+    data-stripe-payment-client-secret-value="<%= @client_secret %>"
+    data-return-url="<%= practice_appointment_url(@appointment, payment_return: @payment.id) %>">
+    <div class="mb-8 rounded-xl bg-medical-cream p-5">
+      <p class="text-sm font-medium text-medical-muted">
+        Payment amount
+      </p>
+
+      <p class="mt-1 text-2xl font-semibold text-medical-navy">
+        <%= @payment.currency %>
+        <%= number_with_precision(
+              @payment.amount_cents / 100.0,
+              precision: 2
+            ) %>
+      </p>
+    </div>
+
+    <form data-stripe-payment-target="form">
+      <div data-stripe-payment-target="element"></div>
+
+      <div
+        class="mt-4 hidden rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700"
+        data-stripe-payment-target="error"></div>
+
+      <div class="mt-8 flex items-center justify-end border-t border-medical-border pt-6">
+        <button
+            type="submit"
+            class="cursor-pointer rounded-xl bg-medical-navy px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-medical-navy-deep focus:outline-none focus:ring-2 focus:ring-medical-navy focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            data-stripe-payment-target="submit"
+            data-label="Pay <%= @payment.currency %> <%= number_with_precision(@payment.amount_cents / 100.0, precision: 2) %>">
+            Pay
+            <%= @payment.currency %>
+            <%= number_with_precision(
+                    @payment.amount_cents / 100.0,
+                    precision: 2
+                ) %>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

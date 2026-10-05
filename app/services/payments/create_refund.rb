@@ -41,7 +41,7 @@ module Payments
 
     private
 
-    attr_reader :payment, :amount_cents, :requested_by, :reason
+      attr_reader :payment, :amount_cents, :requested_by, :reason
 
     def validate_payment!
       return if %w[succeeded requires_refund].include?(payment.status)

@@ -14,8 +14,10 @@ Rails.application.routes.draw do
       end
 
       resource :payment,
-              only: %i[new create],
-              controller: "appointment_payments"
+         only: %i[new create],
+         controller: "appointment_payments" do
+        get :status
+      end
     end
   end
 

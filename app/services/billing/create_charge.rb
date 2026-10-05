@@ -31,10 +31,10 @@ module Billing
 
     private
 
-    attr_reader :appointment,
-                :description,
-                :charge_type,
-                :amount_cents,
-                :created_by
+      attr_reader :appointment,
+                  :description,
+                  :charge_type,
+                  :amount_cents,
+                  :created_by
   end
 end

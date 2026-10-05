@@ -1,0 +1,79 @@
+<section
+  id="financial_summary"
+  class="rounded-2xl border border-medical-border bg-white p-8 shadow-sm">
+  <div class="mb-6">
+    <h2 class="text-lg font-semibold text-medical-navy">
+      Financial summary
+    </h2>
+
+    <p class="mt-1 text-sm text-medical-muted">
+      Charges, payments and outstanding balance for this appointment.
+    </p>
+  </div>
+
+  <dl class="divide-y divide-medical-border">
+    <div class="flex items-center justify-between gap-6 py-4 first:pt-0">
+      <dt class="text-sm text-medical-muted">
+        Charges
+      </dt>
+
+      <dd class="font-semibold text-medical-navy">
+        <%= balance[:currency] %>
+        <%= number_with_precision(
+              balance[:charged_cents] / 100.0,
+              precision: 2
+            ) %>
+      </dd>
+    </div>
+
+    <div class="flex items-center justify-between gap-6 py-4">
+      <dt class="text-sm text-medical-muted">
+        Payments
+      </dt>
+
+      <dd class="font-semibold text-medical-navy">
+        <%= balance[:currency] %>
+        <%= number_with_precision(
+              balance[:paid_cents] / 100.0,
+              precision: 2
+            ) %>
+      </dd>
+    </div>
+
+    <div class="flex items-center justify-between gap-6 py-4">
+      <dt class="text-sm text-medical-muted">
+        Refunds
+      </dt>
+
+      <dd class="font-semibold text-medical-navy">
+        <%= balance[:currency] %>
+        <%= number_with_precision(
+              balance[:refunded_cents] / 100.0,
+              precision: 2
+            ) %>
+      </dd>
+    </div>
+
+    <div class="flex items-center justify-between gap-6 pt-5">
+      <dt class="font-semibold text-medical-navy">
+        Outstanding balance
+      </dt>
+
+      <dd class="text-xl font-semibold text-medical-navy">
+        <%= balance[:currency] %>
+        <%= number_with_precision(
+              balance[:balance_cents] / 100.0,
+              precision: 2
+            ) %>
+      </dd>
+    </div>
+  </dl>
+
+  <% if balance[:balance_cents].positive? %>
+    <div class="mt-6 flex justify-end border-t border-medical-border pt-6">
+      <%= link_to "Take payment",
+                  new_practice_appointment_payment_path(appointment),
+                  class: "inline-flex cursor-pointer items-center justify-center rounded-xl bg-medical-navy px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-medical-navy-deep focus:outline-none focus:ring-2 focus:ring-medical-navy focus:ring-offset-2" %>
+    </div>
+  <% end %>
+</section>

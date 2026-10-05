@@ -31,6 +31,6 @@ module Payments
 
     private
 
-    attr_reader :hold, :amount_cents, :currency, :provider
+      attr_reader :hold, :amount_cents, :currency, :provider
   end
 end

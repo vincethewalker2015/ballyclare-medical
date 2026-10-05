@@ -22,6 +22,9 @@ module Staff
       @balance = Billing::AppointmentBalance.new(
         appointment: @appointment
       ).call
+
+      @returned_payment =
+        @appointment.payments.find_by(id: params[:payment_return]) if params[:payment_return].present?
     end
 
     def new
@@ -107,16 +110,16 @@ module Staff
 
     private
 
-    def load_booking_options
-      @patients = current_practice
-        .patients
-        .order(:last_name, :first_name)
+      def load_booking_options
+        @patients = current_practice
+          .patients
+          .order(:last_name, :first_name)
 
-      @clinicians = current_practice
-        .staff_members
-        .where(staff_type: %w[doctor nurse])
-        .order(:last_name, :first_name)
-    end
+        @clinicians = current_practice
+          .staff_members
+          .where(staff_type: %w[doctor nurse])
+          .order(:last_name, :first_name)
+      end
 
     def render_booking_error(message)
       load_booking_options

@@ -4,6 +4,21 @@ RSpec.describe Payments::TakeAppointmentPayment do
   describe "#call" do
     let(:appointment) { create(:appointment) }
 
+    let(:payment_intent) do
+      instance_double(
+        Stripe::PaymentIntent,
+        id: "pi_test_123",
+        client_secret: "pi_test_secret"
+      )
+    end
+
+    let(:stripe_provider) do
+      instance_double(
+        PaymentProviders::StripeProvider::CreatePayment,
+        call: payment_intent
+      )
+    end
+
     before do
       create(
         :appointment_charge,
@@ -13,16 +28,7 @@ RSpec.describe Payments::TakeAppointmentPayment do
         amount_cents: 5000,
         status: "active"
       )
-    end
 
-    let(:stripe_provider) do
-      instance_double(
-        PaymentProviders::StripeProvider::CreatePayment,
-        call: nil
-      )
-    end
-
-    before do
       allow(
         PaymentProviders::StripeProvider::CreatePayment
       ).to receive(:new)
@@ -50,17 +56,30 @@ RSpec.describe Payments::TakeAppointmentPayment do
         currency: appointment.practice.currency
       )
     end
+
     it "sends the created payment to the Stripe provider" do
-      payment = call_service
+      result = call_service
 
       expect(
         PaymentProviders::StripeProvider::CreatePayment
       ).to have_received(:new)
-        .with(payment: payment)
+        .with(payment: result.payment)
 
       expect(stripe_provider)
         .to have_received(:call)
     end
+
+    it "returns the payment and Stripe payment intent" do
+      result = call_service
+
+      expect(result).to be_a(
+        Payments::TakeAppointmentPayment::Result
+      )
+
+      expect(result.payment).to be_a(Payment)
+      expect(result.payment_intent).to eq(payment_intent)
+    end
+
     it "marks the payment as failed when Stripe cannot create the payment intent" do
       allow(stripe_provider)
         .to receive(:call)

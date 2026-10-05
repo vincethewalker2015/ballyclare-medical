@@ -2,25 +2,27 @@
   <% if appointment_slots.any? %>
     <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <% appointment_slots.each do |slot| %>
+        <% local_starts_at = slot.starts_at.in_time_zone(practice_timezone) %>
+
         <label class="cursor-pointer">
-          <input
+            <input
             type="radio"
             name="appointment_slot_id"
             value="<%= slot.id %>"
             class="peer sr-only"
-          >
+            >
 
-          <span class="block rounded-xl border border-medical-border bg-white px-4 py-3 transition hover:border-medical-teal peer-checked:border-medical-teal peer-checked:bg-medical-teal-soft peer-checked:ring-2 peer-checked:ring-medical-teal/20">
+            <span class="block rounded-xl border border-medical-border bg-white px-4 py-3 transition hover:border-medical-teal peer-checked:border-medical-teal peer-checked:bg-medical-teal-soft peer-checked:ring-2 peer-checked:ring-medical-teal/20">
             <span class="block text-sm font-semibold text-medical-navy">
-              <%= slot.starts_at.strftime("%A, %d %B") %>
+                <%= local_starts_at.strftime("%A, %d %B") %>
             </span>
 
             <span class="mt-1 block text-sm text-medical-muted">
-              <%= slot.starts_at.strftime("%H:%M") %>
+                <%= local_starts_at.strftime("%H:%M") %>
             </span>
-          </span>
+            </span>
         </label>
-      <% end %>
+        <% end %>
     </div>
   <% else %>
     <div class="rounded-xl border border-medical-border bg-medical-cream px-5 py-4">

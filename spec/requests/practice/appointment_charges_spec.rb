@@ -222,7 +222,7 @@ RSpec.describe "Practice appointment charges", type: :request do
                }
         }.not_to change(AppointmentCharge, :count)
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
     end
 
@@ -236,7 +236,7 @@ RSpec.describe "Practice appointment charges", type: :request do
                }
         }.not_to change(AppointmentCharge, :count)
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
     end
 

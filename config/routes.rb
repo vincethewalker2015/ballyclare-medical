@@ -15,6 +15,10 @@ Rails.application.routes.draw do
     patch :status
   end
 
+  resource :charge,
+         only: %i[new create],
+         controller: "appointment_charges"
+
   resource :payment,
            only: %i[new create],
            controller: "appointment_payments" do

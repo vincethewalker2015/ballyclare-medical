@@ -1,0 +1,88 @@
+<% content_for :title, "Availability | Ballyclare Medical" %>
+
+<div class="mx-auto max-w-6xl">
+  <div class="mb-8 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <p class="text-sm font-semibold uppercase tracking-[0.16em] text-medical-teal">
+        Scheduling
+      </p>
+
+      <h1 class="mt-2 text-3xl font-semibold tracking-tight text-medical-navy">
+        Availability
+      </h1>
+
+      <p class="mt-2 max-w-2xl text-sm leading-6 text-medical-muted">
+        Manage clinician availability and appointment slots.
+      </p>
+    </div>
+
+    <%= link_to "Add availability",
+                new_practice_availability_block_path,
+                class: "inline-flex items-center justify-center rounded-xl bg-medical-navy px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-medical-navy-deep focus:outline-none focus:ring-2 focus:ring-medical-navy focus:ring-offset-2" %>
+  </div>
+
+  <section class="overflow-hidden rounded-2xl border border-medical-border bg-white shadow-sm">
+    <% if @availability_blocks.any? %>
+      <div class="divide-y divide-medical-border">
+        <% @availability_blocks.each do |block| %>
+          <%
+            starts_at = block.starts_at.in_time_zone(block.practice.timezone)
+            ends_at = block.ends_at.in_time_zone(block.practice.timezone)
+          %>
+
+          <div class="p-6 sm:flex sm:items-center sm:justify-between sm:gap-8">
+            <div>
+              <p class="font-semibold text-medical-navy">
+                <%= block.clinician.full_name %>
+              </p>
+
+              <p class="mt-1 text-sm text-medical-muted">
+                <%= starts_at.strftime("%A, %d %B %Y") %>
+              </p>
+
+              <p class="mt-1 text-sm text-medical-ink">
+                <%= starts_at.strftime("%H:%M") %>
+                –
+                <%= ends_at.strftime("%H:%M") %>
+              </p>
+            </div>
+
+            <div class="mt-4 flex flex-wrap gap-2 sm:mt-0 sm:justify-end">
+              <span class="rounded-full bg-medical-teal-soft px-3 py-1 text-xs font-semibold text-medical-teal-dark">
+                <%= block.slot_duration_minutes %> min slots
+              </span>
+
+              <span class="rounded-full bg-medical-cream px-3 py-1 text-xs font-semibold text-medical-navy">
+                <%= pluralize(block.appointment_slots.size, "slot") %>
+              </span>
+
+              <% if block.bookable_online? %>
+                <span class="rounded-full bg-medical-teal-soft px-3 py-1 text-xs font-semibold text-medical-teal-dark">
+                  Online booking
+                </span>
+              <% else %>
+                <span class="rounded-full bg-medical-cream px-3 py-1 text-xs font-semibold text-medical-muted">
+                  Staff booking only
+                </span>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="px-6 py-16 text-center">
+        <h2 class="text-lg font-semibold text-medical-navy">
+          No upcoming availability
+        </h2>
+
+        <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-medical-muted">
+          Add a clinician's working period to generate appointment slots.
+        </p>
+
+        <%= link_to "Add availability",
+                    new_practice_availability_block_path,
+                    class: "mt-6 inline-flex items-center justify-center rounded-xl bg-medical-navy px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-medical-navy-deep" %>
+      </div>
+    <% end %>
+  </section>
+</div>

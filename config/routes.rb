@@ -6,6 +6,9 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
   scope "/practice", module: "staff", as: "practice" do
+  resources :availability_blocks,
+        path: "availability",
+        only: %i[index new create]
   resources :appointments, only: %i[index show new create] do
   collection do
     get :available_slots

@@ -23,8 +23,15 @@ module Staff
         appointment: @appointment
       ).call
 
+      @allowed_status_transitions =
+        Appointments::ChangeStatus.allowed_transitions(
+          @appointment.status
+        )
+
       @returned_payment =
-        @appointment.payments.find_by(id: params[:payment_return]) if params[:payment_return].present?
+        @appointment.payments.find_by(
+          id: params[:payment_return]
+        ) if params[:payment_return].present?
     end
 
     def new
@@ -106,6 +113,51 @@ module Staff
           practice_timezone: current_practice.timezone
         }
       )
+    end
+
+    def status
+      appointment = current_practice.appointments.find(params[:id])
+
+      Appointments::ChangeStatus.new(
+        appointment: appointment,
+        to_status: params[:status],
+        changed_by: current_user
+      ).call
+
+      allowed_status_transitions =
+        Appointments::ChangeStatus.allowed_transitions(
+          appointment.status
+        )
+
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: [
+            turbo_stream.replace(
+              "appointment_status_badge",
+              partial: "staff/appointments/status_badge",
+              locals: {
+                appointment: appointment
+              }
+            ),
+            turbo_stream.replace(
+              "appointment_lifecycle_controls",
+              partial: "staff/appointments/lifecycle_controls",
+              locals: {
+                appointment: appointment,
+                allowed_status_transitions: allowed_status_transitions
+              }
+            )
+          ]
+        end
+
+        format.html do
+          redirect_to practice_appointment_path(appointment),
+                      notice: "Appointment status updated."
+        end
+      end
+    rescue Appointments::ChangeStatus::InvalidTransition => error
+      redirect_to practice_appointment_path(appointment),
+                  alert: error.message
     end
 
     private

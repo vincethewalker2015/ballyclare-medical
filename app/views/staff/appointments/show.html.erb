@@ -43,9 +43,7 @@
           Appointment details
         </h2>
 
-        <span class="rounded-full bg-medical-teal-soft px-3 py-1 text-xs font-semibold capitalize text-medical-teal-dark">
-          <%= @appointment.status.humanize %>
-        </span>
+        <%= render "staff/appointments/status_badge", appointment: @appointment %>
       </div>
 
       <dl class="grid gap-x-8 gap-y-6 sm:grid-cols-2">
@@ -104,6 +102,9 @@
           </dd>
         </div>
       </dl>
+      <%= render "staff/appointments/lifecycle_controls",
+                 appointment: @appointment,
+                 allowed_status_transitions: @allowed_status_transitions %>
     </section>
 
     <%= render "financial_summary",

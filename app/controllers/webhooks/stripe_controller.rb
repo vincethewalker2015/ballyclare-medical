@@ -14,13 +14,13 @@ module Webhooks
 
     private
 
-      def construct_event
-        Stripe::Webhook.construct_event(
-          request.raw_post,
-          request.headers["Stripe-Signature"],
-          ENV["STRIPE_WEBHOOK_SECRET"]
-        )
-      end
+    def construct_event
+      Stripe::Webhook.construct_event(
+        request.raw_post,
+        request.headers["Stripe-Signature"],
+        ENV["STRIPE_WEBHOOK_SECRET"]
+      )
+    end
 
     def handle_event(event)
       case event.type

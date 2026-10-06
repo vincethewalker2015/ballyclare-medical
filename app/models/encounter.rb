@@ -12,9 +12,9 @@ class Encounter < ApplicationRecord
 
   private
 
-    def ends_after_start
-      return if started_at.blank? || ended_at.blank?
+  def ends_after_start
+    return if started_at.blank? || ended_at.blank?
 
-      errors.add(:ended_at, "must not be before started_at") if ended_at < started_at
-    end
+    errors.add(:ended_at, "must not be before started_at") if ended_at < started_at
+  end
 end

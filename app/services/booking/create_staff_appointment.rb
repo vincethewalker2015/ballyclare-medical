@@ -33,11 +33,11 @@ module Booking
 
     private
 
-      attr_reader :appointment_slot,
-                  :patient,
-                  :booked_by,
-                  :reason,
-                  :amount_cents
+    attr_reader :appointment_slot,
+                :patient,
+                :booked_by,
+                :reason,
+                :amount_cents
 
     def create_appointment!
       Appointment.create!(

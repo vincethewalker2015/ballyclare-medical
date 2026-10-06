@@ -42,21 +42,21 @@ module Staff
     def create
       amount_cents = amount_to_cents(params[:amount])
 
-        if amount_cents.nil? || amount_cents <= 0
-          return render_payment_error(
-            "Enter a valid payment amount."
-          )
-        end
+      if amount_cents.nil? || amount_cents <= 0
+        return render_payment_error(
+          "Enter a valid payment amount."
+        )
+      end
 
-        result = Payments::TakeAppointmentPayment.new(
-          appointment: @appointment,
-          amount_cents: amount_cents
-        ).call
+      result = Payments::TakeAppointmentPayment.new(
+        appointment: @appointment,
+        amount_cents: amount_cents
+      ).call
 
-        @payment = result.payment
-        @client_secret = result.payment_intent.client_secret
+      @payment = result.payment
+      @client_secret = result.payment_intent.client_secret
 
-        render :confirm
+      render :confirm
 
       rescue Payments::CreateForAppointment::AmountExceedsBalance
         render_payment_error(
@@ -75,12 +75,12 @@ module Staff
 
     private
 
-      def set_appointment
-        @appointment = current_practice
-          .appointments
-          .includes(:patient, :payments, :appointment_charges)
-          .find(params[:appointment_id])
-      end
+    def set_appointment
+      @appointment = current_practice
+        .appointments
+        .includes(:patient, :payments, :appointment_charges)
+        .find(params[:appointment_id])
+    end
 
     def appointment_balance
       Billing::AppointmentBalance.new(

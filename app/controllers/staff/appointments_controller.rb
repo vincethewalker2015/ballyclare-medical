@@ -15,7 +15,8 @@ module Staff
           :clinician,
           :appointment_slot,
           :appointment_charges,
-          :payments
+          :payments,
+          appointment_status_changes: :changed_by
         )
         .find(params[:id])
 
@@ -27,6 +28,9 @@ module Staff
         Appointments::ChangeStatus.allowed_transitions(
           @appointment.status
         )
+
+      @status_changes =
+        @appointment.appointment_status_changes.order(created_at: :desc)
 
       @returned_payment =
         @appointment.payments.find_by(
@@ -129,6 +133,11 @@ module Staff
           appointment.status
         )
 
+      status_changes =
+        appointment.appointment_status_changes
+          .includes(:changed_by)
+          .order(created_at: :desc)
+
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: [
@@ -146,6 +155,14 @@ module Staff
                 appointment: appointment,
                 allowed_status_transitions: allowed_status_transitions
               }
+            ),
+            turbo_stream.replace(
+              "appointment_activity",
+              partial: "staff/appointments/activity",
+              locals: {
+                appointment: appointment,
+                status_changes: status_changes
+              }
             )
           ]
         end
@@ -162,16 +179,16 @@ module Staff
 
     private
 
-      def load_booking_options
-        @patients = current_practice
-          .patients
-          .order(:last_name, :first_name)
+    def load_booking_options
+      @patients = current_practice
+        .patients
+        .order(:last_name, :first_name)
 
-        @clinicians = current_practice
-          .staff_members
-          .where(staff_type: %w[doctor nurse])
-          .order(:last_name, :first_name)
-      end
+      @clinicians = current_practice
+        .staff_members
+        .where(staff_type: %w[doctor nurse])
+        .order(:last_name, :first_name)
+    end
 
     def render_booking_error(message)
       load_booking_options

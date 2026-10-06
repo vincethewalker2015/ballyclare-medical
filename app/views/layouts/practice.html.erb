@@ -74,6 +74,19 @@
       </aside>
 
       <main class="min-w-0 px-6 py-10 lg:px-10">
+        <% if notice.present? %>
+          <div class="mx-auto mb-6 max-w-6xl rounded-xl border border-medical-teal/20 bg-medical-teal-soft px-4 py-3 text-sm font-medium text-medical-teal-dark">
+            <%= notice %>
+          </div>
+        <% end %>
+
+        <% if alert.present? %>
+          <div class="mx-auto mb-6 max-w-6xl rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+            <%= alert %>
+          </div>
+        <% end %>
+
+        <%#= yield %>
         <%= yield %>
       </main>
     </div>

@@ -1,4 +1,4 @@
-<% content_for :title, "Add availability | Ballyclare Medical" %>
+<% content_for :title, "Edit availability | Ballyclare Medical" %>
 
 <div class="mx-auto max-w-3xl">
   <div class="mb-8">
@@ -7,17 +7,17 @@
     </p>
 
     <h1 class="mt-2 text-3xl font-semibold tracking-tight text-medical-navy">
-      Add availability
+      Edit availability
     </h1>
 
     <p class="mt-2 text-sm leading-6 text-medical-muted">
-      Add a clinician's working period and generate bookable appointment slots.
+      Update this clinician's availability and regenerate its appointment slots.
     </p>
   </div>
 
   <%= render "form",
              availability_block: @availability_block,
              clinicians: @clinicians,
-             form_url: practice_availability_blocks_path,
-             submit_label: "Add availability" %>
+             form_url: practice_availability_block_path(@availability_block),
+             submit_label: "Save changes" %>
 </div>

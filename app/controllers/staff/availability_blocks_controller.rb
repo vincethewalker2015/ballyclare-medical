@@ -58,7 +58,7 @@ module Staff
         load_clinicians
 
         render :new,
-               status: :unprocessable_entity
+               status: :unprocessable_content
       end
     rescue ArgumentError
       @availability_block ||= current_practice.availability_blocks.new
@@ -70,7 +70,71 @@ module Staff
       load_clinicians
 
       render :new,
-             status: :unprocessable_entity
+             status: :unprocessable_content
+    end
+
+    def edit
+      @availability_block =
+        current_practice.availability_blocks.find(params[:id])
+
+      load_clinicians
+    end
+
+    def update
+      @availability_block =
+        current_practice.availability_blocks.find(params[:id])
+
+      clinician = current_practice
+        .staff_members
+        .where(staff_type: %w[doctor nurse])
+        .find(availability_block_params[:clinician_id])
+
+      starts_at = local_time(
+        availability_block_params[:date],
+        availability_block_params[:starts_at]
+      )
+
+      ends_at = local_time(
+        availability_block_params[:date],
+        availability_block_params[:ends_at]
+      )
+
+      Availability::UpdateBlock.new(
+        availability_block: @availability_block,
+        clinician: clinician,
+        starts_at: starts_at,
+        ends_at: ends_at,
+        slot_duration_minutes:
+          availability_block_params[:slot_duration_minutes],
+        bookable_online:
+          availability_block_params[:bookable_online]
+      ).call
+
+      redirect_to practice_availability_blocks_path,
+                  notice: "Availability updated."
+    rescue Availability::UpdateBlock::Unavailable => error
+      redirect_to practice_availability_blocks_path,
+                  alert: error.message
+    rescue ActiveRecord::RecordInvalid => error
+      @availability_block = error.record
+      load_clinicians
+
+      render :edit,
+            status: :unprocessable_content
+    rescue ArgumentError
+      @availability_block ||= current_practice
+        .availability_blocks
+        .find(params[:id])
+
+      @availability_block.errors.add(
+        :base,
+        "Enter a valid date and time."
+      )
+
+      load_clinicians
+
+      render :edit,
+            status: :unprocessable_content
     end
 
     private

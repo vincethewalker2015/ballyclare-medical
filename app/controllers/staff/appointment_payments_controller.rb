@@ -92,7 +92,7 @@ module Staff
       @balance = appointment_balance
       flash.now[:alert] = message
 
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
 
     def amount_to_cents(amount)

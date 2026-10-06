@@ -45,7 +45,7 @@ module Staff
       @error = message
 
       render :new,
-             status: :unprocessable_entity
+             status: :unprocessable_content
     end
 
     def amount_to_cents(value)

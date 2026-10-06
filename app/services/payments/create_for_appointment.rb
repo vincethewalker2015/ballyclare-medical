@@ -26,8 +26,8 @@ module Payments
 
     private
 
-      attr_reader :appointment,
-                  :amount_cents
+    attr_reader :appointment,
+                :amount_cents
 
     def create_payment!
       Payment.create!(

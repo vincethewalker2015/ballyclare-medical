@@ -33,7 +33,7 @@ module Booking
 
     private
 
-      attr_reader :hold
+    attr_reader :hold
 
     def slot
       @slot ||= hold.appointment_slot

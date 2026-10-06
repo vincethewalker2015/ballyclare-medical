@@ -20,7 +20,7 @@ module Billing
 
     private
 
-      attr_reader :appointment
+    attr_reader :appointment
 
     def active_charged_cents
       appointment.appointment_charges

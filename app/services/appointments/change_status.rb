@@ -45,7 +45,7 @@ module Appointments
 
     private
 
-      attr_reader :appointment, :to_status, :changed_by
+    attr_reader :appointment, :to_status, :changed_by
 
     def validate_transition!
       allowed = TRANSITIONS.fetch(appointment.status, [])

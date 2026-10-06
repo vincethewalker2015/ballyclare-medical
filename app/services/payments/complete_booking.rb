@@ -55,7 +55,7 @@ module Payments
 
     private
 
-      attr_reader :payment
+    attr_reader :payment
 
     def validate_payment!
       return if payment.status == "succeeded"

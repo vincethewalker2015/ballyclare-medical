@@ -11,9 +11,9 @@ Rails.application.routes.draw do
     get :available_slots
   end
 
-    member do
-      patch :status
-    end
+  member do
+    patch :status
+  end
 
   resource :payment,
            only: %i[new create],

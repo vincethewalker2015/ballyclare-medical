@@ -35,11 +35,11 @@ class AppointmentSlot < ApplicationRecord
 
   private
 
-    def ends_after_it_starts
-      return if starts_at.blank? || ends_at.blank?
+  def ends_after_it_starts
+    return if starts_at.blank? || ends_at.blank?
 
-      errors.add(:ends_at, "must be after starts_at") if ends_at <= starts_at
-    end
+    errors.add(:ends_at, "must be after starts_at") if ends_at <= starts_at
+  end
 
   def ensure_patient_belongs_to_practice!(patient)
     return if patient.practice_id == practice_id

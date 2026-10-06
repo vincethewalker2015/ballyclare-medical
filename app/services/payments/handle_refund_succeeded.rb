@@ -28,7 +28,7 @@ module Payments
 
     private
 
-      attr_reader :stripe_refund
+    attr_reader :stripe_refund
 
     def find_refund
       Refund.find_by(

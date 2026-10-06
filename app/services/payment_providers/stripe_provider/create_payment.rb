@@ -31,7 +31,7 @@ module PaymentProviders
 
       private
 
-        attr_reader :payment
+      attr_reader :payment
     end
   end
 end

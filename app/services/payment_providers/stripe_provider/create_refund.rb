@@ -30,7 +30,7 @@ module PaymentProviders
 
       private
 
-        attr_reader :refund
+      attr_reader :refund
     end
   end
 end

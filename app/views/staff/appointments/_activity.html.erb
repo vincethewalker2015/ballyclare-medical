@@ -1,0 +1,56 @@
+<section
+  id="appointment_activity"
+  class="rounded-2xl border border-medical-border bg-white p-8 shadow-sm">
+  <div class="mb-6">
+    <h2 class="text-lg font-semibold text-medical-navy">
+      Activity
+    </h2>
+
+    <p class="mt-1 text-sm text-medical-muted">
+      Status changes recorded for this appointment.
+    </p>
+  </div>
+
+  <% if status_changes.any? %>
+    <div class="divide-y divide-medical-border">
+      <% status_changes.each do |change| %>
+        <div class="py-4 first:pt-0 last:pb-0">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p class="font-semibold text-medical-navy">
+                <%= change.from_status.humanize %>
+                <span class="mx-1 text-medical-muted">→</span>
+                <%= change.to_status.humanize %>
+              </p>
+
+              <p class="mt-1 text-sm text-medical-muted">
+                Changed by
+                <span class="font-medium text-medical-ink">
+                  <%= change.changed_by.email %>
+                </span>
+              </p>
+
+              <% if change.notes.present? %>
+                <p class="mt-2 text-sm leading-6 text-medical-ink">
+                  <%= change.notes %>
+                </p>
+              <% end %>
+            </div>
+
+            <time
+              datetime="<%= change.created_at.iso8601 %>"
+              class="shrink-0 text-sm text-medical-muted">
+              <%= change.created_at
+                    .in_time_zone(appointment.practice.timezone)
+                    .strftime("%d %b %Y, %H:%M") %>
+            </time>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="text-sm text-medical-muted">
+      No status changes have been recorded yet.
+    </p>
+  <% end %>
+</section>

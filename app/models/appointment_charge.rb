@@ -36,21 +36,21 @@ class AppointmentCharge < ApplicationRecord
 
   private
 
-    def appointment_relationships_match
-      return if appointment.blank?
+  def appointment_relationships_match
+    return if appointment.blank?
 
-      if patient_id.present? && patient_id != appointment.patient_id
-        errors.add(
-          :patient,
-          "must match the appointment patient"
-        )
-      end
-
-      if practice_id.present? && practice_id != appointment.practice_id
-        errors.add(
-          :practice,
-          "must match the appointment practice"
-        )
-      end
+    if patient_id.present? && patient_id != appointment.patient_id
+      errors.add(
+        :patient,
+        "must match the appointment patient"
+      )
     end
+
+    if practice_id.present? && practice_id != appointment.practice_id
+      errors.add(
+        :practice,
+        "must match the appointment practice"
+      )
+    end
+  end
 end

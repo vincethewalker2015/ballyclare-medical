@@ -34,7 +34,7 @@ module Payments
 
     private
 
-      attr_reader :payment_intent
+    attr_reader :payment_intent
 
     def find_payment!
       Payment.find_by(

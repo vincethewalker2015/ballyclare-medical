@@ -32,7 +32,7 @@ module Payments
 
     private
 
-      attr_reader :appointment,
-                  :amount_cents
+    attr_reader :appointment,
+                :amount_cents
   end
 end

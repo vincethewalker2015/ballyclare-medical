@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_04_130540) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_07_094631) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -138,6 +138,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_04_130540) do
     t.boolean "bookable_online", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "cancelled_at"
     t.index ["clinician_id", "starts_at"], name: "index_availability_blocks_on_clinician_id_and_starts_at"
     t.index ["clinician_id"], name: "index_availability_blocks_on_clinician_id"
     t.index ["practice_id", "starts_at"], name: "index_availability_blocks_on_practice_id_and_starts_at"

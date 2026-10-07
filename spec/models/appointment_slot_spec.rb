@@ -254,5 +254,26 @@ RSpec.describe AppointmentSlot do
         appointment_slot.hold_for!(patient: nil)
       }.to raise_error(ArgumentError, "patient is required")
     end
+
+    context "when the availability block has been cancelled" do
+      before do
+        appointment_slot.availability_block.update!(
+          cancelled_at: Time.current
+        )
+      end
+
+      it "does not create a hold" do
+        expect {
+          appointment_slot.hold_for!(patient: patient)
+        }.to raise_error(
+          AppointmentSlot::Unavailable,
+          "Appointment slot is no longer available"
+        )
+
+        expect(
+          appointment_slot.appointment_holds.count
+        ).to eq(0)
+      end
+    end
   end
 end

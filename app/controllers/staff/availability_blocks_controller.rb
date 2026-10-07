@@ -137,6 +137,22 @@ module Staff
             status: :unprocessable_content
     end
 
+    def cancel
+      availability_block = current_practice
+        .availability_blocks
+        .find(params[:id])
+
+      Availability::CancelBlock.new(
+        availability_block: availability_block
+      ).call
+
+      redirect_to practice_availability_blocks_path,
+                  notice: "Availability cancelled."
+    rescue Availability::CancelBlock::Unavailable => error
+      redirect_to practice_availability_blocks_path,
+                  alert: error.message
+    end
+
     private
 
     def load_clinicians

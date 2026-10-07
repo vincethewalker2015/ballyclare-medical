@@ -141,5 +141,28 @@ RSpec.describe Booking::CreateAppointment do
       expect(AppointmentHold.exists?(hold.id)).to be(true)
       expect(Appointment.where(appointment_slot: appointment_slot)).to be_empty
     end
+
+    context "when the availability block is cancelled after the hold is created" do
+      before do
+        appointment_slot.availability_block.update!(
+          cancelled_at: Time.current
+        )
+      end
+
+      it "does not convert the hold into an appointment" do
+        expect {
+          described_class.new(hold: hold).call
+        }.to raise_error(
+          Booking::CreateAppointment::SlotUnavailable,
+          "Appointment slot is no longer available"
+        )
+
+        expect(
+          Appointment.exists?(appointment_slot_id: appointment_slot.id)
+        ).to be(false)
+
+        expect(AppointmentHold.exists?(hold.id)).to be(true)
+      end
+    end
   end
 end

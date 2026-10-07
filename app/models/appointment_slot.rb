@@ -49,6 +49,11 @@ class AppointmentSlot < ApplicationRecord
   end
 
   def ensure_available_for_hold!
+    unless availability_block.active?
+      raise Unavailable,
+            "Appointment slot is no longer available"
+    end
+
     if Appointment.exists?(appointment_slot_id: id)
       raise Unavailable,
             "Appointment slot has already been booked"

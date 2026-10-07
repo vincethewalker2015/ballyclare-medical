@@ -10,6 +10,17 @@ class AvailabilityBlock < ApplicationRecord
 
   validate :ends_after_it_starts
 
+  scope :active, -> { where(cancelled_at: nil) }
+  scope :cancelled, -> { where.not(cancelled_at: nil) }
+
+  def active?
+    cancelled_at.nil?
+  end
+
+  def cancelled?
+    cancelled_at.present?
+  end
+
   private
 
   def ends_after_it_starts

@@ -156,5 +156,31 @@ RSpec.describe Booking::CreateStaffAppointment do
         currency: practice.currency
       )
     end
+
+    context "when the availability block has been cancelled" do
+      before do
+        appointment_slot.availability_block.update!(
+          cancelled_at: Time.current
+        )
+      end
+
+      it "does not create an appointment" do
+        expect {
+          described_class.new(
+            appointment_slot: appointment_slot,
+            patient: patient,
+            booked_by: booked_by,
+            amount_cents: 6_500
+          ).call
+        }.to raise_error(
+          Booking::CreateStaffAppointment::SlotUnavailable,
+          "Appointment slot is no longer available"
+        )
+
+        expect(
+          Appointment.exists?(appointment_slot_id: appointment_slot.id)
+        ).to be(false)
+      end
+    end
   end
 end

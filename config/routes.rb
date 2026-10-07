@@ -8,7 +8,11 @@ Rails.application.routes.draw do
   scope "/practice", module: "staff", as: "practice" do
   resources :availability_blocks,
         path: "availability",
-        only:  %i[index new create edit update]
+        only:  %i[index new create edit update] do
+          member do
+            patch :cancel
+          end
+        end
   resources :appointments, only: %i[index show new create] do
   collection do
     get :available_slots

@@ -2,10 +2,13 @@ module Staff
   class AvailabilityBlocksController < BaseController
     def index
       @availability_blocks = current_practice
-        .availability_blocks
-        .includes(:clinician, :appointment_slots)
-        .where(ends_at: Time.current..)
-        .order(:starts_at)
+      .availability_blocks
+      .includes(
+        :clinician,
+        appointment_slots: [ :appointment, :appointment_holds ]
+      )
+      .where(ends_at: Time.current..)
+      .order(:starts_at)
     end
 
     def new

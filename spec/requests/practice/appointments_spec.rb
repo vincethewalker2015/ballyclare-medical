@@ -65,6 +65,7 @@ RSpec.describe "Practice appointments", type: :request do
         expect(response).to have_http_status(:forbidden)
       end
     end
+
     context "when appointments belong to different practices" do
       let(:other_practice) do
         Practice.create!(
@@ -104,36 +105,211 @@ RSpec.describe "Practice appointments", type: :request do
       before do
         sign_in user
 
-        other_availability = AvailabilityBlock.create!(
-          practice: other_practice,
-          clinician: other_clinician,
-          starts_at: 1.day.from_now.change(hour: 9),
-          ends_at: 1.day.from_now.change(hour: 12)
+        Time.use_zone(other_practice.timezone) do
+          starts_at = Time.zone.now.beginning_of_day + 1.day + 10.hours
+
+          other_availability = AvailabilityBlock.create!(
+            practice: other_practice,
+            clinician: other_clinician,
+            starts_at: starts_at,
+            ends_at: starts_at + 30.minutes,
+            slot_duration_minutes: 30,
+            bookable_online: true
+          )
+
+          other_slot = AppointmentSlot.create!(
+            practice: other_practice,
+            clinician: other_clinician,
+            availability_block: other_availability,
+            starts_at: starts_at,
+            ends_at: starts_at + 30.minutes
+          )
+
+          Appointment.create!(
+            practice: other_practice,
+            appointment_slot: other_slot,
+            patient: other_patient,
+            clinician: other_clinician,
+            status: "booked",
+            booked_at: Time.current
+          )
+        end
+      end
+
+      it "does not expose appointments from another practice" do
+        get practice_appointments_path(view: "upcoming")
+
+        expect(response).to have_http_status(:success)
+        expect(response.body).not_to include("Hidden Patient")
+      end
+    end
+
+    context "when filtering the appointment diary" do
+      let(:clinician_user) do
+        User.create!(
+          email: "diary-doctor@example.com",
+          password: "password123"
+        )
+      end
+
+      let(:clinician) do
+        StaffMember.create!(
+          practice: practice,
+          user: clinician_user,
+          staff_type: "doctor",
+          default_appointment_duration: 30
+        )
+      end
+
+      let(:patient) do
+        Patient.create!(
+          practice: practice,
+          patient_number: "DIARY-001",
+          first_name: "Diary",
+          last_name: "Patient",
+          date_of_birth: Date.new(1990, 1, 1)
+        )
+      end
+
+      before do
+        sign_in user
+      end
+
+      def create_diary_appointment(starts_at:, reason:)
+        availability = AvailabilityBlock.create!(
+          practice: practice,
+          clinician: clinician,
+          starts_at: starts_at,
+          ends_at: starts_at + 30.minutes,
+          slot_duration_minutes: 30,
+          bookable_online: true
         )
 
-        other_slot = AppointmentSlot.create!(
-          practice: other_practice,
-          clinician: other_clinician,
-          availability_block: other_availability,
-          starts_at: 1.day.from_now.change(hour: 10),
-          ends_at: 1.day.from_now.change(hour: 10, min: 30)
+        slot = AppointmentSlot.create!(
+          practice: practice,
+          clinician: clinician,
+          availability_block: availability,
+          starts_at: starts_at,
+          ends_at: starts_at + 30.minutes
         )
 
         Appointment.create!(
-          practice: other_practice,
-          appointment_slot: other_slot,
-          patient: other_patient,
-          clinician: other_clinician,
+          practice: practice,
+          appointment_slot: slot,
+          patient: patient,
+          clinician: clinician,
+          reason: reason,
           status: "booked",
           booked_at: Time.current
         )
       end
 
-      it "does not expose appointments from another practice" do
+      it "shows today's appointments by default" do
+        Time.use_zone(practice.timezone) do
+          today = Time.zone.now.beginning_of_day
+
+          create_diary_appointment(
+            starts_at: today + 12.hours,
+            reason: "Today appointment"
+          )
+
+          create_diary_appointment(
+            starts_at: today + 2.days + 12.hours,
+            reason: "Upcoming appointment"
+          )
+
+          create_diary_appointment(
+            starts_at: today - 1.day + 12.hours,
+            reason: "Past appointment"
+          )
+        end
+
         get practice_appointments_path
 
         expect(response).to have_http_status(:success)
-        expect(response.body).not_to include("Hidden Patient")
+        expect(response.body).to include("Today appointment")
+        expect(response.body).not_to include("Upcoming appointment")
+        expect(response.body).not_to include("Past appointment")
+      end
+
+      it "shows future appointments in the upcoming view" do
+        Time.use_zone(practice.timezone) do
+          today = Time.zone.now.beginning_of_day
+
+          create_diary_appointment(
+            starts_at: today + 2.days + 12.hours,
+            reason: "Upcoming appointment"
+          )
+
+          create_diary_appointment(
+            starts_at: today + 12.hours,
+            reason: "Today appointment"
+          )
+        end
+
+        get practice_appointments_path(view: "upcoming")
+
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include("Upcoming appointment")
+        expect(response.body).not_to include("Today appointment")
+      end
+
+      it "shows earlier appointments in the past view" do
+        Time.use_zone(practice.timezone) do
+          today = Time.zone.now.beginning_of_day
+
+          create_diary_appointment(
+            starts_at: today - 1.day + 12.hours,
+            reason: "Past appointment"
+          )
+
+          create_diary_appointment(
+            starts_at: today + 12.hours,
+            reason: "Today appointment"
+          )
+        end
+
+        get practice_appointments_path(view: "past")
+
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include("Past appointment")
+        expect(response.body).not_to include("Today appointment")
+      end
+
+      it "shows the financial state of an appointment" do
+        appointment = nil
+
+        Time.use_zone(practice.timezone) do
+          appointment = create_diary_appointment(
+            starts_at: Time.zone.now.beginning_of_day + 12.hours,
+            reason: "Financial status appointment"
+          )
+        end
+
+        create(
+          :appointment_charge,
+          appointment: appointment,
+          patient: appointment.patient,
+          practice: appointment.practice,
+          amount_cents: 5000,
+          status: "active"
+        )
+
+        create(
+          :payment,
+          appointment: appointment,
+          appointment_hold: nil,
+          patient: appointment.patient,
+          amount_cents: 2000,
+          currency: appointment.practice.currency,
+          status: "succeeded"
+        )
+
+        get practice_appointments_path
+
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include("Financial status appointment")
+        expect(response.body).to include("Part paid")
       end
     end
   end

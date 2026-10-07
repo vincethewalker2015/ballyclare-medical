@@ -23,27 +23,77 @@
   </header>
 
   <section class="overflow-hidden rounded-2xl border border-medical-border bg-white shadow-sm">
-    <div class="border-b border-medical-border px-6 py-5">
-      <div>
-        <h2 class="text-lg font-semibold text-medical-navy">
-          Appointment diary
-        </h2>
+    <section class="overflow-hidden rounded-2xl border border-medical-border bg-white shadow-sm">
+      <div class="border-b border-medical-border px-6 py-5">
+        <div class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 class="text-lg font-semibold text-medical-navy">
+              Appointment diary
+            </h2>
 
-        <p class="mt-1 text-sm text-medical-muted">
-          Recent and upcoming appointments for this practice.
-        </p>
+            <p class="mt-1 text-sm text-medical-muted">
+              View appointments by scheduled date.
+            </p>
+          </div>
+
+          <nav
+            class="inline-flex w-fit rounded-xl bg-medical-cream p-1"
+            aria-label="Appointment diary">
+            <% [
+              ["Today", "today"],
+              ["Upcoming", "upcoming"],
+              ["Past", "past"]
+            ].each do |label, view| %>
+              <%= link_to label,
+                          practice_appointments_path(view: view),
+                          class: class_names(
+                            "rounded-lg px-4 py-2 text-sm font-semibold transition",
+                            "bg-white text-medical-navy shadow-sm" => @diary_view == view,
+                            "text-medical-muted hover:text-medical-navy" => @diary_view != view
+                          ),
+                          aria: {
+                            current: (@diary_view == view ? "page" : nil)
+                          } %>
+            <% end %>
+          </nav>
+        </div>
       </div>
-    </div>
 
     <% if @appointments.any? %>
       <div class="divide-y divide-medical-border">
         <% @appointments.each do |appointment| %>
+          <%
+            starts_at = appointment
+              .appointment_slot
+              .starts_at
+              .in_time_zone(appointment.practice.timezone)
+
+            ends_at = appointment
+              .appointment_slot
+              .ends_at
+              .in_time_zone(appointment.practice.timezone)
+
+            balance = @appointment_balances.fetch(appointment.id)
+          %>
+
           <%= link_to practice_appointment_path(appointment),
                       class: "group block px-6 py-5 transition hover:bg-medical-cream/60" do %>
 
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div class="grid gap-4 sm:grid-cols-[9rem_minmax(0,1fr)_auto] sm:items-center">
+              <div>
+                <p class="text-sm font-semibold text-medical-navy">
+                  <%= starts_at.strftime("%H:%M") %>
+                  –
+                  <%= ends_at.strftime("%H:%M") %>
+                </p>
+
+                <p class="mt-1 text-xs text-medical-muted">
+                  <%= starts_at.strftime("%a, %d %b %Y") %>
+                </p>
+              </div>
+
               <div class="min-w-0">
-                <div class="flex flex-wrap items-center gap-3">
+                <div class="flex flex-wrap items-center gap-2">
                   <p class="font-semibold text-medical-navy">
                     <%= appointment.patient.first_name %>
                     <%= appointment.patient.last_name %>
@@ -52,21 +102,44 @@
                   <span class="rounded-full bg-medical-teal-soft px-3 py-1 text-xs font-semibold capitalize text-medical-teal-dark">
                     <%= appointment.status.humanize %>
                   </span>
+                  <% if balance[:balance_cents].negative? %>
+                    <span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                      Credit
+                    </span>
+                  <% elsif balance[:charged_cents].zero? %>
+                    <span class="rounded-full bg-medical-cream px-3 py-1 text-xs font-semibold text-medical-muted">
+                      No charge
+                    </span>
+                  <% elsif balance[:balance_cents].zero? %>
+                    <span class="rounded-full bg-medical-teal-soft px-3 py-1 text-xs font-semibold text-medical-teal-dark">
+                      Paid
+                    </span>
+                  <% elsif balance[:paid_cents].positive? %>
+                    <span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                      Part paid
+                    </span>
+                  <% else %>
+                    <span class="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
+                      Unpaid
+                    </span>
+                  <% end %>
                 </div>
 
                 <div class="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-medical-muted">
                   <span>
-                    <%= appointment.appointment_slot.starts_at.strftime("%d %b %Y, %H:%M") %>
+                    <%= appointment.clinician.full_name %>
                   </span>
 
-                  <span>
-                    <%= appointment.clinician.user.email %>
-                  </span>
+                  <% if appointment.reason.present? %>
+                    <span class="truncate">
+                      <%= appointment.reason %>
+                    </span>
+                  <% end %>
                 </div>
               </div>
 
               <span class="text-sm font-semibold text-medical-teal transition group-hover:translate-x-1">
-                View appointment →
+                View →
               </span>
             </div>
           <% end %>
@@ -79,9 +152,55 @@
             <span class="text-lg font-semibold">+</span>
           </div>
 
-          <h3 class="text-base font-semibold text-medical-navy">
-            No appointments yet
-          </h3>
+          <div class="px-6 py-16 text-center">
+            <div class="mx-auto max-w-md">
+              <div class="mx-auto mb-5 flex size-12 items-center justify-center rounded-full bg-medical-teal-soft text-medical-teal">
+                <svg
+                  class="size-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M8 2v4m8-4v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" />
+                </svg>
+              </div>
+
+              <% case @diary_view %>
+              <% when "upcoming" %>
+                <h3 class="text-base font-semibold text-medical-navy">
+                  No upcoming appointments
+                </h3>
+
+                <p class="mt-2 text-sm leading-6 text-medical-muted">
+                  There are no appointments scheduled after today.
+                </p>
+              <% when "past" %>
+                <h3 class="text-base font-semibold text-medical-navy">
+                  No past appointments
+                </h3>
+
+                <p class="mt-2 text-sm leading-6 text-medical-muted">
+                  There are no earlier appointments in the practice diary.
+                </p>
+              <% else %>
+                <h3 class="text-base font-semibold text-medical-navy">
+                  No appointments today
+                </h3>
+
+                <p class="mt-2 text-sm leading-6 text-medical-muted">
+                  There are no appointments scheduled for today.
+                </p>
+              <% end %>
+
+              <%= link_to "Book appointment",
+                          new_practice_appointment_path,
+                          class: "mt-6 inline-flex items-center justify-center rounded-full bg-medical-navy px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-medical-navy-deep" %>
+            </div>
+          </div>
 
           <p class="mt-2 text-sm leading-6 text-medical-muted">
             Book a patient into an available clinician slot to

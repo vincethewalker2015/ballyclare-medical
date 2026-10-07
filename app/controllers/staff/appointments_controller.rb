@@ -1,10 +1,41 @@
 module Staff
   class AppointmentsController < BaseController
     def index
-      @appointments = current_practice
-        .appointments
-        .includes(:patient, :clinician, :appointment_slot)
-        .order(booked_at: :desc)
+      @diary_view = params[:view].presence_in(%w[today upcoming past]) || "today"
+
+      Time.use_zone(current_practice.timezone) do
+        today_start = Time.zone.now.beginning_of_day
+        tomorrow_start = today_start + 1.day
+
+        appointments = current_practice
+          .appointments
+          .includes(:patient, :clinician, :appointment_slot)
+          .joins(:appointment_slot)
+
+        @appointments =
+          case @diary_view
+          when "upcoming"
+            appointments
+              .where("appointment_slots.starts_at >= ?", tomorrow_start)
+              .order("appointment_slots.starts_at ASC")
+          when "past"
+            appointments
+              .where("appointment_slots.starts_at < ?", today_start)
+              .order("appointment_slots.starts_at DESC")
+          else
+            appointments
+              .where(
+                appointment_slots: {
+                  starts_at: today_start...tomorrow_start
+                }
+              )
+              .order("appointment_slots.starts_at ASC")
+          end
+      end
+
+      @appointment_balances = Billing::AppointmentBalances.new(
+        appointments: @appointments
+      ).call
     end
 
     def show

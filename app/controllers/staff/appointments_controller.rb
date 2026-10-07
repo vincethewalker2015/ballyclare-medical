@@ -98,6 +98,8 @@ module Staff
 
       @appointment_slots = current_practice
         .appointment_slots
+        .joins(:availability_block)
+        .merge(AvailabilityBlock.active)
         .where(clinician: @clinician)
         .where("appointment_slots.starts_at >= ?", now)
         .where.missing(:appointment)

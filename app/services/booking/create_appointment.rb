@@ -42,6 +42,11 @@ module Booking
     def validate_hold!
       raise HoldExpired, "Appointment hold has expired" if hold.expired?
 
+      unless slot.availability_block.active?
+        raise SlotUnavailable,
+              "Appointment slot is no longer available"
+      end
+
       if slot.appointment.present?
         raise SlotUnavailable, "Appointment slot has already been booked"
       end

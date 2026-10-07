@@ -512,5 +512,62 @@ end
         expect(response).to have_http_status(:not_found)
       end
     end
+
+    describe "PATCH /practice/availability/:id/cancel" do
+      before do
+        sign_in user
+      end
+
+      it "cancels the availability block" do
+        patch cancel_practice_availability_block_path(
+          availability_block
+        )
+
+        expect(response).to redirect_to(
+          practice_availability_blocks_path
+        )
+
+        expect(
+          availability_block.reload
+        ).to be_cancelled
+      end
+
+      it "does not allow availability from another practice to be cancelled" do
+        other_practice = Practice.create!(
+          name: "Other Medical Centre",
+          timezone: "America/New_York",
+          currency: "USD",
+          country_code: "US"
+        )
+
+        other_user = User.create!(
+          email: "other-doctor@example.com",
+          password: "password123"
+        )
+
+        other_clinician = StaffMember.create!(
+          practice: other_practice,
+          user: other_user,
+          staff_type: "doctor",
+          default_appointment_duration: 30
+        )
+
+        other_block = AvailabilityBlock.create!(
+          practice: other_practice,
+          clinician: other_clinician,
+          starts_at: 1.day.from_now.change(hour: 9),
+          ends_at: 1.day.from_now.change(hour: 10),
+          slot_duration_minutes: 30,
+          bookable_online: true
+        )
+
+        patch cancel_practice_availability_block_path(
+          other_block
+        )
+
+        expect(response).to have_http_status(:not_found)
+        expect(other_block.reload).to be_active
+      end
+    end
   end
 end

@@ -149,4 +149,75 @@ RSpec.describe "Practice appointments", type: :request do
       expect(response).to have_http_status(:success)
     end
   end
+
+  describe "GET /practice/appointments/available_slots" do
+    let(:clinician) do
+      StaffMember.create!(
+        practice: practice,
+        user: User.create!(
+          email: "doctor@example.com",
+          password: "password123"
+        ),
+        staff_type: "doctor",
+        default_appointment_duration: 30
+      )
+    end
+
+    let(:active_availability) do
+      AvailabilityBlock.create!(
+        practice: practice,
+        clinician: clinician,
+        starts_at: 1.day.from_now.change(hour: 9),
+        ends_at: 1.day.from_now.change(hour: 10),
+        slot_duration_minutes: 30,
+        bookable_online: true
+      )
+    end
+
+    let(:cancelled_availability) do
+      AvailabilityBlock.create!(
+        practice: practice,
+        clinician: clinician,
+        starts_at: 2.days.from_now.change(hour: 9),
+        ends_at: 2.days.from_now.change(hour: 10),
+        slot_duration_minutes: 30,
+        bookable_online: true,
+        cancelled_at: Time.current
+      )
+    end
+
+    let!(:active_slot) do
+      AppointmentSlot.create!(
+        practice: practice,
+        clinician: clinician,
+        availability_block: active_availability,
+        starts_at: 1.day.from_now.change(hour: 9),
+        ends_at: 1.day.from_now.change(hour: 9, min: 30)
+      )
+    end
+
+    let!(:cancelled_slot) do
+      AppointmentSlot.create!(
+        practice: practice,
+        clinician: clinician,
+        availability_block: cancelled_availability,
+        starts_at: 2.days.from_now.change(hour: 9),
+        ends_at: 2.days.from_now.change(hour: 9, min: 30)
+      )
+    end
+
+    before do
+      sign_in user
+    end
+
+    it "returns slots from active availability only" do
+      get available_slots_practice_appointments_path,
+          params: { clinician_id: clinician.id },
+          headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include(active_slot.id)
+      expect(response.body).not_to include(cancelled_slot.id)
+    end
+  end
 end

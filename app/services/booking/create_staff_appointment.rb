@@ -69,6 +69,11 @@ module Booking
     end
 
     def ensure_slot_is_available!
+      unless appointment_slot.availability_block.active?
+        raise SlotUnavailable,
+              "Appointment slot is no longer available"
+      end
+
       if Appointment.exists?(
         appointment_slot_id: appointment_slot.id
       )

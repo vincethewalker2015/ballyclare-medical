@@ -90,5 +90,53 @@
         <%= yield %>
       </main>
     </div>
+    <dialog
+      id="turbo-confirm-dialog"
+      class="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border border-medical-border bg-white p-0 shadow-2xl backdrop:bg-medical-navy/40">
+      <div class="p-6">
+        <div class="flex items-start gap-4">
+          <div class="flex size-10 shrink-0 items-center justify-center rounded-full bg-red-50">
+            <svg
+              class="size-5 text-red-600"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+            </svg>
+          </div>
+
+          <div>
+            <h2 class="text-lg font-semibold text-medical-navy">
+              Confirm action
+            </h2>
+
+            <p
+              id="turbo-confirm-message"
+              class="mt-2 text-sm leading-6 text-medical-muted"></p>
+          </div>
+        </div>
+
+        <div class="mt-6 flex justify-end gap-3">
+          <button
+            type="button"
+            value="cancel"
+            class="rounded-xl border border-medical-border bg-white px-4 py-2.5 text-sm font-semibold text-medical-navy shadow-sm transition hover:border-medical-teal hover:text-medical-teal focus:outline-none focus:ring-2 focus:ring-medical-teal focus:ring-offset-2">
+            Keep availability
+          </button>
+
+          <button
+            type="button"
+            value="confirm"
+            class="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2">
+            Cancel availability
+          </button>
+        </div>
+      </div>
+    </dialog>
   </body>
 </html>

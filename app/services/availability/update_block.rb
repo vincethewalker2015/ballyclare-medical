@@ -20,6 +20,15 @@ module Availability
 
     def call
       AvailabilityBlock.transaction do
+        clinician_ids = [
+          availability_block.clinician_id,
+          clinician.id
+        ].uniq.sort
+
+        clinician_ids.each do |clinician_id|
+          StaffMember.lock.find(clinician_id)
+        end
+
         availability_block.lock!
 
         slots = availability_block

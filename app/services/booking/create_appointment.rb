@@ -10,6 +10,8 @@ module Booking
 
     def call
       AppointmentSlot.transaction do
+        StaffMember.lock.find(slot.clinician_id)
+
         slot.with_lock do
           hold.reload
 

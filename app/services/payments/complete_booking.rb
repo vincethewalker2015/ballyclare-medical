@@ -22,10 +22,17 @@ module Payments
 
         slot = hold.appointment_slot
 
+        StaffMember.lock.find(slot.clinician_id)
+
         slot.with_lock do
           hold.reload
 
           raise HoldExpired, "Appointment hold has expired" if hold.expired?
+
+          unless slot.availability_block.reload.active?
+            raise SlotUnavailable,
+                  "Appointment slot is no longer available"
+          end
 
           if Appointment.exists?(appointment_slot_id: slot.id)
             raise SlotUnavailable,

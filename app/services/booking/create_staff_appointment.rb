@@ -19,6 +19,8 @@ module Booking
 
     def call
       AppointmentSlot.transaction do
+        StaffMember.lock.find(appointment_slot.clinician_id)
+
         appointment_slot.with_lock do
           ensure_patient_belongs_to_practice!
           ensure_slot_is_available!

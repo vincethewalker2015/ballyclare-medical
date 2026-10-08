@@ -48,6 +48,8 @@ module Staff
 
       if @availability_block.valid?
         AvailabilityBlock.transaction do
+          StaffMember.lock.find(clinician.id)
+
           @availability_block.save!
 
           Availability::GenerateSlots.new(

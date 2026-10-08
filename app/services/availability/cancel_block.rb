@@ -8,6 +8,8 @@ module Availability
 
     def call
       AvailabilityBlock.transaction do
+        StaffMember.lock.find(availability_block.clinician_id)
+
         availability_block.lock!
 
         return availability_block if availability_block.cancelled?

@@ -161,5 +161,26 @@ RSpec.describe Payments::CompleteBooking do
 
       expect(AppointmentHold.exists?(hold.id)).to be(true)
     end
+
+    it "rejects a booking when the availability has been cancelled" do
+      appointment_slot.availability_block.update!(
+        cancelled_at: Time.current
+      )
+
+      expect {
+        described_class.new(payment: payment).call
+      }.to raise_error(
+        Payments::CompleteBooking::SlotUnavailable,
+        "Appointment slot is no longer available"
+      )
+
+      expect(
+        Appointment.exists?(appointment_slot_id: appointment_slot.id)
+      ).to be(false)
+
+      expect(payment.reload.appointment).to be_nil
+      expect(payment.appointment_hold).to eq(hold)
+      expect(AppointmentHold.exists?(hold.id)).to be(true)
+    end
   end
 end

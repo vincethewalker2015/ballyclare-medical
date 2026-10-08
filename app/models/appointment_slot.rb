@@ -21,6 +21,8 @@ class AppointmentSlot < ApplicationRecord
     raise ArgumentError, "patient is required" unless patient
 
     self.class.transaction do
+      StaffMember.lock.find(clinician_id)
+
       with_lock do
         ensure_patient_belongs_to_practice!(patient)
         ensure_available_for_hold!

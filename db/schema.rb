@@ -10,8 +10,9 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_07_094631) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_08_123354) do
   # These are extensions that must be enabled in order to support this database
+  enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
 
   create_table "appointment_charges", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -60,9 +61,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_07_094631) do
     t.datetime "ends_at", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["availability_block_id", "starts_at"], name: "index_appointment_slots_on_availability_block_id_and_starts_at"
+    t.index ["availability_block_id", "starts_at"], name: "index_appointment_slots_on_block_and_starts_at_unique", unique: true
     t.index ["availability_block_id"], name: "index_appointment_slots_on_availability_block_id"
-    t.index ["clinician_id", "starts_at"], name: "index_appointment_slots_on_clinician_id_and_starts_at", unique: true
     t.index ["clinician_id"], name: "index_appointment_slots_on_clinician_id"
     t.index ["practice_id", "starts_at"], name: "index_appointment_slots_on_practice_id_and_starts_at"
     t.index ["practice_id"], name: "index_appointment_slots_on_practice_id"
@@ -145,6 +145,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_07_094631) do
     t.index ["practice_id"], name: "index_availability_blocks_on_practice_id"
     t.check_constraint "ends_at > starts_at", name: "availability_blocks_end_must_be_after_start"
     t.check_constraint "slot_duration_minutes > 0", name: "availability_blocks_slot_duration_must_be_positive"
+    t.exclusion_constraint "clinician_id WITH =, tsrange(starts_at, ends_at, '[)'::text) WITH &&", where: "cancelled_at IS NULL", using: :gist, name: "no_overlapping_active_availability"
   end
 
   create_table "clinical_notes", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|

@@ -84,5 +84,51 @@ RSpec.describe Availability::GenerateSlots do
       expect(slots.last.starts_at).to eq(Time.zone.parse("2026-10-01 09:40"))
       expect(slots.last.ends_at).to eq(Time.zone.parse("2026-10-01 10:00"))
     end
+
+    it "generates replacement slots without deleting slots from cancelled availability" do
+      practice = create(:practice)
+      clinician = create(:staff_member, practice: practice)
+
+      starts_at = 2.days.from_now.change(hour: 9, min: 0)
+      ends_at = starts_at + 1.hour
+
+      cancelled_block = create(
+        :availability_block,
+        practice: practice,
+        clinician: clinician,
+        starts_at: starts_at,
+        ends_at: ends_at,
+        slot_duration_minutes: 30,
+        cancelled_at: 1.day.ago
+      )
+
+      old_slot = create(
+        :appointment_slot,
+        practice: practice,
+        clinician: clinician,
+        availability_block: cancelled_block,
+        starts_at: starts_at,
+        ends_at: starts_at + 30.minutes
+      )
+
+      replacement_block = create(
+        :availability_block,
+        practice: practice,
+        clinician: clinician,
+        starts_at: starts_at,
+        ends_at: ends_at,
+        slot_duration_minutes: 30
+      )
+
+      expect {
+        Availability::GenerateSlots.new(replacement_block).call
+      }.to change {
+        replacement_block.appointment_slots.count
+      }.from(0).to(2)
+
+      expect(old_slot.reload.availability_block).to eq(cancelled_block)
+      expect(replacement_block.appointment_slots.pluck(:starts_at))
+        .to contain_exactly(starts_at, starts_at + 30.minutes)
+    end
   end
 end

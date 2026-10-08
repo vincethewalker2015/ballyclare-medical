@@ -175,7 +175,7 @@ RSpec.describe "Practice appointments", type: :request do
         sign_in user
       end
 
-      def create_diary_appointment(starts_at:, reason:)
+      def create_diary_appointment(starts_at:, reason:, clinician: self.clinician)
         availability = AvailabilityBlock.create!(
           practice: practice,
           clinician: clinician,
@@ -310,6 +310,70 @@ RSpec.describe "Practice appointments", type: :request do
         expect(response).to have_http_status(:success)
         expect(response.body).to include("Financial status appointment")
         expect(response.body).to include("Part paid")
+      end
+
+      it "filters appointments by the selected clinician" do
+        other_clinician = StaffMember.create!(
+          practice: practice,
+          user: User.create!(
+            email: "second-diary-doctor@example.com",
+            password: "password123"
+          ),
+          staff_type: "doctor",
+          default_appointment_duration: 30,
+          first_name: "Second",
+          last_name: "Doctor"
+        )
+
+        Time.use_zone(practice.timezone) do
+          today = Time.zone.now.beginning_of_day
+
+          create_diary_appointment(
+            starts_at: today + 10.hours,
+            reason: "Selected clinician appointment"
+          )
+
+          create_diary_appointment(
+            starts_at: today + 11.hours,
+            reason: "Other clinician appointment",
+            clinician: other_clinician
+          )
+        end
+
+        get practice_appointments_path(
+          view: "today",
+          clinician_id: clinician.id
+        )
+
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include("Selected clinician appointment")
+        expect(response.body).not_to include("Other clinician appointment")
+      end
+
+      it "rejects a clinician belonging to another practice" do
+        other_practice = Practice.create!(
+          name: "Another Medical Centre",
+          timezone: "America/New_York",
+          currency: "USD",
+          country_code: "US"
+        )
+
+        other_clinician = StaffMember.create!(
+          practice: other_practice,
+          user: User.create!(
+            email: "external-diary-doctor@example.com",
+            password: "password123"
+          ),
+          staff_type: "doctor",
+          default_appointment_duration: 30
+        )
+
+        get practice_appointments_path(
+          view: "today",
+          clinician_id: other_clinician.id
+        )
+
+        expect(response).to have_http_status(:not_found)
       end
     end
   end

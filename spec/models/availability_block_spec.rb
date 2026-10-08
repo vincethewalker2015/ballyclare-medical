@@ -84,4 +84,65 @@ RSpec.describe AvailabilityBlock do
       expect(availability_block).to be_valid
     end
   end
+  describe "overlapping historical appointments" do
+  let(:practice) { create(:practice) }
+  let(:clinician) { create(:staff_member, practice: practice) }
+
+  let(:starts_at) { 2.days.from_now.change(hour: 9, min: 0) }
+  let(:ends_at) { starts_at + 2.hours }
+
+  let!(:cancelled_block) do
+    create(
+      :availability_block,
+      practice: practice,
+      clinician: clinician,
+      starts_at: starts_at,
+      ends_at: ends_at,
+      cancelled_at: 1.day.ago
+    )
+  end
+
+  it "allows replacement availability when the cancelled block has no appointments" do
+    replacement = build(
+      :availability_block,
+      practice: practice,
+      clinician: clinician,
+      starts_at: starts_at,
+      ends_at: ends_at
+    )
+
+    expect(replacement).to be_valid
+  end
+
+  it "rejects replacement availability overlapping an appointment in a cancelled block" do
+    slot = create(
+      :appointment_slot,
+      practice: practice,
+      clinician: clinician,
+      availability_block: cancelled_block,
+      starts_at: starts_at,
+      ends_at: starts_at + 30.minutes
+    )
+
+    create(
+      :appointment,
+      practice: practice,
+      clinician: clinician,
+      appointment_slot: slot
+    )
+
+    replacement = build(
+      :availability_block,
+      practice: practice,
+      clinician: clinician,
+      starts_at: starts_at,
+      ends_at: ends_at
+    )
+
+    expect(replacement).not_to be_valid
+    expect(replacement.errors[:base]).to include(
+      "Availability overlaps an existing appointment."
+    )
+  end
+end
 end

@@ -170,6 +170,82 @@ RSpec.describe "Practice availability", type: :request do
       end
     end
 
+    context "when active availability already overlaps" do
+  before do
+    AvailabilityBlock.create!(
+      practice: practice,
+      clinician: clinician,
+      starts_at: Time.find_zone!(practice.timezone).parse("2026-10-20 10:00"),
+      ends_at: Time.find_zone!(practice.timezone).parse("2026-10-20 11:00"),
+      slot_duration_minutes: 30,
+      bookable_online: true
+    )
+  end
+
+  it "rejects the overlap without creating another block" do
+    expect {
+      post practice_availability_blocks_path,
+           params: {
+             availability_block: {
+               clinician_id: clinician.id,
+               date: "2026-10-20",
+               starts_at: "09:00",
+               ends_at: "12:00",
+               slot_duration_minutes: 30,
+               bookable_online: "1"
+             }
+           }
+    }.not_to change(AvailabilityBlock, :count)
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include("overlap")
+  end
+end
+
+    context "when replacing cancelled availability" do
+      before do
+        cancelled_block = AvailabilityBlock.create!(
+          practice: practice,
+          clinician: clinician,
+          starts_at: Time.find_zone!(practice.timezone).parse("2026-10-20 09:00"),
+          ends_at: Time.find_zone!(practice.timezone).parse("2026-10-20 12:00"),
+          slot_duration_minutes: 30,
+          bookable_online: true,
+          cancelled_at: 1.day.ago
+        )
+
+        Availability::GenerateSlots.new(cancelled_block).call
+      end
+
+      it "creates new slots while preserving the cancelled block's slots" do
+        expect {
+          post practice_availability_blocks_path,
+               params: {
+                 availability_block: {
+                   clinician_id: clinician.id,
+                   date: "2026-10-20",
+                   starts_at: "09:00",
+                   ends_at: "12:00",
+                   slot_duration_minutes: 30,
+                   bookable_online: "1"
+                 }
+               }
+        }.to change(AvailabilityBlock, :count).by(1)
+          .and change(AppointmentSlot, :count).by(6)
+
+        expect(response).to redirect_to(practice_availability_blocks_path)
+
+        cancelled_block = AvailabilityBlock.cancelled.find_by!(clinician: clinician)
+        expect(cancelled_block.appointment_slots.count).to eq(6)
+
+        replacement = AvailabilityBlock.active.find_by!(
+          clinician: clinician,
+          practice: practice
+        )
+        expect(replacement.appointment_slots.count).to eq(6)
+      end
+    end
+
     context "when the clinician belongs to another practice" do
       let(:other_practice) do
         Practice.create!(

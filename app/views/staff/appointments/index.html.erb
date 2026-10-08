@@ -45,17 +45,46 @@
               ["Past", "past"]
             ].each do |label, view| %>
               <%= link_to label,
-                          practice_appointments_path(view: view),
-                          class: class_names(
-                            "rounded-lg px-4 py-2 text-sm font-semibold transition",
-                            "bg-white text-medical-navy shadow-sm" => @diary_view == view,
-                            "text-medical-muted hover:text-medical-navy" => @diary_view != view
-                          ),
-                          aria: {
-                            current: (@diary_view == view ? "page" : nil)
-                          } %>
+                practice_appointments_path(
+                  view: view,
+                  clinician_id: @selected_clinician&.id
+                ),
+                class: class_names(
+                  "rounded-lg px-4 py-2 text-sm font-semibold transition",
+                  "bg-white text-medical-navy shadow-sm" => @diary_view == view,
+                  "text-medical-muted hover:text-medical-navy" => @diary_view != view
+                ),
+                aria: {
+                  current: (@diary_view == view ? "page" : nil)
+                } %>
             <% end %>
           </nav>
+          <%= form_with url: practice_appointments_path,
+              method: :get,
+              class: "flex flex-wrap items-end gap-3" do |form| %>
+            <%= form.hidden_field :view, value: @diary_view %>
+
+            <div class="space-y-1.5">
+              <%= form.label :clinician_id,
+                            "Clinician",
+                            class: "block text-xs font-semibold uppercase tracking-wide text-medical-muted" %>
+
+              <%= form.select :clinician_id,
+                              options_from_collection_for_select(
+                                @clinicians,
+                                :id,
+                                :full_name,
+                                @selected_clinician&.id
+                              ),
+                              { include_blank: "All clinicians" },
+                              {
+                                class: "min-w-48 rounded-xl border border-medical-border bg-white px-3 py-2 text-sm text-medical-navy shadow-sm focus:border-medical-teal focus:outline-none focus:ring-2 focus:ring-medical-teal/20"
+                              } %>
+            </div>
+
+            <%= form.submit "Apply",
+                            class: "cursor-pointer rounded-xl bg-medical-navy px-4 py-2 text-sm font-semibold text-white transition hover:bg-medical-navy-deep" %>
+          <% end %>
         </div>
       </div>
 

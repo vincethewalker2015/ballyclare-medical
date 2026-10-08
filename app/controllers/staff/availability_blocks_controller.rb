@@ -63,6 +63,16 @@ module Staff
         render :new,
                status: :unprocessable_content
       end
+    rescue ActiveRecord::ExclusionViolation
+      @availability_block.errors.add(
+        :base,
+        "Availability overlaps existing availability for this clinician."
+      )
+
+      load_clinicians
+
+      render :new,
+            status: :unprocessable_content
     rescue ArgumentError
       @availability_block ||= current_practice.availability_blocks.new
       @availability_block.errors.add(

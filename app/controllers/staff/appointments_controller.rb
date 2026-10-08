@@ -3,6 +3,19 @@ module Staff
     def index
       @diary_view = params[:view].presence_in(%w[today upcoming past]) || "today"
 
+      @clinicians = current_practice
+        .staff_members
+        .where(staff_type: %w[doctor nurse])
+        .order(:last_name, :first_name)
+
+      @selected_clinician_id = params[:clinician_id].presence
+
+      if @selected_clinician_id.present?
+        @selected_clinician = @clinicians.find(
+          @selected_clinician_id
+        )
+      end
+
       Time.use_zone(current_practice.timezone) do
         today_start = Time.zone.now.beginning_of_day
         tomorrow_start = today_start + 1.day
@@ -11,6 +24,12 @@ module Staff
           .appointments
           .includes(:patient, :clinician, :appointment_slot)
           .joins(:appointment_slot)
+
+        if @selected_clinician.present?
+          appointments = appointments.where(
+            clinician: @selected_clinician
+          )
+        end
 
         @appointments =
           case @diary_view

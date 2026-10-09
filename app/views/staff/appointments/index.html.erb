@@ -107,6 +107,7 @@
             %>
 
             <%= link_to practice_appointment_path(appointment),
+                        data: { turbo_frame: "_top" },
                         class: "group block px-6 py-5 transition hover:bg-medical-cream/60" do %>
 
               <div class="grid gap-4 sm:grid-cols-[9rem_minmax(0,1fr)_auto] sm:items-center">

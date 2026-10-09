@@ -34,7 +34,14 @@ module Payments
                   "Appointment slot is no longer available"
           end
 
-          if Appointment.exists?(appointment_slot_id: slot.id)
+          if slot.starts_at <= Time.current
+            raise SlotUnavailable,
+                  "Appointment slot is no longer in the future"
+          end
+
+          if Appointment.where(appointment_slot_id: slot.id)
+                        .where.not(status: "cancelled")
+                        .exists?
             raise SlotUnavailable,
                   "Appointment slot has already been booked"
           end

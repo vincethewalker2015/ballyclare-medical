@@ -37,6 +37,13 @@ module Appointments
             to_status: to_status,
             changed_by: changed_by
           )
+
+          if to_status == "cancelled" &&
+            !appointment.payments.where(status: "succeeded").exists?
+            appointment.appointment_charges
+                      .active
+                      .update_all(status: "voided")
+          end
         end
       end
 

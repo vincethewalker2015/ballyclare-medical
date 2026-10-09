@@ -153,7 +153,11 @@ module Staff
         .merge(AvailabilityBlock.active)
         .where(clinician: @clinician)
         .where("appointment_slots.starts_at >= ?", now)
-        .where.missing(:appointment)
+        .where.not(
+          id: Appointment
+            .where.not(status: "cancelled")
+            .select(:appointment_slot_id)
+        )
         .where.not(
           id: AppointmentHold
             .where("expires_at > ?", now)
@@ -190,6 +194,9 @@ module Staff
         appointment.appointment_status_changes
           .includes(:changed_by)
           .order(created_at: :desc)
+      balance = Billing::AppointmentBalance.new(
+        appointment: appointment
+      ).call
 
       respond_to do |format|
         format.turbo_stream do
@@ -215,6 +222,21 @@ module Staff
               locals: {
                 appointment: appointment,
                 status_changes: status_changes
+              }
+            ),
+            turbo_stream.replace(
+              "financial_summary",
+              partial: "staff/appointments/financial_summary",
+              locals: {
+                appointment: appointment,
+                balance: balance
+              }
+            ),
+            turbo_stream.replace(
+              "appointment_charges",
+              partial: "staff/appointments/charges",
+              locals: {
+                appointment: appointment
               }
             )
           ]

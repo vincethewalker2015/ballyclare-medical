@@ -94,8 +94,8 @@ RSpec.describe AppointmentSlot do
         :availability_block,
         practice: practice,
         clinician: clinician,
-        starts_at: Time.zone.parse("2026-10-01 09:00"),
-        ends_at: Time.zone.parse("2026-10-01 10:00")
+        starts_at: 1.day.from_now,
+        ends_at: 1.day.from_now + 1.hour
       )
     end
     let(:appointment_slot) do
@@ -104,8 +104,8 @@ RSpec.describe AppointmentSlot do
         practice: practice,
         clinician: clinician,
         availability_block: availability_block,
-        starts_at: Time.zone.parse("2026-10-01 09:00"),
-        ends_at: Time.zone.parse("2026-10-01 09:20")
+        starts_at: availability_block.starts_at,
+        ends_at: availability_block.starts_at + 20.minutes
       )
     end
     let(:patient) { create(:patient, practice: practice) }
@@ -253,6 +253,27 @@ RSpec.describe AppointmentSlot do
       expect {
         appointment_slot.hold_for!(patient: nil)
       }.to raise_error(ArgumentError, "patient is required")
+    end
+
+    it "allows a new hold on a future slot after its appointment is cancelled" do
+      original_appointment = create(
+        :appointment,
+        practice: practice,
+        appointment_slot: appointment_slot,
+        patient: patient,
+        clinician: clinician,
+        status: "cancelled"
+      )
+
+      second_patient = create(:patient, practice: practice)
+
+      new_hold = appointment_slot.hold_for!(patient: second_patient)
+
+      expect(new_hold).to be_persisted
+      expect(new_hold.patient).to eq(second_patient)
+
+      expect(original_appointment.reload.status).to eq("cancelled")
+      expect(original_appointment).to be_persisted
     end
 
     context "when the availability block has been cancelled" do

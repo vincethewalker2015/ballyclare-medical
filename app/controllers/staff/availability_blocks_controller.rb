@@ -5,7 +5,7 @@ module Staff
       .availability_blocks
       .includes(
         :clinician,
-        appointment_slots: [ :appointment, :appointment_holds ]
+        appointment_slots: [ :appointments, :appointment_holds ]
       )
       .where(ends_at: Time.current..)
       .order(:starts_at)

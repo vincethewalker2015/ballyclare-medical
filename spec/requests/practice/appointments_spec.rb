@@ -459,5 +459,48 @@ RSpec.describe "Practice appointments", type: :request do
       expect(response.body).to include(active_slot.id)
       expect(response.body).not_to include(cancelled_slot.id)
     end
+
+    it "returns a future slot when its previous appointment was cancelled" do
+      patient = create(:patient, practice: practice)
+
+      original_appointment = create(
+        :appointment,
+        practice: practice,
+        appointment_slot: active_slot,
+        patient: patient,
+        clinician: clinician,
+        status: "cancelled"
+      )
+
+      get available_slots_practice_appointments_path,
+          params: { clinician_id: clinician.id },
+          headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include(active_slot.id)
+
+      expect(original_appointment.reload.status).to eq("cancelled")
+      expect(original_appointment).to be_persisted
+    end
+
+    it "does not return a future slot with an active appointment" do
+      patient = create(:patient, practice: practice)
+
+      create(
+        :appointment,
+        practice: practice,
+        appointment_slot: active_slot,
+        patient: patient,
+        clinician: clinician,
+        status: "booked"
+      )
+
+      get available_slots_practice_appointments_path,
+          params: { clinician_id: clinician.id },
+          headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).not_to include(active_slot.id)
+    end
   end
 end

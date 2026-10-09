@@ -310,6 +310,31 @@ RSpec.describe Payments::HandleSucceeded do
           ).call[:balance_cents]
         }.from(5000).to(0)
       end
+
+      it "handles a repeated success event without changing the payment again" do
+        handler = described_class.new(
+          payment_intent: payment_intent
+        )
+
+        handler.call
+
+        original_paid_at = payment.reload.paid_at
+
+        balance_after_first_event = Billing::AppointmentBalance.new(
+          appointment: existing_appointment
+        ).call[:balance_cents]
+
+        handler.call
+
+        expect(payment.reload.status).to eq("succeeded")
+        expect(payment.paid_at).to eq(original_paid_at)
+
+        expect(
+          Billing::AppointmentBalance.new(
+            appointment: existing_appointment
+          ).call[:balance_cents]
+        ).to eq(balance_after_first_event)
+      end
     end
   end
 end

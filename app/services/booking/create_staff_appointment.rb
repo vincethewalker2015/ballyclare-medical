@@ -18,7 +18,7 @@ module Booking
     end
 
     def call
-      AppointmentSlot.transaction do
+      appointment = AppointmentSlot.transaction do
         StaffMember.lock.find(appointment_slot.clinician_id)
 
         appointment_slot.with_lock do
@@ -31,6 +31,14 @@ module Booking
           appointment
         end
       end
+
+      Turbo::StreamsChannel.broadcast_action_to(
+        [ appointment.practice, :appointments ],
+        action: :refresh,
+        target: "appointment_diary_list"
+      )
+
+      appointment
     end
 
     private

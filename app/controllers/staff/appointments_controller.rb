@@ -1,6 +1,7 @@
 module Staff
   class AppointmentsController < BaseController
     def index
+      @practice = current_practice
       @diary_view = params[:view].presence_in(%w[today upcoming past]) || "today"
 
       @clinicians = current_practice

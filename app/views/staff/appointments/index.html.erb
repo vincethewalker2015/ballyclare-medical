@@ -23,7 +23,6 @@
   </header>
 
   <section class="overflow-hidden rounded-2xl border border-medical-border bg-white shadow-sm">
-    <section class="overflow-hidden rounded-2xl border border-medical-border bg-white shadow-sm">
       <div class="border-b border-medical-border px-6 py-5">
         <div class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -174,67 +173,51 @@
           <% end %>
         <% end %>
       </div>
+
     <% else %>
       <div class="px-6 py-16 text-center">
         <div class="mx-auto max-w-md">
           <div class="mx-auto mb-5 flex size-12 items-center justify-center rounded-full bg-medical-teal-soft text-medical-teal">
-            <span class="text-lg font-semibold">+</span>
+            <svg
+              class="size-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M8 2v4m8-4v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" />
+            </svg>
           </div>
 
-          <div class="px-6 py-16 text-center">
-            <div class="mx-auto max-w-md">
-              <div class="mx-auto mb-5 flex size-12 items-center justify-center rounded-full bg-medical-teal-soft text-medical-teal">
-                <svg
-                  class="size-5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  aria-hidden="true">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M8 2v4m8-4v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" />
-                </svg>
-              </div>
+          <% case @diary_view %>
+          <% when "upcoming" %>
+            <h3 class="text-base font-semibold text-medical-navy">
+              No upcoming appointments
+            </h3>
 
-              <% case @diary_view %>
-              <% when "upcoming" %>
-                <h3 class="text-base font-semibold text-medical-navy">
-                  No upcoming appointments
-                </h3>
+            <p class="mt-2 text-sm leading-6 text-medical-muted">
+              There are no appointments scheduled after today.
+            </p>
+          <% when "past" %>
+            <h3 class="text-base font-semibold text-medical-navy">
+              No past appointments
+            </h3>
 
-                <p class="mt-2 text-sm leading-6 text-medical-muted">
-                  There are no appointments scheduled after today.
-                </p>
-              <% when "past" %>
-                <h3 class="text-base font-semibold text-medical-navy">
-                  No past appointments
-                </h3>
+            <p class="mt-2 text-sm leading-6 text-medical-muted">
+              There are no earlier appointments in the practice diary.
+            </p>
+          <% else %>
+            <h3 class="text-base font-semibold text-medical-navy">
+              No appointments today
+            </h3>
 
-                <p class="mt-2 text-sm leading-6 text-medical-muted">
-                  There are no earlier appointments in the practice diary.
-                </p>
-              <% else %>
-                <h3 class="text-base font-semibold text-medical-navy">
-                  No appointments today
-                </h3>
-
-                <p class="mt-2 text-sm leading-6 text-medical-muted">
-                  There are no appointments scheduled for today.
-                </p>
-              <% end %>
-
-              <%= link_to "Book appointment",
-                          new_practice_appointment_path,
-                          class: "mt-6 inline-flex items-center justify-center rounded-full bg-medical-navy px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-medical-navy-deep" %>
-            </div>
-          </div>
-
-          <p class="mt-2 text-sm leading-6 text-medical-muted">
-            Book a patient into an available clinician slot to
-            create the first appointment.
-          </p>
+            <p class="mt-2 text-sm leading-6 text-medical-muted">
+              There are no appointments scheduled for today.
+            </p>
+          <% end %>
 
           <%= link_to "Book appointment",
                       new_practice_appointment_path,

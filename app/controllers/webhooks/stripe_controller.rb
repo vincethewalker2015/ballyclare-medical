@@ -26,19 +26,6 @@ module Webhooks
       case event.type
       when "payment_intent.succeeded"
         handle_payment_succeeded(event.data.object)
-      when "refund.updated"
-        handle_refund_updated(event.data.object)
-      else
-        Rails.logger.info(
-          "Unhandled Stripe webhook event: #{event.type}"
-        )
-      end
-    end
-
-    def handle_event(event)
-      case event.type
-      when "payment_intent.succeeded"
-        handle_payment_succeeded(event.data.object)
       when "payment_intent.payment_failed"
         handle_payment_failed(event.data.object)
       when "refund.updated"

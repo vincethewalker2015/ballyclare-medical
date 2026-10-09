@@ -47,6 +47,40 @@ RSpec.describe Payments::CompleteBooking do
       expect(appointment.status).to eq("booked")
     end
 
+    it "completes a paid booking after a previous appointment was cancelled" do
+      original_patient = create(
+        :patient,
+        practice: appointment_slot.practice
+      )
+
+      original_appointment = create(
+        :appointment,
+        practice: appointment_slot.practice,
+        appointment_slot: appointment_slot,
+        patient: original_patient,
+        clinician: appointment_slot.clinician,
+        status: "cancelled"
+      )
+
+      new_appointment = described_class.new(payment: payment).call
+
+      expect(new_appointment).to be_persisted
+      expect(new_appointment.status).to eq("booked")
+      expect(new_appointment.patient).to eq(patient)
+      expect(new_appointment.appointment_slot).to eq(appointment_slot)
+
+      expect(original_appointment.reload).to be_persisted
+      expect(original_appointment.status).to eq("cancelled")
+
+      expect(
+        Appointment.where(appointment_slot: appointment_slot).count
+      ).to eq(2)
+
+      expect(payment.reload.appointment).to eq(new_appointment)
+      expect(payment.appointment_hold).to be_nil
+      expect(AppointmentHold.exists?(hold.id)).to be(false)
+    end
+
     it "moves the payment from the hold to the appointment" do
       appointment = described_class.new(
         payment: payment

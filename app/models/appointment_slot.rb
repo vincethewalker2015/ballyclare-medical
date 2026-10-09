@@ -8,7 +8,7 @@ class AppointmentSlot < ApplicationRecord
   belongs_to :clinician, class_name: "StaffMember"
   belongs_to :availability_block
 
-  has_one :appointment, dependent: :restrict_with_error
+  has_many :appointments, dependent: :restrict_with_error
   has_many :appointment_holds, dependent: :restrict_with_error
 
   validates :starts_at, :ends_at, presence: true
@@ -56,7 +56,14 @@ class AppointmentSlot < ApplicationRecord
             "Appointment slot is no longer available"
     end
 
-    if Appointment.exists?(appointment_slot_id: id)
+    if starts_at <= Time.current
+      raise Unavailable,
+            "Appointment slot is no longer in the future"
+    end
+
+    if Appointment.where(appointment_slot_id: id)
+                  .where.not(status: "cancelled")
+                  .exists?
       raise Unavailable,
             "Appointment slot has already been booked"
     end

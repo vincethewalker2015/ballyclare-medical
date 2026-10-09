@@ -60,9 +60,17 @@
     <div class="mx-auto grid min-h-[calc(100vh-81px)] max-w-7xl lg:grid-cols-[240px_1fr]">
       <aside class="border-r border-medical-border bg-white px-4 py-8">
         <nav class="space-y-1" aria-label="Practice navigation">
+          <% appointments_active = controller_name == "appointments" %>
+          <% availability_active = controller_name == "availability_blocks" %>
+
           <%= link_to practice_appointments_path,
-                      class: "flex items-center rounded-xl bg-medical-teal-soft px-4 py-3 text-sm font-semibold text-medical-navy" do %>
+                      class: "flex items-center rounded-xl px-4 py-3 text-sm font-semibold #{appointments_active ? 'bg-medical-teal-soft text-medical-navy' : 'text-medical-muted hover:bg-medical-teal-soft hover:text-medical-navy'}" do %>
             Appointments
+          <% end %>
+
+          <%= link_to practice_availability_blocks_path,
+                      class: "flex items-center rounded-xl px-4 py-3 text-sm font-semibold #{availability_active ? 'bg-medical-teal-soft text-medical-navy' : 'text-medical-muted hover:bg-medical-teal-soft hover:text-medical-navy'}" do %>
+            Availability
           <% end %>
 
           <% %w[Patients Payments Clinical Administration].each do |item| %>

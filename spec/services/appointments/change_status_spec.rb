@@ -89,5 +89,35 @@ RSpec.describe Appointments::ChangeStatus do
         )
       end
     end
+
+    context "when cancelling an unpaid appointment" do
+      let(:to_status) { "cancelled" }
+
+      let!(:charge) do
+        create(
+          :appointment_charge,
+          appointment: appointment,
+          amount_cents: 4000,
+          status: "active"
+        )
+      end
+
+      it "voids the charge and clears the outstanding balance" do
+        expect {
+          change_status.call
+        }.to change {
+          charge.reload.status
+        }.from("active").to("voided")
+
+        expect(appointment.reload.status).to eq("cancelled")
+
+        balance = Billing::AppointmentBalance.new(
+          appointment: appointment
+        ).call
+
+        expect(balance[:charged_cents]).to eq(0)
+        expect(balance[:balance_cents]).to eq(0)
+      end
+    end
   end
 end

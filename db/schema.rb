@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_08_123354) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_09_122610) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -101,7 +101,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_08_123354) do
     t.text "cancellation_reason"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["appointment_slot_id"], name: "index_appointments_on_appointment_slot_id", unique: true
+    t.index ["appointment_slot_id"], name: "index_appointments_on_active_appointment_slot_id", unique: true, where: "((status)::text <> 'cancelled'::text)"
     t.index ["cancelled_by_id"], name: "index_appointments_on_cancelled_by_id"
     t.index ["clinician_id", "booked_at"], name: "index_appointments_on_clinician_id_and_booked_at"
     t.index ["clinician_id", "status", "booked_at"], name: "index_appointments_on_clinician_id_and_status_and_booked_at"

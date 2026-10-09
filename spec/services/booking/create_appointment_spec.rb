@@ -40,8 +40,8 @@ RSpec.describe Booking::CreateAppointment do
     AvailabilityBlock.create!(
       practice: practice,
       clinician: clinician,
-      starts_at: Time.zone.parse("2026-10-01 09:00"),
-      ends_at: Time.zone.parse("2026-10-01 10:00"),
+      starts_at: 1.day.from_now,
+      ends_at: 1.day.from_now + 1.hour,
       slot_duration_minutes: 20
     )
   end
@@ -51,8 +51,8 @@ RSpec.describe Booking::CreateAppointment do
       practice: practice,
       clinician: clinician,
       availability_block: availability_block,
-      starts_at: Time.zone.parse("2026-10-01 09:00"),
-      ends_at: Time.zone.parse("2026-10-01 09:20")
+      starts_at: availability_block.starts_at,
+      ends_at: availability_block.starts_at + 20.minutes
     )
   end
 
@@ -140,6 +140,43 @@ RSpec.describe Booking::CreateAppointment do
 
       expect(AppointmentHold.exists?(hold.id)).to be(true)
       expect(Appointment.where(appointment_slot: appointment_slot)).to be_empty
+    end
+
+    it "rebooks a future slot after its previous appointment is cancelled" do
+      original_appointment = Appointment.create!(
+        practice: practice,
+        appointment_slot: appointment_slot,
+        patient: patient,
+        clinician: clinician,
+        status: "cancelled",
+        booked_at: 1.day.ago
+      )
+
+      second_patient = Patient.create!(
+        practice: practice,
+        patient_number: "P003",
+        first_name: "Second",
+        last_name: "Patient",
+        date_of_birth: Date.new(1992, 5, 15)
+      )
+
+      hold.update!(patient: second_patient)
+
+      new_appointment = described_class.new(hold: hold).call
+
+      expect(new_appointment).to be_persisted
+      expect(new_appointment.status).to eq("booked")
+      expect(new_appointment.patient).to eq(second_patient)
+      expect(new_appointment.appointment_slot).to eq(appointment_slot)
+
+      expect(original_appointment.reload.status).to eq("cancelled")
+      expect(original_appointment).to be_persisted
+
+      expect(
+        Appointment.where(appointment_slot: appointment_slot).count
+      ).to eq(2)
+
+      expect(AppointmentHold.exists?(hold.id)).to be(false)
     end
 
     context "when the availability block is cancelled after the hold is created" do

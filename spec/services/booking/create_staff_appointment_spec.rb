@@ -33,6 +33,54 @@ RSpec.describe Booking::CreateStaffAppointment do
         .to change(Appointment, :count)
         .by(1)
     end
+
+    it "rebooks a cancelled future slot and preserves the original appointment" do
+      original_patient = create(:patient, practice: practice)
+
+      original_appointment = create(
+        :appointment,
+        practice: practice,
+        appointment_slot: appointment_slot,
+        patient: original_patient,
+        clinician: clinician,
+        status: "cancelled"
+      )
+
+      original_charge = create(
+        :appointment_charge,
+        appointment: original_appointment,
+        patient: original_patient,
+        practice: practice,
+        created_by: booked_by,
+        amount_cents: 5000,
+        status: "voided"
+      )
+
+      new_appointment = call_service
+
+      expect(new_appointment).to be_persisted
+      expect(new_appointment.status).to eq("booked")
+      expect(new_appointment.patient).to eq(patient)
+      expect(new_appointment.appointment_slot).to eq(appointment_slot)
+
+      expect(original_appointment.reload.status).to eq("cancelled")
+      expect(original_charge.reload.status).to eq("voided")
+      expect(original_charge.appointment).to eq(original_appointment)
+
+      expect(
+        Appointment.where(appointment_slot: appointment_slot).count
+      ).to eq(2)
+
+      new_charge = new_appointment.appointment_charges.sole
+
+      expect(new_charge).to have_attributes(
+        patient: patient,
+        amount_cents: 5000,
+        status: "active"
+      )
+
+      expect(new_appointment.payments).to be_empty
+    end
     it "does not book an appointment slot that is already booked" do
       create(
         :appointment,

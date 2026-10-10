@@ -128,6 +128,10 @@ RSpec.describe Payments::HandleSucceeded do
           .to receive(:id)
           .and_return("pi_unknown")
 
+        allow(payment_intent)
+          .to receive(:metadata)
+          .and_return({})
+
         expect {
           described_class.new(
             payment_intent: payment_intent
@@ -288,6 +292,33 @@ RSpec.describe Payments::HandleSucceeded do
         expect(payment.appointment_hold).to be_nil
       end
 
+      it "recovers an appointment payment using Stripe metadata when the PaymentIntent ID is missing" do
+        payment.update!(
+          provider_payment_id: nil,
+          status: "pending"
+        )
+
+        allow(payment_intent)
+          .to receive(:metadata)
+          .and_return(
+            { "payment_id" => payment.id }
+          )
+
+        described_class.new(
+          payment_intent: payment_intent
+        ).call
+
+        payment.reload
+
+        expect(payment).to have_attributes(
+          provider_payment_id: "pi_test_123",
+          status: "succeeded"
+        )
+
+        expect(payment.paid_at).to be_present
+        expect(payment.appointment).to eq(existing_appointment)
+      end
+
       it "does not attempt to complete another booking" do
         expect(Payments::CompleteBooking)
           .not_to receive(:new)
@@ -334,6 +365,104 @@ RSpec.describe Payments::HandleSucceeded do
             appointment: existing_appointment
           ).call[:balance_cents]
         ).to eq(balance_after_first_event)
+      end
+
+      it "locks the appointment before updating the payment" do
+        expect(existing_appointment)
+          .to receive(:with_lock)
+          .ordered
+          .and_call_original
+
+        expect(payment)
+          .to receive(:with_lock)
+          .ordered
+          .and_call_original
+
+        allow(Payment)
+          .to receive(:find_by)
+          .and_call_original
+
+        allow(Payment)
+          .to receive(:find_by)
+          .with(
+            provider: "stripe",
+            provider_payment_id: "pi_test_123"
+          )
+          .and_return(payment)
+
+        allow(Appointment)
+          .to receive(:find)
+          .and_call_original
+
+        allow(Appointment)
+          .to receive(:find)
+          .with(existing_appointment.id)
+          .and_return(existing_appointment)
+
+        described_class.new(
+          payment_intent: payment_intent
+        ).call
+
+        expect(payment.reload.status).to eq("succeeded")
+      end
+
+      it "rejects metadata recovery when the Stripe amount does not match" do
+        payment.update!(
+          provider_payment_id: nil,
+          status: "pending"
+        )
+
+        allow(payment_intent)
+          .to receive(:metadata)
+          .and_return(
+            { "payment_id" => payment.id }
+          )
+
+        allow(payment_intent)
+          .to receive(:amount_received)
+          .and_return(4000)
+
+        expect {
+          described_class.new(
+            payment_intent: payment_intent
+          ).call
+        }.to raise_error(
+          Payments::HandleSucceeded::AmountMismatch
+        )
+
+        payment.reload
+
+        expect(payment.status).to eq("pending")
+        expect(payment.provider_payment_id).to be_nil
+        expect(payment.paid_at).to be_nil
+      end
+
+      it "rejects metadata recovery when the payment belongs to another Stripe PaymentIntent" do
+        payment.update!(
+          provider_payment_id: "pi_original_123",
+          status: "processing"
+        )
+
+        allow(payment_intent)
+          .to receive(:metadata)
+          .and_return(
+            { "payment_id" => payment.id }
+          )
+
+        expect {
+          described_class.new(
+            payment_intent: payment_intent
+          ).call
+        }.to raise_error(
+          Payments::HandleSucceeded::PaymentNotFound,
+          /different Stripe PaymentIntent/
+        )
+
+        payment.reload
+
+        expect(payment.provider_payment_id).to eq("pi_original_123")
+        expect(payment.status).to eq("processing")
+        expect(payment.paid_at).to be_nil
       end
     end
   end

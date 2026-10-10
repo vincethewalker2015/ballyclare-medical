@@ -80,18 +80,35 @@ RSpec.describe Payments::TakeAppointmentPayment do
       expect(result.payment_intent).to eq(payment_intent)
     end
 
-    it "marks the payment as failed when Stripe cannot create the payment intent" do
+    it "marks the payment as failed when Stripe rejects the payment intent request" do
       allow(stripe_provider)
         .to receive(:call)
         .and_raise(
-          Stripe::APIConnectionError.new("Stripe is unavailable")
+          Stripe::InvalidRequestError.new(
+            "Invalid payment request",
+            "amount"
+          )
+        )
+
+      expect {
+        call_service
+      }.to raise_error(Stripe::InvalidRequestError)
+
+      expect(Payment.last.status).to eq("failed")
+    end
+
+    it "keeps the payment pending when Stripe's response is uncertain" do
+      allow(stripe_provider)
+        .to receive(:call)
+        .and_raise(
+          Stripe::APIConnectionError.new("Connection lost")
         )
 
       expect {
         call_service
       }.to raise_error(Stripe::APIConnectionError)
 
-      expect(Payment.last.status).to eq("failed")
+      expect(Payment.last.status).to eq("pending")
     end
   end
 end

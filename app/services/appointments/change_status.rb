@@ -1,6 +1,7 @@
 module Appointments
   class ChangeStatus
     class InvalidTransition < StandardError; end
+    class PaymentInProgress < StandardError; end
 
     TRANSITIONS = {
       "booked" => %w[confirmed cancelled],
@@ -26,6 +27,7 @@ module Appointments
     def call
       appointment.with_lock do
         validate_transition!
+        ensure_no_payment_in_progress!
 
         from_status = appointment.status
 
@@ -61,6 +63,15 @@ module Appointments
 
       raise InvalidTransition,
             "Cannot change appointment from #{appointment.status} to #{to_status}"
+    end
+
+    def ensure_no_payment_in_progress!
+      return unless to_status == "cancelled"
+
+      if appointment.payments.where(status: %w[pending processing]).exists?
+        raise PaymentInProgress,
+              "Cannot cancel an appointment while a payment is in progress."
+      end
     end
   end
 end

@@ -25,8 +25,19 @@ module Payments
         payment: payment,
         payment_intent: payment_intent
       )
+    rescue Stripe::APIConnectionError
+      # Stripe may have created the PaymentIntent even though
+      # its response never reached us. Keep cancellation blocked.
+      raise
     rescue Stripe::StripeError
-      payment&.update!(status: "failed")
+      if payment
+        appointment.with_lock do
+          payment.with_lock do
+            payment.update!(status: "failed")
+          end
+        end
+      end
+
       raise
     end
 

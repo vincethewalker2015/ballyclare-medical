@@ -144,6 +144,22 @@ end
       expect(Payment.order(:created_at).last.status)
         .to eq("pending")
     end
+
+    context "when the appointment is cancelled" do
+      before do
+        appointment.update!(status: "cancelled")
+      end
+
+      it "rejects the payment without creating a record" do
+        expect do
+          expect { call_service }
+            .to raise_error(
+              Payments::CreateForAppointment::AppointmentCancelled,
+              "Cannot take payment for a cancelled appointment."
+            )
+        end.not_to change(Payment, :count)
+      end
+    end
     it "rejects a zero payment amount" do
       service = described_class.new(
         appointment: appointment,

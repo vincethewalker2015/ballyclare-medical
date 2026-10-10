@@ -69,7 +69,7 @@
     </div>
   </dl>
 
-  <% if balance[:balance_cents].positive? %>
+  <% if balance[:balance_cents].positive? && appointment.status != "cancelled" %>
     <div class="mt-6 flex justify-end border-t border-medical-border pt-6">
       <%= link_to "Take payment",
                   new_practice_appointment_payment_path(appointment),

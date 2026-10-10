@@ -92,9 +92,51 @@ RSpec.describe "Practice appointment charges", type: :request do
 
       expect(response).to have_http_status(:success)
     end
+
+    context "when the appointment is cancelled" do
+      before do
+        appointment.update!(status: "cancelled")
+      end
+
+      it "redirects back to the appointment with an error" do
+        get new_practice_appointment_charge_path(appointment)
+
+        expect(response).to redirect_to(
+          practice_appointment_path(appointment)
+        )
+
+        expect(flash[:alert]).to eq(
+          "Cannot add charges to a cancelled appointment."
+        )
+      end
+    end
   end
 
   describe "POST /practice/appointments/:appointment_id/charge" do
+    context "when the appointment is cancelled" do
+      before do
+        appointment.update!(status: "cancelled")
+      end
+
+      it "rejects the charge and redirects with an error" do
+        expect {
+          post practice_appointment_charge_path(appointment),
+              params: {
+                description: "Remove stitches",
+                amount: "35.00"
+              }
+        }.not_to change(AppointmentCharge, :count)
+
+        expect(response).to redirect_to(
+          practice_appointment_path(appointment)
+        )
+
+        expect(flash[:alert]).to eq(
+          "Cannot add charges to a cancelled appointment."
+        )
+      end
+    end
+
     context "with valid details" do
       it "creates an additional charge" do
         expect {

@@ -28,7 +28,7 @@
             This payment attempt was not completed. The outstanding balance has not been reduced by this payment.
           </p>
 
-          <% if balance[:balance_cents].positive? %>
+          <% if balance[:balance_cents].positive? && appointment.status != "cancelled" %>
             <div class="mt-3">
               <%= link_to "Try payment again",
                           new_practice_appointment_payment_path(appointment),

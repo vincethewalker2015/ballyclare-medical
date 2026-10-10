@@ -127,5 +127,21 @@ RSpec.describe Billing::CreateCharge do
         expect(AppointmentCharge.count).to eq(0)
       end
     end
+
+    context "when the appointment is cancelled" do
+      before do
+        appointment.update!(status: "cancelled")
+      end
+
+      it "rejects the charge without creating a record" do
+        expect do
+          expect { call_service }
+            .to raise_error(
+              Billing::CreateCharge::AppointmentCancelled,
+              "Cannot add charges to a cancelled appointment."
+            )
+        end.not_to change(AppointmentCharge, :count)
+      end
+    end
   end
 end

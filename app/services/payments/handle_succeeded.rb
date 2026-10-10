@@ -1,3 +1,4 @@
+
 module Payments
   class HandleSucceeded
     class PaymentNotFound < StandardError; end
@@ -11,9 +12,60 @@ module Payments
     def call
       payment = find_payment!
 
+      if payment.appointment_id.present?
+        appointment = Appointment.find(payment.appointment_id)
+
+        appointment.with_lock do
+          process_payment!(payment)
+        end
+      else
+        process_payment!(payment)
+      end
+    end
+
+    private
+
+    attr_reader :payment_intent
+
+    def find_payment!
+      payment = Payment.find_by(
+        provider: "stripe",
+        provider_payment_id: payment_intent.id
+      )
+
+      return payment if payment
+
+      payment_id = payment_intent.metadata&.[]("payment_id")
+
+      if payment_id.present?
+        payment = Payment.find_by(
+          id: payment_id,
+          provider: "stripe"
+        )
+
+        return payment if payment
+      end
+
+      raise PaymentNotFound,
+            "Payment not found for Stripe PaymentIntent #{payment_intent.id}"
+    end
+
+    def process_payment!(payment)
       payment.with_lock do
         validate_amount!(payment)
         validate_currency!(payment)
+
+        if payment.provider_payment_id.present? &&
+           payment.provider_payment_id != payment_intent.id
+          raise PaymentNotFound,
+                "Payment is associated with a different Stripe PaymentIntent"
+        end
+
+        if payment.provider_payment_id.nil?
+          payment.update!(
+            provider_payment_id: payment_intent.id
+          )
+        end
 
         return payment if payment.status == "requires_refund"
 
@@ -30,20 +82,6 @@ module Payments
 
         payment
       end
-    end
-
-    private
-
-    attr_reader :payment_intent
-
-    def find_payment!
-      Payment.find_by(
-        provider: "stripe",
-        provider_payment_id: payment_intent.id
-      ) || raise(
-        PaymentNotFound,
-        "Payment not found for Stripe PaymentIntent #{payment_intent.id}"
-      )
     end
 
     def complete_booking!(payment)

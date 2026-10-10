@@ -119,5 +119,44 @@ RSpec.describe Appointments::ChangeStatus do
         expect(balance[:balance_cents]).to eq(0)
       end
     end
+
+    context "when cancelling an appointment with a payment in progress" do
+      let(:to_status) { "cancelled" }
+
+      let!(:charge) do
+        create(
+          :appointment_charge,
+          appointment: appointment,
+          amount_cents: 4000,
+          status: "active"
+        )
+      end
+
+      %w[pending processing].each do |payment_status|
+        context "when the payment is #{payment_status}" do
+          before do
+            create(
+              :payment,
+              appointment: appointment,
+              patient: appointment.patient,
+              status: payment_status
+            )
+          end
+
+          it "rejects cancellation without changing the appointment or charges" do
+            expect {
+              change_status.call
+            }.to raise_error(
+              Appointments::ChangeStatus::PaymentInProgress,
+              "Cannot cancel an appointment while a payment is in progress."
+            )
+
+            expect(appointment.reload.status).to eq("booked")
+            expect(charge.reload.status).to eq("active")
+            expect(appointment.appointment_status_changes.count).to eq(0)
+          end
+        end
+      end
+    end
   end
 end

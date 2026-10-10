@@ -503,4 +503,57 @@ RSpec.describe "Practice appointments", type: :request do
       expect(response.body).not_to include(active_slot.id)
     end
   end
+
+  describe "PATCH /practice/appointments/:id/status" do
+    let(:appointment) do
+      create(
+        :appointment,
+        practice: practice,
+        status: "booked"
+      )
+    end
+
+    let!(:charge) do
+      create(
+        :appointment_charge,
+        appointment: appointment,
+        patient: appointment.patient,
+        practice: practice,
+        amount_cents: 4000,
+        status: "active"
+      )
+    end
+
+    before do
+      sign_in user
+
+      create(
+        :payment,
+        appointment: appointment,
+        appointment_hold: nil,
+        patient: appointment.patient,
+        amount_cents: 4000,
+        currency: practice.currency,
+        status: "pending"
+      )
+    end
+
+    it "rejects cancellation while a payment is in progress" do
+      expect {
+        patch status_practice_appointment_path(appointment),
+              params: { status: "cancelled" }
+      }.not_to change(AppointmentStatusChange, :count)
+
+      expect(response).to redirect_to(
+        practice_appointment_path(appointment)
+      )
+
+      expect(flash[:alert]).to eq(
+        "Cannot cancel an appointment while a payment is in progress."
+      )
+
+      expect(appointment.reload.status).to eq("booked")
+      expect(charge.reload.status).to eq("active")
+    end
+  end
 end

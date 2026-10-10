@@ -247,7 +247,8 @@ module Staff
                       notice: "Appointment status updated."
         end
       end
-    rescue Appointments::ChangeStatus::InvalidTransition => error
+    rescue Appointments::ChangeStatus::InvalidTransition,
+       Appointments::ChangeStatus::PaymentInProgress => error
       redirect_to practice_appointment_path(appointment),
                   alert: error.message
     end

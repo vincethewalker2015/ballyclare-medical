@@ -36,10 +36,24 @@ module Staff
     end
 
     def new
+      if @appointment.status == "cancelled"
+        return redirect_to(
+          practice_appointment_path(@appointment),
+          alert: "Cannot take payment for a cancelled appointment."
+        )
+      end
+
       @balance = appointment_balance
     end
 
     def create
+      if @appointment.status == "cancelled"
+        return redirect_to(
+          practice_appointment_path(@appointment),
+          alert: "Cannot take payment for a cancelled appointment."
+        )
+      end
+
       amount_cents = amount_to_cents(params[:amount])
 
       if amount_cents.nil? || amount_cents <= 0
@@ -57,6 +71,10 @@ module Staff
       @client_secret = result.payment_intent.client_secret
 
       render :confirm
+
+      rescue Payments::CreateForAppointment::AppointmentCancelled
+        redirect_to practice_appointment_path(@appointment),
+                    alert: "Cannot take payment for a cancelled appointment."
 
       rescue Payments::CreateForAppointment::AmountExceedsBalance
         render_payment_error(

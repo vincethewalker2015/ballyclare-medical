@@ -4,6 +4,7 @@ module Payments
   class CreateForAppointment
     class AmountExceedsBalance < StandardError; end
     class PaymentInProgress < StandardError; end
+    class AppointmentCancelled < StandardError; end
 
     def initialize(
       appointment:,
@@ -16,6 +17,7 @@ module Payments
     def call
       Appointment.transaction do
         appointment.with_lock do
+          ensure_appointment_not_cancelled!
           ensure_no_payment_in_progress!
           ensure_amount_does_not_exceed_balance!
 
@@ -49,6 +51,13 @@ module Payments
 
       raise PaymentInProgress,
             "Another payment is already in progress"
+    end
+
+    def ensure_appointment_not_cancelled!
+      return unless appointment.status == "cancelled"
+
+      raise AppointmentCancelled,
+            "Cannot take payment for a cancelled appointment."
     end
 
     def ensure_amount_does_not_exceed_balance!

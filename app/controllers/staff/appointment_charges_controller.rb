@@ -3,6 +3,10 @@ module Staff
     before_action :set_appointment
 
     def new
+      return unless @appointment.status == "cancelled"
+
+      redirect_to practice_appointment_path(@appointment),
+                  alert: "Cannot add charges to a cancelled appointment."
     end
 
     def create
@@ -26,6 +30,10 @@ module Staff
 
       redirect_to practice_appointment_path(@appointment),
                   notice: "Charge added."
+
+    rescue Billing::CreateCharge::AppointmentCancelled
+      redirect_to practice_appointment_path(@appointment),
+                  alert: "Cannot add charges to a cancelled appointment."
     end
 
     private

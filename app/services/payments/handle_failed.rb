@@ -77,6 +77,7 @@ module Payments
         return payment if payment.status == "succeeded"
         return payment if payment.status == "requires_refund"
         return payment if payment.status == "failed"
+        return payment if payment.status == "cancelled"
 
         if payment.provider_payment_id.nil?
           payment.update!(

@@ -183,6 +183,17 @@ RSpec.describe Payments::HandleFailed do
       expect(payment.paid_at).to be_within(1.second).of(paid_at)
     end
 
+    it "does not overwrite a cancelled payment" do
+      payment.update!(status: "cancelled")
+
+      result = described_class.new(
+        payment_intent: payment_intent
+      ).call
+
+      expect(result.status).to eq("cancelled")
+      expect(payment.reload.status).to eq("cancelled")
+    end
+
     it "locks the appointment before updating the payment" do
       expect(appointment)
         .to receive(:with_lock)

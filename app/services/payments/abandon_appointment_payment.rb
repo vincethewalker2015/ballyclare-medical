@@ -1,3 +1,4 @@
+
 module Payments
   class AbandonAppointmentPayment
     class PaymentNotAbandonable < StandardError; end
@@ -18,6 +19,7 @@ module Payments
           raise PaymentNotAbandonable,
                 "Cannot abandon a payment for a cancelled appointment"
         end
+
         payment.with_lock do
           unless %w[pending processing].include?(payment.status)
             raise PaymentNotAbandonable,
@@ -43,10 +45,9 @@ module Payments
         PaymentProviders::StripeProvider::CancelPayment.new(
           payment: payment,
           payment_intent_id: validated_payment_intent_id
-      ).call
+        ).call
 
       appointment.with_lock do
-        appointment.with_lock do
         if appointment.status == "cancelled"
           raise PaymentNotAbandonable,
                 "Appointment was cancelled during payment abandonment"
@@ -59,7 +60,7 @@ module Payments
           end
 
           unless payment.provider_payment_id == validated_payment_intent_id &&
-                payment_intent.id == validated_payment_intent_id
+                 payment_intent.id == validated_payment_intent_id
             raise PaymentNotAbandonable,
                   "Stripe PaymentIntent does not match the validated payment"
           end
@@ -71,7 +72,6 @@ module Payments
 
           payment.update!(status: "cancelled")
         end
-      end
       end
 
       payment

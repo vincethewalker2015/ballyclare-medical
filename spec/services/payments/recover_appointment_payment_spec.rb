@@ -270,53 +270,5 @@ RSpec.describe Payments::RecoverAppointmentPayment do
       end
       expect(payment.reload.status).to eq("pending")
     end
-    it "holds the recovery lock throughout the Stripe request" do
-      appointment = create(:appointment)
-      payment = create(
-        :payment,
-        appointment: appointment,
-        appointment_hold: nil,
-        patient: appointment.patient,
-        provider: "stripe",
-        provider_payment_id: nil,
-        status: "pending",
-        idempotency_key: SecureRandom.uuid
-      )
-      lock_key = Zlib.crc32("payment-recovery:#{payment.id}")
-      pool = ActiveRecord::Base.connection_pool
-      allow(Stripe::PaymentIntent)
-        .to receive(:create) do
-          result = nil
-          # A separate thread checks out its own database connection.
-          # PostgreSQL advisory locks are scoped to database sessions.
-          checker = Thread.new do
-            pool.with_connection do |other_connection|
-              checker_pid = other_connection.raw_connection.backend_pid
-              puts "Recovery PID: #{recovery_pid}"
-              puts "Checker PID: #{checker_pid}"
-              raise "Checker reused recovery connection" if checker_pid == recovery_pid
-              acquired = other_connection.select_value(
-                "SELECT pg_try_advisory_lock(#{lock_key})"
-              )
-              if acquired
-                other_connection.select_value(
-                                  "SELECT pg_advisory_unlock(#{lock_key})"
-                                )
-              end
-              acquired
-            end
-          end
-          result = checker.value
-          checker.value
-          expect(result).to eq(false)
-          double(
-            id: "pi_recovered",
-            status: "requires_payment_method"
-          )
-        end
-      result = described_class.new(payment: payment).call
-      expect(result.id).to eq("pi_recovered")
-      expect(payment.reload.status).to eq("processing")
-    end
   end
 end

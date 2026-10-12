@@ -99,4 +99,61 @@ RSpec.describe "Payment recovery advisory locking" do
     expect(result.id).to eq("pi_recovered")
     expect(payment.reload.status).to eq("processing")
   end
+
+  it "rejects recovery when another PostgreSQL session holds the lock" do
+    appointment = create(:appointment)
+
+    payment = create(
+      :payment,
+      appointment: appointment,
+      appointment_hold: nil,
+      patient: appointment.patient,
+      provider: "stripe",
+      provider_payment_id: nil,
+      status: "pending",
+      idempotency_key: SecureRandom.uuid
+    )
+
+    lock_key = Zlib.crc32("payment-recovery:#{payment.id}")
+
+    primary_connection = ActiveRecord::Base.connection
+
+    connection_options =
+      primary_connection.raw_connection.conninfo_hash.reject do |key, value|
+        value.nil? || value == ""
+      end
+
+    other_connection = PG.connect(connection_options)
+
+    begin
+      expect(other_connection.backend_pid)
+        .not_to eq(primary_connection.raw_connection.backend_pid)
+
+      acquired = other_connection.exec(
+        "SELECT pg_try_advisory_lock(#{lock_key})"
+      ).getvalue(0, 0)
+
+      expect(acquired).to eq("t")
+
+      expect(Stripe::PaymentIntent).not_to receive(:create)
+
+      expect {
+        Payments::RecoverAppointmentPayment.new(
+          payment: payment
+        ).call
+      }.to raise_error(
+        Payments::RecoverAppointmentPayment::PaymentNotRecoverable,
+        "Another recovery attempt is already in progress"
+      )
+
+      expect(payment.reload.status).to eq("pending")
+      expect(payment.provider_payment_id).to be_nil
+    ensure
+      other_connection.exec(
+        "SELECT pg_advisory_unlock(#{lock_key})"
+      ) if acquired == "t"
+
+      other_connection.close
+    end
+  end
 end

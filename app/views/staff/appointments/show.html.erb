@@ -37,6 +37,99 @@
   </div>
 
   <div class="space-y-6">
+    <% if @refunds_by_status.fetch("failed", []).any? %>
+      <section
+        role="alert"
+        class="rounded-2xl border border-red-200 bg-red-50 p-6"
+      >
+        <h2 class="text-lg font-semibold text-red-800">
+          Refund failed
+        </h2>
+
+        <p class="mt-2 text-sm font-semibold text-red-700">
+          Staff attention required
+        </p>
+
+        <p class="mt-2 text-sm text-red-700">
+          A refund for this appointment could not be completed.
+          Please review the payment before taking further action.
+        </p>
+
+        <ul class="mt-4 space-y-2">
+          <% @refunds_by_status.fetch("failed", []).each do |refund| %>
+            <li class="text-sm font-semibold text-red-800">
+              <%= "#{refund.currency} #{format('%.2f', refund.amount_cents / 100.0)}" %>
+              — Failed
+            </li>
+          <% end %>
+        </ul>
+      </section>
+    <% end %>
+    <% if @refunds_by_status.fetch("processing", []).any? %>
+      <section
+        class="rounded-2xl border border-blue-200 bg-blue-50 p-6" >
+        <h2 class="text-lg font-semibold text-blue-900">
+          Refund processing
+        </h2>
+
+        <p class="mt-2 text-sm text-blue-800">
+          Stripe is processing this refund.
+          No further action is required at this stage.
+        </p>
+
+        <ul class="mt-4 space-y-2">
+          <% @refunds_by_status.fetch("processing", []).each do |refund| %>
+            <li class="text-sm font-semibold text-blue-900">
+              <%= "#{refund.currency} #{format('%.2f', refund.amount_cents / 100.0)}" %>
+              — Processing
+            </li>
+          <% end %>
+        </ul>
+      </section>
+    <% end %>
+    <% if @refunds_by_status.fetch("succeeded", []).any?  %>
+      <section
+        class="rounded-2xl border border-emerald-200 bg-emerald-50 p-6" >
+        <h2 class="text-lg font-semibold text-emerald-900">
+          Refund completed
+        </h2>
+
+        <p class="mt-2 text-sm text-emerald-800">
+          Stripe has confirmed that the refund succeeded.
+        </p>
+
+        <ul class="mt-4 space-y-2">
+          <%@refunds_by_status.fetch("succeeded", []).each do |refund|%>
+            <li class="text-sm font-semibold text-emerald-900">
+              <%= "#{refund.currency} #{format('%.2f', refund.amount_cents / 100.0)}" %>
+              — Completed
+            </li>
+          <% end %>
+        </ul>
+      </section>
+    <% end %>
+    <% if @refunds_by_status.fetch("pending", []).any?  %>
+      <section
+        class="rounded-2xl border border-amber-200 bg-amber-50 p-6">
+        <h2 class="text-lg font-semibold text-amber-900">
+          Refund pending
+        </h2>
+
+        <p class="mt-2 text-sm text-amber-800">
+          This refund has been requested and is awaiting processing.
+          No further action is required at this stage.
+        </p>
+
+        <ul class="mt-4 space-y-2">
+          <% @refunds_by_status.fetch("pending", []).each do |refund|%>
+            <li class="text-sm font-semibold text-amber-900">
+              <%= "#{refund.currency} #{format('%.2f', refund.amount_cents / 100.0)}" %>
+              — Pending
+            </li>
+          <% end %>
+        </ul>
+      </section>
+    <% end %>
     <section class="rounded-2xl border border-medical-border bg-white p-8 shadow-sm">
       <div class="mb-6 flex items-center justify-between gap-4">
         <h2 class="text-lg font-semibold text-medical-navy">

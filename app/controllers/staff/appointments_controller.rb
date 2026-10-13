@@ -71,6 +71,13 @@ module Staff
         )
         .find(params[:id])
 
+      @refunds_by_status = Refund
+        .joins(:payment)
+        .where(payments: { appointment_id: @appointment.id })
+        .order(:created_at)
+        .to_a
+        .group_by(&:status)
+
       @balance = Billing::AppointmentBalance.new(
         appointment: @appointment
       ).call

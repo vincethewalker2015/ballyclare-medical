@@ -504,6 +504,289 @@ RSpec.describe "Practice appointments", type: :request do
     end
   end
 
+  describe "GET /practice/appointments/:id" do
+    before do
+      sign_in user
+    end
+
+    it "alerts staff when an appointment has a failed refund" do
+      appointment = create(
+        :appointment,
+        practice: practice,
+        status: "cancelled"
+      )
+
+      payment = create(
+        :payment,
+        appointment: appointment,
+        appointment_hold: nil,
+        patient: appointment.patient,
+        amount_cents: 5000,
+        currency: "GBP",
+        status: "succeeded",
+        provider: "stripe",
+        provider_payment_id: "pi_failed_refund",
+        paid_at: Time.current
+      )
+
+      create(
+        :refund,
+        payment: payment,
+        amount_cents: 5000,
+        currency: "GBP",
+        status: "failed",
+        provider_refund_id: "re_failed_refund"
+      )
+
+      get practice_appointment_path(appointment)
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Refund failed")
+      expect(response.body).to include("Staff attention required")
+    end
+
+    it "does not show a failed refund warning for another appointment" do
+      appointment = create(
+        :appointment,
+        practice: practice,
+        status: "booked"
+      )
+
+      other_appointment = create(
+        :appointment,
+        practice: practice,
+        status: "cancelled"
+      )
+
+      payment = create(
+        :payment,
+        appointment: other_appointment,
+        appointment_hold: nil,
+        patient: other_appointment.patient,
+        amount_cents: 5000,
+        currency: "GBP",
+        status: "succeeded",
+        provider: "stripe",
+        provider_payment_id: "pi_other_appointment",
+        paid_at: Time.current
+      )
+
+      create(
+        :refund,
+        payment: payment,
+        amount_cents: 5000,
+        currency: "GBP",
+        status: "failed",
+        provider_refund_id: "re_other_appointment"
+      )
+
+      get practice_appointment_path(appointment)
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).not_to include("Refund failed")
+      expect(response.body).not_to include("Staff attention required")
+    end
+
+    it "shows the amount of a failed refund" do
+      appointment = create(
+        :appointment,
+        practice: practice,
+        status: "cancelled"
+      )
+
+      payment = create(
+        :payment,
+        appointment: appointment,
+        appointment_hold: nil,
+        patient: appointment.patient,
+        amount_cents: 5000,
+        currency: "GBP",
+        status: "succeeded",
+        provider: "stripe",
+        provider_payment_id: "pi_failed_refund_amount",
+        paid_at: Time.current
+      )
+
+      create(
+        :refund,
+        payment: payment,
+        amount_cents: 3750,
+        currency: "GBP",
+        status: "failed",
+        provider_refund_id: "re_failed_refund_amount"
+      )
+
+      get practice_appointment_path(appointment)
+
+      expect(response).to have_http_status(:success)
+
+      alert = Nokogiri::HTML(response.body)
+        .at_css('[role="alert"]')
+
+      expect(alert).not_to be_nil
+      expect(alert.text).to include("GBP 37.50")
+    end
+
+    it "shows when an appointment refund is processing" do
+      appointment = create(
+        :appointment,
+        practice: practice,
+        status: "cancelled"
+      )
+
+      payment = create(
+        :payment,
+        appointment: appointment,
+        appointment_hold: nil,
+        patient: appointment.patient,
+        amount_cents: 5000,
+        currency: "GBP",
+        status: "succeeded",
+        provider: "stripe",
+        provider_payment_id: "pi_processing_refund",
+        paid_at: Time.current
+      )
+
+      create(
+        :refund,
+        payment: payment,
+        amount_cents: 5000,
+        currency: "GBP",
+        status: "processing",
+        provider_refund_id: "re_processing_refund"
+      )
+
+      get practice_appointment_path(appointment)
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Refund processing")
+      expect(response.body).to include("GBP 50.00")
+      expect(response.body).not_to include("Staff attention required")
+    end
+
+    it "shows when an appointment refund has succeeded" do
+      appointment = create(
+        :appointment,
+        practice: practice,
+        status: "cancelled"
+      )
+
+      payment = create(
+        :payment,
+        appointment: appointment,
+        appointment_hold: nil,
+        patient: appointment.patient,
+        amount_cents: 5000,
+        currency: "GBP",
+        status: "succeeded",
+        provider: "stripe",
+        provider_payment_id: "pi_succeeded_refund",
+        paid_at: Time.current
+      )
+
+      create(
+        :refund,
+        payment: payment,
+        amount_cents: 3750,
+        currency: "GBP",
+        status: "succeeded",
+        provider_refund_id: "re_succeeded_refund",
+        refunded_at: Time.current
+      )
+
+      get practice_appointment_path(appointment)
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Refund completed")
+      expect(response.body).to include("GBP 37.50")
+      expect(response.body).not_to include("Staff attention required")
+      expect(response.body).not_to include("Refund processing")
+    end
+
+    it "shows when an appointment refund is pending" do
+      appointment = create(
+        :appointment,
+        practice: practice,
+        status: "cancelled"
+      )
+
+      payment = create(
+        :payment,
+        appointment: appointment,
+        appointment_hold: nil,
+        patient: appointment.patient,
+        amount_cents: 5000,
+        currency: "GBP",
+        status: "succeeded",
+        provider: "stripe",
+        provider_payment_id: "pi_pending_refund",
+        paid_at: Time.current
+      )
+
+      create(
+        :refund,
+        payment: payment,
+        amount_cents: 3750,
+        currency: "GBP",
+        status: "pending"
+      )
+
+      get practice_appointment_path(appointment)
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Refund pending")
+      expect(response.body).to include("GBP 37.50")
+      expect(response.body).not_to include("Staff attention required")
+      expect(response.body).not_to include("Refund failed")
+    end
+
+    it "shows failed and processing refunds on the same appointment" do
+      appointment = create(
+        :appointment,
+        practice: practice,
+        status: "cancelled"
+      )
+
+      payment = create(
+        :payment,
+        appointment: appointment,
+        appointment_hold: nil,
+        patient: appointment.patient,
+        amount_cents: 5000,
+        currency: "GBP",
+        status: "succeeded",
+        provider: "stripe",
+        provider_payment_id: "pi_multiple_refunds",
+        paid_at: Time.current
+      )
+
+      create(
+        :refund,
+        payment: payment,
+        amount_cents: 5000,
+        currency: "GBP",
+        status: "failed",
+        provider_refund_id: "re_failed_attempt"
+      )
+
+      create(
+        :refund,
+        payment: payment,
+        amount_cents: 5000,
+        currency: "GBP",
+        status: "processing",
+        provider_refund_id: "re_processing_attempt"
+      )
+
+      get practice_appointment_path(appointment)
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Refund failed")
+      expect(response.body).to include("Staff attention required")
+      expect(response.body).to include("Refund processing")
+    end
+  end
+
   describe "PATCH /practice/appointments/:id/status" do
     let(:appointment) do
       create(

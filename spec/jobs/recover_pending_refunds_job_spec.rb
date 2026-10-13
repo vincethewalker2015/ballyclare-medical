@@ -112,5 +112,33 @@ RSpec.describe RecoverPendingRefundsJob do
 
       expect(refund.reload.status).to eq("pending")
     end
+
+    it "does not automatically retry a failed refund" do
+      payment = create(
+        :payment,
+        status: "succeeded",
+        provider: "stripe",
+        provider_payment_id: "pi_failed_refund_review",
+        amount_cents: 5000,
+        currency: "GBP",
+        paid_at: Time.current
+      )
+
+      refund = create(
+        :refund,
+        payment: payment,
+        amount_cents: 5000,
+        currency: "GBP",
+        status: "failed",
+        provider_refund_id: "re_failed_refund_review"
+      )
+
+      expect(ProcessRefundJob).not_to receive(:perform_later)
+
+      described_class.new.perform
+
+      expect(refund.reload.status).to eq("failed")
+      expect(refund.provider_refund_id).to eq("re_failed_refund_review")
+    end
   end
 end

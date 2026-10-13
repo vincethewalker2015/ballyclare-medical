@@ -314,5 +314,95 @@ RSpec.describe Payments::ReconcileRefund do
       expect(refund.provider_refund_id).to eq("re_amount_mismatch")
       expect(refund.refunded_at).to be_nil
     end
+
+    it "rejects a failed Stripe refund with a different currency" do
+      payment = create(
+        :payment,
+        status: "succeeded",
+        provider: "stripe",
+        provider_payment_id: "pi_currency_mismatch",
+        amount_cents: 5000,
+        currency: "GBP",
+        paid_at: Time.current
+      )
+
+      refund = create(
+        :refund,
+        payment: payment,
+        amount_cents: 5000,
+        currency: "GBP",
+        status: "processing",
+        provider_refund_id: "re_currency_mismatch"
+      )
+
+      stripe_refund = Stripe::Refund.construct_from(
+        id: "re_currency_mismatch",
+        object: "refund",
+        amount: 5000,
+        currency: "usd",
+        status: "failed",
+        payment_intent: "pi_currency_mismatch"
+      )
+
+      expect(Stripe::Refund)
+        .to receive(:retrieve)
+        .with("re_currency_mismatch")
+        .and_return(stripe_refund)
+
+      expect {
+        described_class.new(refund: refund).call
+      }.to raise_error(
+        Payments::ReconcileRefund::CurrencyMismatch
+      )
+
+      expect(refund.reload.status).to eq("processing")
+      expect(refund.provider_refund_id).to eq("re_currency_mismatch")
+      expect(refund.refunded_at).to be_nil
+    end
+
+    it "rejects a failed Stripe refund with a different refund ID" do
+      payment = create(
+        :payment,
+        status: "succeeded",
+        provider: "stripe",
+        provider_payment_id: "pi_refund_id_mismatch",
+        amount_cents: 5000,
+        currency: "GBP",
+        paid_at: Time.current
+      )
+
+      refund = create(
+        :refund,
+        payment: payment,
+        amount_cents: 5000,
+        currency: "GBP",
+        status: "processing",
+        provider_refund_id: "re_expected"
+      )
+
+      stripe_refund = Stripe::Refund.construct_from(
+        id: "re_different",
+        object: "refund",
+        amount: 5000,
+        currency: "gbp",
+        status: "failed",
+        payment_intent: "pi_refund_id_mismatch"
+      )
+
+      expect(Stripe::Refund)
+        .to receive(:retrieve)
+        .with("re_expected")
+        .and_return(stripe_refund)
+
+      expect {
+        described_class.new(refund: refund).call
+      }.to raise_error(
+        Payments::ReconcileRefund::ProviderRefundMismatch
+      )
+
+      expect(refund.reload.status).to eq("processing")
+      expect(refund.provider_refund_id).to eq("re_expected")
+      expect(refund.refunded_at).to be_nil
+    end
   end
 end

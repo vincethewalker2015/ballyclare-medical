@@ -158,5 +158,92 @@ RSpec.describe Appointments::ChangeStatus do
         end
       end
     end
+
+    context "when staff cancel a paid appointment" do
+      let(:to_status) { "cancelled" }
+
+      let!(:payment) do
+        create(
+          :payment,
+          appointment: appointment,
+          patient: appointment.patient,
+          status: "succeeded",
+          amount_cents: 5000,
+          currency: "GBP",
+          paid_at: Time.current
+        )
+      end
+
+      it "creates a pending full refund for the successful payment" do
+        expect {
+          change_status.call
+        }.to change(Refund, :count).by(1)
+
+        refund = payment.refunds.last
+
+        expect(appointment.reload.status).to eq("cancelled")
+        expect(refund.amount_cents).to eq(5000)
+        expect(refund.currency).to eq("GBP")
+        expect(refund.status).to eq("pending")
+        expect(refund.requested_by).to eq(user)
+        expect(refund.idempotency_key).to be_present
+      end
+
+      it "refunds only the remaining amount after a partial refund" do
+        create(
+          :refund,
+          payment: payment,
+          amount_cents: 2000,
+          currency: "GBP",
+          status: "succeeded"
+        )
+
+        expect {
+          change_status.call
+        }.to change(Refund, :count).by(1)
+
+        refund = payment.refunds.order(:created_at).last
+
+        expect(appointment.reload.status).to eq("cancelled")
+        expect(refund.amount_cents).to eq(3000)
+        expect(refund.status).to eq("pending")
+      end
+
+      it "does not create another refund when the payment is fully refunded" do
+        create(
+          :refund,
+          payment: payment,
+          amount_cents: 5000,
+          currency: "GBP",
+          status: "succeeded"
+        )
+
+        expect {
+          change_status.call
+        }.not_to change(Refund, :count)
+
+        expect(appointment.reload.status).to eq("cancelled")
+      end
+
+      it "does not duplicate an existing pending refund" do
+        create(
+          :refund,
+          payment: payment,
+          amount_cents: 2000,
+          currency: "GBP",
+          status: "pending"
+        )
+
+        expect {
+          change_status.call
+        }.to change(Refund, :count).by(1)
+
+        new_refund = payment.refunds.order(:created_at).last
+
+        expect(appointment.reload.status).to eq("cancelled")
+        expect(new_refund.amount_cents).to eq(3000)
+        expect(new_refund.status).to eq("pending")
+      end
+    end
   end
 end

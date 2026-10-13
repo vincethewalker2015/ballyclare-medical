@@ -40,11 +40,32 @@ module Appointments
             changed_by: changed_by
           )
 
-          if to_status == "cancelled" &&
-            !appointment.payments.where(status: "succeeded").exists?
-            appointment.appointment_charges
-                      .active
-                      .update_all(status: "voided")
+          if to_status == "cancelled"
+            successful_payments =
+              appointment.payments.where(status: "succeeded")
+
+            if successful_payments.exists?
+              successful_payments.each do |payment|
+                already_refunded_cents = payment.refunds
+                  .where(status: %w[pending processing succeeded])
+                  .sum(:amount_cents)
+
+                remaining_cents = payment.amount_cents - already_refunded_cents
+
+                next if remaining_cents <= 0
+
+                Payments::CreateRefund.new(
+                  payment: payment,
+                  amount_cents: remaining_cents,
+                  requested_by: changed_by,
+                  reason: "Clinic cancelled appointment"
+                ).call
+              end
+            else
+              appointment.appointment_charges
+                         .active
+                         .update_all(status: "voided")
+            end
           end
         end
       end

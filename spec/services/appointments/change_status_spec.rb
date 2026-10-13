@@ -244,6 +244,52 @@ RSpec.describe Appointments::ChangeStatus do
         expect(new_refund.amount_cents).to eq(3000)
         expect(new_refund.status).to eq("pending")
       end
+
+      it "enqueues processing for the newly created refund" do
+        expect(ProcessRefundJob).to receive(:perform_later) do |refund_id|
+          refund = payment.refunds.find(refund_id)
+
+          expect(refund.status).to eq("pending")
+          expect(refund.amount_cents).to eq(5000)
+        end
+
+        change_status.call
+
+        expect(appointment.reload.status).to eq("cancelled")
+      end
+
+      it "does not enqueue a refund job when cancellation rolls back" do
+        allow_any_instance_of(AppointmentStatusChange)
+          .to receive(:save!)
+          .and_raise(ActiveRecord::RecordInvalid)
+
+        expect(ProcessRefundJob).not_to receive(:perform_later)
+
+        expect {
+          change_status.call
+        }.to raise_error(ActiveRecord::RecordInvalid)
+
+        expect(appointment.reload.status).to eq("booked")
+        expect(payment.refunds.count).to eq(0)
+      end
+
+      it "keeps cancellation successful when refund job enqueueing fails" do
+        allow(ProcessRefundJob)
+          .to receive(:perform_later)
+          .and_raise(StandardError, "Queue unavailable")
+
+        expect {
+          change_status.call
+        }.not_to raise_error
+
+        expect(appointment.reload.status).to eq("cancelled")
+
+        refund = payment.refunds.last
+
+        expect(refund).to be_present
+        expect(refund.status).to eq("pending")
+        expect(refund.amount_cents).to eq(5000)
+      end
     end
   end
 end

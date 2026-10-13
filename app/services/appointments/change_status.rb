@@ -54,12 +54,24 @@ module Appointments
 
                 next if remaining_cents <= 0
 
-                Payments::CreateRefund.new(
+                refund = Payments::CreateRefund.new(
                   payment: payment,
                   amount_cents: remaining_cents,
                   requested_by: changed_by,
                   reason: "Clinic cancelled appointment"
                 ).call
+
+                ActiveRecord.after_all_transactions_commit do
+                  begin
+                    ProcessRefundJob.perform_later(refund.id)
+                  rescue StandardError => error
+                    Rails.logger.error(
+                      "Failed to enqueue refund processing " \
+                      "for refund #{refund.id}: " \
+                      "#{error.class}: #{error.message}"
+                    )
+                  end
+                end
               end
             else
               appointment.appointment_charges

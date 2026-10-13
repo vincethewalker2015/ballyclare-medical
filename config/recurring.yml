@@ -8,3 +8,7 @@ production:
   recover_pending_refunds:
     class: RecoverPendingRefundsJob
     schedule: every 5 minutes
+
+  reconcile_processing_refunds:
+    class: ReconcileProcessingRefundsJob
+    schedule: every 5 minutes

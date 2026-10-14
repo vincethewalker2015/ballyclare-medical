@@ -30,6 +30,7 @@ gem "solid_cache"
 gem "solid_queue"
 gem "solid_cable"
 gem "stripe"
+gem "redcarpet", "~> 3.6"
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
 

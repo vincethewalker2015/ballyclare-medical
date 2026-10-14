@@ -1,0 +1,33 @@
+<% content_for :title, "User Manual | Ballyclare Medical" %>
+
+<div class="mx-auto max-w-4xl">
+  <div class="mb-8">
+    <p class="text-sm font-semibold uppercase tracking-[0.16em] text-medical-teal">
+      Help &amp; documentation
+    </p>
+
+    <h1 class="mt-2 text-3xl font-semibold tracking-tight text-medical-navy">
+      User Manual
+    </h1>
+
+    <p class="mt-2 text-sm text-medical-muted">
+      A practical guide for Ballyclare Medical staff.
+    </p>
+  </div>
+
+  <article class="rounded-2xl border border-medical-border bg-white p-6 shadow-sm sm:p-10
+                  [&_h1]:mb-6 [&_h1]:text-3xl [&_h1]:font-bold [&_h1]:text-medical-navy
+                  [&_h2]:mb-4 [&_h2]:mt-10 [&_h2]:border-b [&_h2]:border-medical-border [&_h2]:pb-2 [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:text-medical-navy
+                  [&_h3]:mb-3 [&_h3]:mt-7 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:text-medical-navy
+                  [&_p]:mb-4 [&_p]:leading-7 [&_ul]:mb-5 [&_ul]:list-disc [&_ul]:pl-6
+                  [&_ol]:mb-5 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:mb-2 [&_li]:leading-7
+                  [&_a]:text-medical-teal [&_a]:underline [&_strong]:font-semibold
+                  [&_code]:rounded [&_code]:bg-medical-teal-soft [&_code]:px-1
+                  [&_pre]:mb-6 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-medical-teal-soft [&_pre]:p-4">
+    <%= sanitize(
+          @manual_html,
+          tags: %w[h1 h2 h3 h4 p ul ol li strong em a code pre blockquote hr table thead tbody tr th td],
+          attributes: %w[href title]
+        ) %>
+  </article>
+</div>

@@ -41,6 +41,10 @@ module Appointments
           )
 
           if to_status == "cancelled"
+            appointment.appointment_charges
+                       .active
+                       .update_all(status: "voided")
+
             successful_payments =
               appointment.payments.where(status: "succeeded")
 
@@ -73,10 +77,6 @@ module Appointments
                   end
                 end
               end
-            else
-              appointment.appointment_charges
-                         .active
-                         .update_all(status: "voided")
             end
           end
         end

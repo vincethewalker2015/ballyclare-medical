@@ -1,5 +1,7 @@
 <% content_for :title, "Appointment | Ballyclare Medical" %>
 
+<%= turbo_stream_from @appointment %>
+
 <%
   local_time = @appointment
     .appointment_slot

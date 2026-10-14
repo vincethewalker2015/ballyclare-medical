@@ -73,6 +73,9 @@
             Availability
           <% end %>
 
+          <%= link_to "User Manual", user_manual_path,
+                      class: "flex items-center rounded-xl px-4 py-3 text-sm font-semibold #{controller_name == 'documentation' ? 'bg-medical-teal-soft text-medical-navy' : 'text-medical-muted hover:bg-medical-teal-soft hover:text-medical-navy'}" %>
+
           <% %w[Patients Payments Clinical Administration].each do |item| %>
             <span class="flex cursor-not-allowed items-center rounded-xl px-4 py-3 text-sm font-medium text-medical-muted opacity-60">
               <%= item %>

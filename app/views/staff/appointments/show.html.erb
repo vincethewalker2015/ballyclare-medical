@@ -40,8 +40,7 @@
     <% if @refunds_by_status.fetch("failed", []).any? %>
       <section
         role="alert"
-        class="rounded-2xl border border-red-200 bg-red-50 p-6"
-      >
+        class="rounded-2xl border border-red-200 bg-red-50 p-6">
         <h2 class="text-lg font-semibold text-red-800">
           Refund failed
         </h2>
@@ -67,7 +66,7 @@
     <% end %>
     <% if @refunds_by_status.fetch("processing", []).any? %>
       <section
-        class="rounded-2xl border border-blue-200 bg-blue-50 p-6" >
+        class="rounded-2xl border border-blue-200 bg-blue-50 p-6">
         <h2 class="text-lg font-semibold text-blue-900">
           Refund processing
         </h2>
@@ -87,9 +86,9 @@
         </ul>
       </section>
     <% end %>
-    <% if @refunds_by_status.fetch("succeeded", []).any?  %>
+    <% if @refunds_by_status.fetch("succeeded", []).any? %>
       <section
-        class="rounded-2xl border border-emerald-200 bg-emerald-50 p-6" >
+        class="rounded-2xl border border-emerald-200 bg-emerald-50 p-6">
         <h2 class="text-lg font-semibold text-emerald-900">
           Refund completed
         </h2>
@@ -99,7 +98,7 @@
         </p>
 
         <ul class="mt-4 space-y-2">
-          <%@refunds_by_status.fetch("succeeded", []).each do |refund|%>
+          <% @refunds_by_status.fetch("succeeded", []).each do |refund| %>
             <li class="text-sm font-semibold text-emerald-900">
               <%= "#{refund.currency} #{format('%.2f', refund.amount_cents / 100.0)}" %>
               — Completed
@@ -108,7 +107,7 @@
         </ul>
       </section>
     <% end %>
-    <% if @refunds_by_status.fetch("pending", []).any?  %>
+    <% if @refunds_by_status.fetch("pending", []).any? %>
       <section
         class="rounded-2xl border border-amber-200 bg-amber-50 p-6">
         <h2 class="text-lg font-semibold text-amber-900">
@@ -121,7 +120,7 @@
         </p>
 
         <ul class="mt-4 space-y-2">
-          <% @refunds_by_status.fetch("pending", []).each do |refund|%>
+          <% @refunds_by_status.fetch("pending", []).each do |refund| %>
             <li class="text-sm font-semibold text-amber-900">
               <%= "#{refund.currency} #{format('%.2f', refund.amount_cents / 100.0)}" %>
               — Pending

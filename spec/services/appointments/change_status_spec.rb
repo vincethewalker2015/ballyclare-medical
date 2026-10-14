@@ -162,6 +162,25 @@ RSpec.describe Appointments::ChangeStatus do
     context "when staff cancel a paid appointment" do
       let(:to_status) { "cancelled" }
 
+      let!(:charge) do
+        create(
+          :appointment_charge,
+          appointment: appointment,
+          amount_cents: 5000,
+          status: "active"
+        )
+      end
+
+      it "voids the consultation charge when cancelling a paid appointment" do
+        expect {
+          change_status.call
+        }.to change {
+          charge.reload.status
+        }.from("active").to("voided")
+
+        expect(appointment.reload.status).to eq("cancelled")
+      end
+
       let!(:payment) do
         create(
           :payment,

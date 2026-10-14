@@ -509,6 +509,15 @@ RSpec.describe "Practice appointments", type: :request do
       sign_in user
     end
 
+    it "subscribes the appointment page to live refund updates" do
+      appointment = create(:appointment, practice: practice)
+
+      get practice_appointment_path(appointment)
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body.at_css("turbo-cable-stream-source")).to be_present
+    end
+
     it "alerts staff when an appointment has a failed refund" do
       appointment = create(
         :appointment,

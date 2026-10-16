@@ -14,9 +14,7 @@
   <% if appointment.status == "completed" && balance[:balance_cents].positive? %>
     <div role="alert" class="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4">
       <h3 class="font-semibold text-amber-900">
-        Payment outstanding —
-        <%= balance[:currency] %>
-        <%= number_with_precision(balance[:balance_cents] / 100.0, precision: 2) %>
+        Payment outstanding — <%= "#{balance[:currency]} #{number_with_precision(balance[:balance_cents] / 100.0, precision: 2)}" %>
       </h3>
 
       <p class="mt-1 text-sm text-amber-800">

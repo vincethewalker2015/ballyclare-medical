@@ -525,6 +525,28 @@ RSpec.describe "Practice appointments", type: :request do
       sign_in user
     end
 
+    it "warns staff when a completed appointment has an outstanding payment" do
+      appointment = create(:appointment, practice: practice, status: "completed")
+
+      create(
+        :appointment_charge,
+        appointment: appointment,
+        patient: appointment.patient,
+        practice: practice,
+        amount_cents: 5000,
+        status: "active"
+      )
+
+      get practice_appointment_path(appointment)
+
+      expect(response).to have_http_status(:success)
+
+      warning = response.parsed_body.at_css('[role="alert"]')
+      expect(warning).to be_present
+      expect(warning.text).to include("Payment outstanding")
+      expect(warning.text).to include("GBP 50.00")
+    end
+
     it "subscribes the appointment page to live refund updates" do
       appointment = create(:appointment, practice: practice)
 

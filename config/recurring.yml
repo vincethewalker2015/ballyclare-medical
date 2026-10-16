@@ -12,3 +12,7 @@ production:
   reconcile_processing_refunds:
     class: ReconcileProcessingRefundsJob
     schedule: every 5 minutes
+
+  reconcile_processing_appointment_payments:
+    class: ReconcileProcessingAppointmentPaymentsJob
+    schedule: every 5 minutes

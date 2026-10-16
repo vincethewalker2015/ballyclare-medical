@@ -42,7 +42,7 @@ RSpec.describe "Practice appointments", type: :request do
         get practice_appointments_path
 
         diary = Nokogiri::HTML(response.body)
-          .at_css('turbo-frame#appointment_diary_list')
+          .at_css("turbo-frame#appointment_diary_list")
 
         expect(diary).to be_present
 
@@ -430,8 +430,8 @@ RSpec.describe "Practice appointments", type: :request do
           today = Time.zone.now.beginning_of_day
 
           [
-            ["Selected clinician payment due", clinician, 10],
-            ["Other clinician payment due", other_clinician, 11]
+            [ "Selected clinician payment due", clinician, 10 ],
+            [ "Other clinician payment due", other_clinician, 11 ]
           ].each do |reason, appointment_clinician, hour|
             appointment = create_diary_appointment(
               starts_at: today - 2.days + hour.hours,

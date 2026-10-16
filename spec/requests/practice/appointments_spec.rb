@@ -37,6 +37,22 @@ RSpec.describe "Practice appointments", type: :request do
 
         expect(response).to have_http_status(:success)
       end
+
+      it "navigates to booking outside the empty diary Turbo frame" do
+        get practice_appointments_path
+
+        diary = Nokogiri::HTML(response.body)
+          .at_css('turbo-frame#appointment_diary_list')
+
+        expect(diary).to be_present
+
+        booking_link = diary.css("a").find do |link|
+          link["href"] == new_practice_appointment_path
+        end
+
+        expect(booking_link).to be_present
+        expect(booking_link["data-turbo-frame"]).to eq("_top")
+      end
     end
 
     context "when the user is not signed in" do

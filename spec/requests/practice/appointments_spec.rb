@@ -245,6 +245,47 @@ RSpec.describe "Practice appointments", type: :request do
         )
       end
 
+      it "shows the payment due empty state when no completed balances are outstanding" do
+        appointment = nil
+
+        Time.use_zone(practice.timezone) do
+          appointment = create_diary_appointment(
+            starts_at: Time.zone.now.beginning_of_day - 1.day + 10.hours,
+            reason: "Fully paid completed consultation"
+          )
+        end
+
+        appointment.update!(status: "completed")
+
+        create(
+          :appointment_charge,
+          appointment: appointment,
+          patient: appointment.patient,
+          practice: practice,
+          amount_cents: 5000,
+          status: "active"
+        )
+
+        create(
+          :payment,
+          appointment: appointment,
+          appointment_hold: nil,
+          patient: appointment.patient,
+          amount_cents: 5000,
+          currency: "GBP",
+          status: "succeeded"
+        )
+
+        get practice_appointments_path(view: "payment_due")
+
+        expect(response).to have_http_status(:success)
+        diary = response.parsed_body.at_css("turbo-frame#appointment_diary_list")
+        expect(diary).to be_present
+        expect(diary.text).to include("No outstanding payments")
+        expect(diary.text).not_to include("No appointments today")
+        expect(diary.text).not_to include("Fully paid completed consultation")
+      end
+
       it "shows today's appointments by default" do
         Time.use_zone(practice.timezone) do
           today = Time.zone.now.beginning_of_day

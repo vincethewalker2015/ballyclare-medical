@@ -42,7 +42,8 @@
             <% [
               ["Today", "today"],
               ["Upcoming", "upcoming"],
-              ["Past", "past"]
+              ["Past", "past"],
+              ["Payment due", "payment_due"]
             ].each do |label, view| %>
               <%= link_to label,
                 practice_appointments_path(
@@ -133,6 +134,11 @@
                     <span class="rounded-full bg-medical-teal-soft px-3 py-1 text-xs font-semibold capitalize text-medical-teal-dark">
                       <%= appointment.status.humanize %>
                     </span>
+                    <% if @diary_view == "payment_due" %>
+                      <span class="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
+                        <%= "#{balance[:currency]} #{number_with_precision(balance[:balance_cents] / 100.0, precision: 2)} due" %>
+                      </span>
+                    <% end %>
                     <% if balance[:balance_cents].negative? %>
                       <span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
                         Credit
@@ -203,6 +209,14 @@
 
               <p class="mt-2 text-sm leading-6 text-medical-muted">
                 There are no appointments scheduled after today.
+              </p>
+            <% when "payment_due" %>
+              <h3 class="text-base font-semibold text-medical-navy">
+                No outstanding payments
+              </h3>
+
+              <p class="mt-2 text-sm leading-6 text-medical-muted">
+                There are no completed appointments with payment outstanding.
               </p>
             <% when "past" %>
               <h3 class="text-base font-semibold text-medical-navy">

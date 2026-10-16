@@ -35,9 +35,14 @@ class ReconcileProcessingAppointmentPaymentsJob < ApplicationJob
           payment.provider_payment_id
         )
 
-        if payment_intent.status == "succeeded"
+        case payment_intent.status
+        when "succeeded"
           Payments::HandleSucceeded.new(
             payment_intent: payment_intent
+          ).call
+        when "canceled"
+          Payments::ReconcileAppointmentPayment.new(
+            payment: payment
           ).call
         end
 

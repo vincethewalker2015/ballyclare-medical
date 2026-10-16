@@ -396,6 +396,46 @@ RSpec.describe "Practice appointments", type: :request do
         expect(diary.text).not_to include("Other clinician payment due")
       end
 
+      it "shows the remaining amount due for a part-paid completed consultation" do
+        appointment = nil
+
+        Time.use_zone(practice.timezone) do
+          appointment = create_diary_appointment(
+            starts_at: Time.zone.now.beginning_of_day - 2.days + 10.hours,
+            reason: "Part-paid completed consultation"
+          )
+        end
+
+        appointment.update!(status: "completed")
+
+        create(
+          :appointment_charge,
+          appointment: appointment,
+          patient: appointment.patient,
+          practice: practice,
+          amount_cents: 5000,
+          status: "active"
+        )
+
+        create(
+          :payment,
+          appointment: appointment,
+          appointment_hold: nil,
+          patient: appointment.patient,
+          amount_cents: 2000,
+          currency: "GBP",
+          status: "succeeded"
+        )
+
+        get practice_appointments_path(view: "payment_due")
+
+        expect(response).to have_http_status(:success)
+        diary = response.parsed_body.at_css("turbo-frame#appointment_diary_list")
+        expect(diary.text).to include("Part-paid completed consultation")
+        expect(diary.text).to include("GBP 30.00 due")
+        expect(diary.text).to include("Part paid")
+      end
+
       it "shows the financial state of an appointment" do
         appointment = nil
 

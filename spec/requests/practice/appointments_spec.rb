@@ -152,6 +152,31 @@ RSpec.describe "Practice appointments", type: :request do
         end
       end
 
+      it "does not expose another practice's completed unpaid consultations in payment due" do
+        foreign_appointment = other_practice.appointments.first
+        foreign_appointment.update!(
+          status: "completed",
+          reason: "Other practice outstanding consultation"
+        )
+
+        create(
+          :appointment_charge,
+          appointment: foreign_appointment,
+          patient: other_patient,
+          practice: other_practice,
+          amount_cents: 5000,
+          status: "active"
+        )
+
+        get practice_appointments_path(view: "payment_due")
+
+        expect(response).to have_http_status(:success)
+        diary = response.parsed_body.at_css("turbo-frame#appointment_diary_list")
+        expect(diary.text).not_to include("Other practice outstanding consultation")
+        expect(diary.text).not_to include("Hidden Patient")
+        expect(diary.text).to include("No outstanding payments")
+      end
+
       it "does not expose appointments from another practice" do
         get practice_appointments_path(view: "upcoming")
 

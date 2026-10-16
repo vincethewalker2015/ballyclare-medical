@@ -547,6 +547,36 @@ RSpec.describe "Practice appointments", type: :request do
       expect(warning.text).to include("GBP 50.00")
     end
 
+    it "does not warn when a completed appointment is fully paid" do
+      appointment = create(:appointment, practice: practice, status: "completed")
+
+      create(
+        :appointment_charge,
+        appointment: appointment,
+        patient: appointment.patient,
+        practice: practice,
+        amount_cents: 5000,
+        status: "active"
+      )
+
+      create(
+        :payment,
+        appointment: appointment,
+        appointment_hold: nil,
+        patient: appointment.patient,
+        amount_cents: 5000,
+        currency: "GBP",
+        status: "succeeded",
+        paid_at: Time.current
+      )
+
+      get practice_appointment_path(appointment)
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).not_to include("Payment outstanding")
+      expect(response.body).to include("GBP")
+    end
+
     it "subscribes the appointment page to live refund updates" do
       appointment = create(:appointment, practice: practice)
 

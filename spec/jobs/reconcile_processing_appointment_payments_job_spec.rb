@@ -124,5 +124,30 @@ RSpec.describe ReconcileProcessingAppointmentPaymentsJob, type: :job do
         Billing::AppointmentBalance.new(appointment: appointment).call[:balance_cents]
       ).to eq(5000)
     end
+
+    it "does not reconcile a recently updated processing payment" do
+      appointment = create(:appointment)
+      create(:appointment_charge, appointment: appointment)
+
+      payment = create(
+        :payment,
+        appointment: appointment,
+        appointment_hold: nil,
+        patient: appointment.patient,
+        provider: "stripe",
+        provider_payment_id: "pi_recent_payment",
+        amount_cents: 5000,
+        currency: appointment.practice.currency,
+        status: "processing"
+      )
+      payment.update_columns(updated_at: 5.minutes.ago)
+
+      expect(Stripe::PaymentIntent).not_to receive(:retrieve)
+
+      described_class.new.perform
+
+      expect(payment.reload.status).to eq("processing")
+      expect(payment.paid_at).to be_nil
+    end
   end
 end

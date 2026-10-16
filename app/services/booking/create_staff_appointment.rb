@@ -18,7 +18,9 @@ module Booking
     end
 
     def call
-      AppointmentSlot.transaction do
+      appointment = AppointmentSlot.transaction do
+        StaffMember.lock.find(appointment_slot.clinician_id)
+
         appointment_slot.with_lock do
           ensure_patient_belongs_to_practice!
           ensure_slot_is_available!
@@ -29,6 +31,14 @@ module Booking
           appointment
         end
       end
+
+      Turbo::StreamsChannel.broadcast_action_to(
+        [ appointment.practice, :appointments ],
+        action: :refresh,
+        target: "appointment_diary_list"
+      )
+
+      appointment
     end
 
     private
@@ -69,9 +79,19 @@ module Booking
     end
 
     def ensure_slot_is_available!
-      if Appointment.exists?(
-        appointment_slot_id: appointment_slot.id
-      )
+      unless appointment_slot.availability_block.active?
+        raise SlotUnavailable,
+              "Appointment slot is no longer available"
+      end
+
+      if appointment_slot.starts_at <= Time.current
+        raise SlotUnavailable,
+              "Appointment slot is no longer in the future"
+      end
+
+      if Appointment.where(appointment_slot_id: appointment_slot.id)
+                    .where.not(status: "cancelled")
+                    .exists?
         raise SlotUnavailable,
               "Appointment slot has already been booked"
       end

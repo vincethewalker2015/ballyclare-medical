@@ -82,4 +82,47 @@ RSpec.describe PaymentProviders::StripeProvider::CreateRefund do
     expect(refund.status).to eq("pending")
     expect(refund.provider_refund_id).to be_nil
   end
+
+  it "does not overwrite a refund already marked succeeded by a webhook" do
+    allow(Stripe::Refund).to receive(:create) do
+      # Simulate the webhook succeeding before the Stripe API returns.
+      refund.update!(
+        provider_refund_id: "re_test_123",
+        status: "succeeded",
+        refunded_at: Time.current
+      )
+
+      stripe_refund
+    end
+
+    described_class.new(refund: refund).call
+
+    refund.reload
+
+    expect(refund.provider_refund_id).to eq("re_test_123")
+    expect(refund.status).to eq("succeeded")
+    expect(refund.refunded_at).to be_present
+  end
+
+  it "rejects a conflicting Stripe refund ID without changing the refund" do
+    refund.update!(
+      provider_refund_id: "re_existing_456",
+      status: "processing"
+    )
+
+    allow(Stripe::Refund)
+      .to receive(:create)
+      .and_return(stripe_refund)
+
+    expect {
+      described_class.new(refund: refund).call
+    }.to raise_error(
+      PaymentProviders::StripeProvider::CreateRefund::ProviderRefundMismatch
+    )
+
+    refund.reload
+
+    expect(refund.provider_refund_id).to eq("re_existing_456")
+    expect(refund.status).to eq("processing")
+  end
 end

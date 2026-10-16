@@ -257,3 +257,196 @@ The verified failure path is:
 This verifies that a successful Stripe payment does not create an appointment from an expired hold and that the resulting refund can complete through the Stripe webhook workflow.
 
 The original payment currently remains `requires_refund` after its associated refund succeeds. Refund completion is represented by the refund record itself. Payment-level representation of full and partial refund state is a separate lifecycle concern and should not be inferred solely from the payment status.
+
+## Development setup
+
+### Create a development staff user
+
+A fresh development database may not contain any roles or staff users. To access the staff-facing application, create a development user and associate it with a practice.
+
+Start the Rails console:
+
+```bash
+bin/rails console
+```
+
+Check the available practices:
+
+```ruby
+Practice.pluck(:id, :name)
+```
+
+Create the standard staff roles if they do not already exist:
+
+```ruby
+%w[administrator doctor nurse].each do |name|
+  Role.find_or_create_by!(name: name)
+end
+```
+
+Select the practice you want the development user to access:
+
+```ruby
+practice = Practice.first
+```
+
+Create a user. Choose your own local development password:
+
+```ruby
+user = User.find_or_initialize_by(email: "admin@demo-medical.test")
+
+if user.new_record?
+  user.password = "YOUR_LOCAL_DEV_PASSWORD"
+  user.password_confirmation = "YOUR_LOCAL_DEV_PASSWORD"
+  user.save!
+end
+```
+
+Give the development user all currently defined roles:
+
+```ruby
+Role.find_each do |role|
+  UserRole.find_or_create_by!(
+    user: user,
+    role: role
+  )
+end
+```
+
+Create the staff membership:
+
+```ruby
+StaffMember.find_or_create_by!(
+  user: user,
+  practice: practice
+) do |staff|
+  staff.staff_type = "administrator"
+  staff.default_appointment_duration = 30
+end
+```
+
+Verify the setup:
+
+```ruby
+user.reload
+
+user.roles.pluck(:name)
+user.staff_members.map { |staff| [staff.practice.name, staff.staff_type] }
+```
+
+For a max-access development account, the roles should include:
+
+```ruby
+["administrator", "doctor", "nurse"]
+```
+
+The staff membership should show the selected practice and administrator staff type, for example:
+
+```ruby
+[["Demo Medical Practice", "administrator"]]
+```
+
+Exit the Rails console:
+
+```ruby
+exit
+```
+
+The user can then sign in at:
+
+```text
+/users/sign_in
+```
+
+and access the staff application at:
+
+```text
+/practice/appointments
+```
+
+> **Development only:** Never commit real passwords, API keys, payment credentials, or production credentials to the repository.
+>
+> `StaffMember#staff_type` and `Role` represent different concepts. A staff member's type describes their staff identity within a practice, while roles are used for authorization. The development account above intentionally receives all currently defined roles to make local development and testing easier.
+>
+> A `User` can have multiple `StaffMember` records and may therefore be associated with multiple practices. The current staff UI uses a temporary single-practice context. Explicit practice selection should be used when multi-practice staff access is implemented.
+
+### Local background jobs and live refund updates
+
+The development and production job adapters currently differ:
+
+- **Development:** `config/environments/development.rb` does not select Solid Queue,
+  so Rails uses its configured default Active Job adapter. Refund jobs have been
+  observed running as `Async(default)` in local development.
+- **Production:** `config/environments/production.rb` explicitly selects
+  `:solid_queue`, backed by the production `queue` database.
+
+Do not assume that starting `bin/jobs` makes development jobs run through
+Solid Queue. Check the adapter Rails is actually using:
+
+```bash
+bin/rails runner 'puts ActiveJob::Base.queue_adapter.class.name'
+```
+
+To run the Solid Queue supervisor locally for development or debugging,
+the queue tables must first exist in the development database. On a fresh
+local setup, `bin/jobs start` may otherwise fail with
+`PG::UndefinedTable: solid_queue_processes`.
+
+The current development database configuration has no separate `queue`
+database or `db:queue:prepare` task. To initialise the included queue schema
+in the **local development database only**, run:
+
+```bash
+bin/rails runner 'load Rails.root.join("db/queue_schema.rb")'
+```
+
+**Caution:** Loading this schema recreates Solid Queue tables. Do not use this
+command as a routine startup step or against a database containing queue
+history you need to preserve.
+
+Verify that the tables exist:
+
+```bash
+bin/rails runner 'puts SolidQueue::Record.connection.data_source_exists?("solid_queue_processes")'
+```
+
+Then, in a separate terminal, start the supervisor if needed:
+
+```bash
+bin/jobs start
+```
+
+For local Stripe payment and refund testing, keep Rails running and start a
+Stripe CLI listener in another terminal:
+
+```bash
+stripe listen \
+  --events payment_intent.succeeded,payment_intent.payment_failed,payment_intent.canceled,refund.created,refund.updated,refund.failed,charge.refunded \
+  --forward-to http://localhost:3000/webhooks/stripe
+```
+
+Use the listener's `whsec_` signing secret as `STRIPE_WEBHOOK_SECRET`
+in `.env.development`, and restart Rails after changing it. The webhook
+controller currently **handles** `payment_intent.succeeded`,
+`payment_intent.payment_failed` and successful `refund.updated` events;
+other forwarded event types may be logged as unhandled. Forwarding them
+does not imply application support for them.
+
+After staff cancel a paid appointment, the system voids active appointment
+charges, requests a refund asynchronously and updates local refund records
+from Stripe's webhook. The staff appointment page subscribes to a Turbo
+Stream and automatically refreshes its refund messages and financial
+summary when the refund status changes.
+
+In development, `config/cable.yml` uses the `async` Action Cable adapter,
+which only broadcasts within a single process. Live updates observed with
+a webhook delivered to the Rails web process do not prove that broadcasts
+from a separate worker process will reach that same browser. Production is
+configured to use Solid Cable for cross-process delivery. Validate
+cross-process updates separately if switching the development job adapter.
+
+For regression tests covering refunds and the staff appointment page:
+
+```bash
+bundle exec rspec spec/models/refund_spec.rb spec/requests/practice/appointments_spec.rb spec/services/appointments/change_status_spec.rb
+```

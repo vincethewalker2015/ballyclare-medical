@@ -111,4 +111,17 @@ RSpec.describe Refund do
       expect(refund).to be_valid
     end
   end
+
+  describe "live appointment updates" do
+    it "broadcasts a refresh when a refund succeeds" do
+      appointment = create(:appointment)
+      payment = create(:payment, appointment: appointment)
+      refund = create(:refund, payment: payment, status: "processing")
+
+      expect(refund).to receive(:broadcast_refresh_later_to)
+        .with(appointment)
+
+      refund.update!(status: "succeeded")
+    end
+  end
 end

@@ -1,1 +1,129 @@
+@source "../../../app/views";
+@source "../../../app/helpers";
+@source "../../../app/javascript";
+
 @import "tailwindcss";
+
+@theme {
+  --color-medical-navy: #16324f;
+  --color-medical-navy-deep: #10263d;
+
+  --color-medical-teal: #2f7f78;
+  --color-medical-teal-dark: #256861;
+  --color-medical-teal-soft: #e8f3f1;
+
+  --color-medical-cream: #f7f5ef;
+  --color-medical-surface: #ffffff;
+
+  --color-medical-ink: #17252f;
+  --color-medical-muted: #66747d;
+  --color-medical-border: #dde3df;
+}
+
+
+/* Markdown rendered on the staff User Manual page. */
+@layer components {
+  .user-manual-markdown {
+    color: var(--color-medical-ink);
+    line-height: 1.75;
+  }
+
+  .user-manual-markdown h1 {
+    margin: 0 0 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--color-medical-border);
+    color: var(--color-medical-navy);
+    font-size: 1.875rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .user-manual-markdown h2 {
+    margin: 2rem 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-medical-border);
+    color: var(--color-medical-navy);
+    font-size: 1.5rem;
+    font-weight: 650;
+    line-height: 1.3;
+  }
+
+  .user-manual-markdown h3,
+  .user-manual-markdown h4 {
+    margin: 1.5rem 0 0.75rem;
+    color: var(--color-medical-navy);
+    font-size: 1.125rem;
+    font-weight: 650;
+    line-height: 1.4;
+  }
+
+  .user-manual-markdown p {
+    margin-bottom: 1rem;
+  }
+
+  .user-manual-markdown ul,
+  .user-manual-markdown ol {
+    margin: 0 0 1.25rem;
+    padding-left: 1.5rem;
+  }
+
+  .user-manual-markdown ul { list-style-type: disc; }
+  .user-manual-markdown ol { list-style-type: decimal; }
+  .user-manual-markdown li { margin-bottom: 0.35rem; }
+  .user-manual-markdown li > ul,
+  .user-manual-markdown li > ol { margin-top: 0.5rem; }
+
+  .user-manual-markdown a {
+    color: var(--color-medical-teal-dark);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .user-manual-markdown strong { font-weight: 700; }
+
+  .user-manual-markdown code {
+    border-radius: 0.25rem;
+    background: var(--color-medical-teal-soft);
+    padding: 0.1rem 0.3rem;
+    font-size: 0.9em;
+  }
+
+  .user-manual-markdown pre {
+    margin-bottom: 1.25rem;
+    overflow-x: auto;
+    border-radius: 0.75rem;
+    background: var(--color-medical-teal-soft);
+    padding: 1rem;
+  }
+
+  .user-manual-markdown pre code {
+    background: transparent;
+    padding: 0;
+  }
+
+  .user-manual-markdown blockquote {
+    margin: 1.25rem 0;
+    border-left: 3px solid var(--color-medical-teal);
+    padding-left: 1rem;
+  }
+
+  .user-manual-markdown table {
+    display: block;
+    width: 100%;
+    margin-bottom: 1.25rem;
+    overflow-x: auto;
+    border-collapse: collapse;
+  }
+
+  .user-manual-markdown th,
+  .user-manual-markdown td {
+    border: 1px solid var(--color-medical-border);
+    padding: 0.65rem 0.9rem;
+    text-align: left;
+  }
+
+  .user-manual-markdown th {
+    background: var(--color-medical-teal-soft);
+    font-weight: 700;
+  }
+}

@@ -1,10 +1,7 @@
 # Ballyclare Medical User Manual
 
-This guide is intended for nontechnical users of the Ballyclare Medical
-system, including reception, administrative and clinical staff.
-
-The manual is being developed alongside the application. Sections will be
-expanded as the corresponding features become available.
+This guide is intended for reception, administrative and clinical staff using
+Ballyclare Medical. It is being expanded as new features become available.
 
 ## Contents
 
@@ -21,57 +18,116 @@ expanded as the corresponding features become available.
 
 ## Getting Started
 
-Ballyclare Medical is a practice management system designed to support
-day-to-day medical practice operations.
+Ballyclare Medical supports day-to-day practice operations, including patients,
+clinician availability, appointments and payments. Some clinical and
+administrative features are still under development.
 
-The system will provide facilities for managing patients, clinician
-availability, appointments, payments and clinical encounters.
+## Appointment Diary
+
+The staff appointment diary lets staff view appointments and open an
+appointment to review its status, financial summary and activity history.
+
+## Booking an Appointment
+
+Staff can book an available appointment for a patient, choose the clinician
+and appointment slot, and enter a consultation charge. The appointment page
+shows the recorded charge and any payments received.
+
+For online bookings requiring payment, an appointment slot may be held
+temporarily while payment is completed. An expired hold does not permanently
+block the slot from being offered again.
+
+## Cancelling an Appointment
+
+Open the appointment and use the available status controls to cancel it.
+Cancellation is blocked while a payment is pending or processing; wait for
+the payment to reach a final state before trying again.
+
+When cancellation succeeds, any active consultation charge is voided.
+The original charge remains in the appointment's financial history.
+
+If a successful payment has been collected, the system also requests a
+refund for the amount not already covered by completed or in-progress
+refunds. Staff do not need to initiate the standard cancellation refund
+separately.
 
 ## Payments and Refunds
 
-The system supports payment processing as part of the appointment booking
-process.
+### Viewing payments and charges
 
-When a patient selects an appointment, the appointment slot may be held
-temporarily while payment is being completed.
+The appointment page shows a financial summary with:
 
-Further instructions for taking payments, viewing payment status and
-processing refunds will be added as these features become available.
+- **Charges** — total active charges, excluding voided charges.
+- **Payments** — successful payments received.
+- **Refunds** — refunds confirmed as successful.
+- **Outstanding balance** — charges minus successful payments plus
+  successful refunds.
 
-## Appointment payments
+A negative outstanding balance can appear temporarily after a paid
+appointment is cancelled and its charge is voided, before the refund
+has been confirmed. It should return to zero after a full refund succeeds.
 
-When payment is required for an appointment, the system records the payment against the patient and appointment.
+Charges and refund records remain available for financial history and
+audit purposes; voiding a charge does not delete it.
 
-A successful payment completes the appointment booking automatically.
+### Refund status messages
 
-If payment succeeds but the appointment cannot be completed, the payment is flagged for refund so that staff can identify and resolve it.
+The appointment page may display one or more refund messages:
 
-Payment and refund records are retained as part of the financial history and are not removed when related clinical or scheduling records change.
+- **Refund pending** — the refund has been requested and is awaiting
+  processing.
+- **Refund processing** — the refund is being processed by Stripe.
+- **Refund completed** — Stripe has confirmed the refund succeeded.
+- **Refund failed** — the refund could not be completed and needs staff
+  attention.
 
-## Payments and Refunds
+There may be more than one refund record for an appointment, such as
+when a partial refund has already been made or an earlier refund attempt
+failed. Read all status messages before taking further action.
 
-The system supports payment processing as part of the appointment booking process.
+### Automatic updates
 
-When a patient selects an appointment, the appointment slot is held temporarily while payment is being completed. This prevents another patient from booking the same slot during the payment process.
+While the staff appointment page is open, refund status messages and
+the financial summary update automatically when the system receives
+refund status changes. Staff normally do not need to refresh the page.
 
-When payment succeeds and the appointment slot is still available, the system completes the appointment booking automatically.
+If the connection is interrupted or the page has been closed, reopening
+or refreshing the appointment will display the latest recorded state.
 
-If payment succeeds but the appointment can no longer be completed, for example because the appointment hold has expired, the payment is marked as requiring a refund. No appointment is created in this situation.
+### When a refund fails
 
-Refunds are recorded separately from the original payment so that the financial history remains clear. The system tracks the refund while it is being processed and records when the payment provider confirms that the refund has succeeded.
+A red **Refund failed** message indicates **Staff attention required**.
+Review the appointment's payment and refund history and follow the
+practice's escalation procedure. Do not assume the patient has been
+refunded, and do not initiate a second refund without checking the
+existing payment and refund records.
 
-Expired appointment holds are retained when they form part of the payment history. An expired hold does not permanently block the appointment slot, and the slot can be offered to another patient when it is otherwise available.
+The staff interface currently shows refund status, but it does not
+provide a manual refund initiation or retry control. Failed refunds
+are not automatically retried.
 
-Payment and refund records are retained as part of the financial history and are not removed when related scheduling records change.
+### Online booking payment exceptions
 
-### Current refund workflow
+If Stripe collects payment but an online appointment cannot be created
+(for example, because its hold expired), the payment can be marked
+`requires_refund`. Payment and refund history is retained separately
+from appointment records in this case.
 
-At the current stage of development, the system records and tracks refunds through the payment provider, but a staff-facing screen for initiating and managing refunds has not yet been added.
+## Clinician Availability
 
-A payment that succeeds when its appointment cannot be completed is marked as `requires_refund`.
+Clinician availability determines which appointment slots may be booked.
+Only available slots can be selected during staff appointment booking.
 
-A refund record can then be created for that payment. Once the payment provider confirms that the refund has succeeded, the refund is recorded as successful together with the date and time of confirmation.
+## User and Staff Administration
 
-The original payment and its refund remain linked so that the complete financial history can be reviewed.
+Staff access depends on the user's practice membership and permissions.
+Administrative capabilities are being developed incrementally.
 
-Further staff instructions will be added when the payment and refund administration screens become available.
+## Troubleshooting
+
+If an appointment's refund does not update immediately, check the
+current refund status and allow time for Stripe processing. Refresh the
+appointment page if the live connection has been interrupted.
+
+For a failed refund, follow the escalation guidance above rather than
+repeatedly attempting payment or cancellation actions.

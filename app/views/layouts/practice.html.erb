@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= content_for(:title) || "Ballyclare Medical" %></title>
+
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Ballyclare Medical">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= yield :head %>
+
+    <link rel="icon" href="/icon.png" type="image/png">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.png">
+    <script src="https://js.stripe.com/v3/"></script>
+
+    <%= stylesheet_link_tag :application,
+          "data-turbo-track": "reload" %>
+
+    <%= javascript_include_tag "application",
+          "data-turbo-track": "reload",
+          type: "module" %>
+  </head>
+
+  <body class="min-h-screen bg-medical-cream text-medical-ink antialiased">
+    <header class="border-b border-medical-border bg-white">
+      <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-8">
+        <%= link_to practice_appointments_path,
+                    class: "flex items-center gap-3" do %>
+
+          <span class="flex size-10 items-center justify-center rounded-full bg-medical-navy text-sm font-semibold text-white">
+            BM
+          </span>
+
+          <span>
+            <span class="block text-lg font-semibold tracking-tight text-medical-navy">
+              Ballyclare Medical
+            </span>
+
+            <span class="block text-xs font-medium uppercase tracking-[0.18em] text-medical-teal">
+              Practice
+            </span>
+          </span>
+        <% end %>
+
+        <div class="flex items-center gap-4">
+          <span class="text-sm text-medical-muted">
+            Staff workspace
+          </span>
+
+          <%= render "shared/session_controls" %>
+        </div>
+      </div>
+    </header>
+
+    <div class="mx-auto grid min-h-[calc(100vh-81px)] max-w-[1600px] lg:grid-cols-[240px_minmax(0,1fr)]">
+      <aside class="border-r border-medical-border bg-white px-4 py-8">
+        <nav class="space-y-1" aria-label="Practice navigation">
+          <% appointments_active = controller_name == "appointments" %>
+          <% availability_active = controller_name == "availability_blocks" %>
+
+          <%= link_to practice_appointments_path,
+                      class: "flex items-center rounded-xl px-4 py-3 text-sm font-semibold #{appointments_active ? 'bg-medical-teal-soft text-medical-navy' : 'text-medical-muted hover:bg-medical-teal-soft hover:text-medical-navy'}" do %>
+            Appointments
+          <% end %>
+
+          <%= link_to practice_availability_blocks_path,
+                      class: "flex items-center rounded-xl px-4 py-3 text-sm font-semibold #{availability_active ? 'bg-medical-teal-soft text-medical-navy' : 'text-medical-muted hover:bg-medical-teal-soft hover:text-medical-navy'}" do %>
+            Availability
+          <% end %>
+
+          <%= link_to "User Manual", user_manual_path,
+                      class: "flex items-center rounded-xl px-4 py-3 text-sm font-semibold #{controller_name == 'documentation' ? 'bg-medical-teal-soft text-medical-navy' : 'text-medical-muted hover:bg-medical-teal-soft hover:text-medical-navy'}" %>
+
+          <% %w[Patients Payments Clinical Administration].each do |item| %>
+            <span class="flex cursor-not-allowed items-center rounded-xl px-4 py-3 text-sm font-medium text-medical-muted opacity-60">
+              <%= item %>
+            </span>
+          <% end %>
+        </nav>
+      </aside>
+
+      <main class="min-w-0 px-6 py-10 lg:px-10">
+        <% if notice.present? %>
+          <div class="mx-auto mb-6 max-w-6xl rounded-xl border border-medical-teal/20 bg-medical-teal-soft px-4 py-3 text-sm font-medium text-medical-teal-dark">
+            <%= notice %>
+          </div>
+        <% end %>
+
+        <% if alert.present? %>
+          <div class="mx-auto mb-6 max-w-6xl rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+            <%= alert %>
+          </div>
+        <% end %>
+
+        <%#= yield %>
+        <%= yield %>
+      </main>
+    </div>
+    <dialog
+      id="turbo-confirm-dialog"
+      class="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border border-medical-border bg-white p-0 shadow-2xl backdrop:bg-medical-navy/40">
+      <div class="p-6">
+        <div class="flex items-start gap-4">
+          <div class="flex size-10 shrink-0 items-center justify-center rounded-full bg-red-50">
+            <svg
+              class="size-5 text-red-600"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+            </svg>
+          </div>
+
+          <div>
+            <h2 class="text-lg font-semibold text-medical-navy">
+              Confirm action
+            </h2>
+
+            <p
+              id="turbo-confirm-message"
+              class="mt-2 text-sm leading-6 text-medical-muted"></p>
+          </div>
+        </div>
+
+        <div class="mt-6 flex justify-end gap-3">
+          <button
+            type="button"
+            value="cancel"
+            class="rounded-xl border border-medical-border bg-white px-4 py-2.5 text-sm font-semibold text-medical-navy shadow-sm transition hover:border-medical-teal hover:text-medical-teal focus:outline-none focus:ring-2 focus:ring-medical-teal focus:ring-offset-2">
+            Keep availability
+          </button>
+
+          <button
+            type="button"
+            value="confirm"
+            class="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2">
+            Cancel availability
+          </button>
+        </div>
+      </div>
+    </dialog>
+  </body>
+</html>

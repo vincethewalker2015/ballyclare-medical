@@ -26,6 +26,10 @@ end
 # Check for autocorrect flag
 if ARGV.include?('--fix') || ARGV.include?('-a')
   puts "\n🔧 Auto-correcting issues..."
+  system(
+    "find app spec test -type f \\( -name '*.rb' -o -name '*.erb' \\) " \
+    "-exec sed -i '' 's/[[:blank:]]*$//' {} +"
+  )
   puts "\n📋 RuboCop autocorrect:"
   system("RUBYOPT='-W0' bin/rubocop -a")
 

@@ -21,10 +21,35 @@ module PaymentProviders
           }
         )
 
-        payment.update!(
-          provider_payment_id: payment_intent.id,
-          status: "processing"
-        )
+        if payment.appointment_id.present?
+          appointment = Appointment.find(payment.appointment_id)
+
+          appointment.with_lock do
+            payment.with_lock do
+              if payment.provider_payment_id.present? &&
+                payment.provider_payment_id != payment_intent.id
+                raise "Payment is associated with a different Stripe PaymentIntent"
+              end
+
+              payment.update!(
+                provider_payment_id: payment_intent.id,
+                status: payment.status == "pending" ? "processing" : payment.status
+              )
+            end
+          end
+        else
+          payment.with_lock do
+            if payment.provider_payment_id.present? &&
+              payment.provider_payment_id != payment_intent.id
+              raise "Payment is associated with a different Stripe PaymentIntent"
+            end
+
+            payment.update!(
+              provider_payment_id: payment_intent.id,
+              status: payment.status == "pending" ? "processing" : payment.status
+            )
+          end
+        end
 
         payment_intent
       end

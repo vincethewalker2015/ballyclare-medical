@@ -1,0 +1,25 @@
+<% content_for :title, "User Manual | Ballyclare Medical" %>
+
+<div class="mx-auto max-w-4xl">
+  <div class="mb-8">
+    <p class="text-sm font-semibold uppercase tracking-[0.16em] text-medical-teal">
+      Help &amp; documentation
+    </p>
+
+    <h1 class="mt-2 text-3xl font-semibold tracking-tight text-medical-navy">
+      User Manual
+    </h1>
+
+    <p class="mt-2 text-sm text-medical-muted">
+      A practical guide for Ballyclare Medical staff.
+    </p>
+  </div>
+
+  <article class="user-manual-markdown rounded-2xl border border-medical-border bg-white p-6 shadow-sm sm:p-10">
+    <%= sanitize(
+          @manual_html,
+          tags: %w[h1 h2 h3 h4 p ul ol li strong em a code pre blockquote hr table thead tbody tr th td],
+          attributes: %w[href title]
+        ) %>
+  </article>
+</div>

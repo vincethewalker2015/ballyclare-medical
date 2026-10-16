@@ -19,11 +19,51 @@
     <link rel="apple-touch-icon" href="/icon.png">
 
     <%# Includes all stylesheet files in app/assets/stylesheets %>
-    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag :application, "data-turbo-track": "reload" %>
     <%= javascript_include_tag "application", "data-turbo-track": "reload", type: "module" %>
   </head>
 
-  <body>
-    <%= yield %>
+  <body class="min-h-screen bg-medical-cream text-medical-ink antialiased">
+    <header class="border-b border-medical-border bg-white">
+      <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-8">
+        <div class="flex items-center gap-3">
+          <span class="flex size-10 items-center justify-center rounded-full bg-medical-navy text-sm font-semibold text-white">
+            BM
+          </span>
+
+          <span>
+            <span class="block text-lg font-semibold tracking-tight text-medical-navy">
+              Ballyclare Medical
+            </span>
+
+            <span class="block text-xs font-medium uppercase tracking-[0.18em] text-medical-teal">
+              Medical Centre
+            </span>
+          </span>
+        </div>
+
+       <%= render "shared/session_controls" %>
+      </div>
+    </header>
+
+    <main>
+      <% if notice.present? %>
+        <div class="mx-auto max-w-md px-6 pt-6">
+          <div class="rounded-xl bg-medical-teal-soft px-4 py-3 text-sm text-medical-teal-dark">
+            <%= notice %>
+          </div>
+        </div>
+      <% end %>
+
+      <% if alert.present? %>
+        <div class="mx-auto max-w-md px-6 pt-6">
+          <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <%= alert %>
+          </div>
+        </div>
+      <% end %>
+
+      <%= yield %>
+    </main>
   </body>
 </html>

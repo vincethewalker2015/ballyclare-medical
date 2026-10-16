@@ -1,6 +1,8 @@
 module PaymentProviders
   module StripeProvider
     class CreateRefund
+      class ProviderRefundMismatch < StandardError; end
+
       def initialize(refund:)
         @refund = refund
       end
@@ -20,10 +22,20 @@ module PaymentProviders
           }
         )
 
-        refund.update!(
-          provider_refund_id: stripe_refund.id,
-          status: "processing"
-        )
+        refund.with_lock do
+          if refund.provider_refund_id.present? &&
+             refund.provider_refund_id != stripe_refund.id
+            raise ProviderRefundMismatch,
+                  "Stripe refund ID does not match local refund"
+          end
+
+          unless refund.status == "succeeded"
+            refund.update!(
+              provider_refund_id: stripe_refund.id,
+              status: "processing"
+            )
+          end
+        end
 
         stripe_refund
       end

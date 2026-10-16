@@ -8,22 +8,37 @@ module Payments
       @amount_cents = amount_cents
     end
 
+    Result = Data.define(:payment, :payment_intent)
+
     def call
       payment = Payments::CreateForAppointment.new(
         appointment: appointment,
         amount_cents: amount_cents
       ).call
 
-      begin
+      payment_intent =
         PaymentProviders::StripeProvider::CreatePayment.new(
           payment: payment
         ).call
-      rescue Stripe::StripeError
-        payment.update!(status: "failed")
-        raise
+
+      Result.new(
+        payment: payment,
+        payment_intent: payment_intent
+      )
+    rescue Stripe::APIConnectionError
+      # Stripe may have created the PaymentIntent even though
+      # its response never reached us. Keep cancellation blocked.
+      raise
+    rescue Stripe::StripeError
+      if payment
+        appointment.with_lock do
+          payment.with_lock do
+            payment.update!(status: "failed")
+          end
+        end
       end
 
-      payment
+      raise
     end
 
     private

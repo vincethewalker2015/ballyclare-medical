@@ -1,0 +1,23 @@
+<% content_for :title, "Add availability | Ballyclare Medical" %>
+
+<div class="mx-auto max-w-3xl">
+  <div class="mb-8">
+    <p class="text-sm font-semibold uppercase tracking-[0.16em] text-medical-teal">
+      Scheduling
+    </p>
+
+    <h1 class="mt-2 text-3xl font-semibold tracking-tight text-medical-navy">
+      Add availability
+    </h1>
+
+    <p class="mt-2 text-sm leading-6 text-medical-muted">
+      Add a clinician's working period and generate bookable appointment slots.
+    </p>
+  </div>
+
+  <%= render "form",
+             availability_block: @availability_block,
+             clinicians: @clinicians,
+             form_url: practice_availability_blocks_path,
+             submit_label: "Add availability" %>
+</div>

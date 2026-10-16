@@ -1,0 +1,217 @@
+<% content_for :title, "Appointment | Ballyclare Medical" %>
+
+<%= turbo_stream_from @appointment %>
+
+<%
+  local_time = @appointment
+    .appointment_slot
+    .starts_at
+    .in_time_zone(@appointment.practice.timezone)
+%>
+
+<div class="mx-auto max-w-5xl">
+  <%= render "staff/appointment_payments/status",
+             appointment: @appointment,
+             payment: @returned_payment,
+             balance: @balance %>
+
+  <div class="mb-8 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <p class="text-sm font-semibold uppercase tracking-[0.16em] text-medical-teal">
+        Appointments
+      </p>
+
+      <h1 class="mt-2 text-3xl font-semibold tracking-tight text-medical-navy">
+        Appointment
+      </h1>
+
+      <p class="mt-2 text-sm leading-6 text-medical-muted">
+        <%= @appointment.patient.first_name %>
+        <%= @appointment.patient.last_name %>
+        ·
+        <%= local_time.strftime("%A, %d %B %Y at %H:%M") %>
+      </p>
+    </div>
+
+    <%= link_to "Back to appointments",
+                practice_appointments_path,
+                class: "text-sm font-semibold text-medical-teal hover:text-medical-teal-dark" %>
+  </div>
+
+  <div class="space-y-6">
+    <% if @refunds_by_status.fetch("failed", []).any? %>
+      <section
+        role="alert"
+        class="rounded-2xl border border-red-200 bg-red-50 p-6">
+        <h2 class="text-lg font-semibold text-red-800">
+          Refund failed
+        </h2>
+
+        <p class="mt-2 text-sm font-semibold text-red-700">
+          Staff attention required
+        </p>
+
+        <p class="mt-2 text-sm text-red-700">
+          A refund for this appointment could not be completed.
+          Please review the payment before taking further action.
+        </p>
+
+        <ul class="mt-4 space-y-2">
+          <% @refunds_by_status.fetch("failed", []).each do |refund| %>
+            <li class="text-sm font-semibold text-red-800">
+              <%= "#{refund.currency} #{format('%.2f', refund.amount_cents / 100.0)}" %>
+              — Failed
+            </li>
+          <% end %>
+        </ul>
+      </section>
+    <% end %>
+    <% if @refunds_by_status.fetch("processing", []).any? %>
+      <section
+        class="rounded-2xl border border-blue-200 bg-blue-50 p-6">
+        <h2 class="text-lg font-semibold text-blue-900">
+          Refund processing
+        </h2>
+
+        <p class="mt-2 text-sm text-blue-800">
+          Stripe is processing this refund.
+          No further action is required at this stage.
+        </p>
+
+        <ul class="mt-4 space-y-2">
+          <% @refunds_by_status.fetch("processing", []).each do |refund| %>
+            <li class="text-sm font-semibold text-blue-900">
+              <%= "#{refund.currency} #{format('%.2f', refund.amount_cents / 100.0)}" %>
+              — Processing
+            </li>
+          <% end %>
+        </ul>
+      </section>
+    <% end %>
+    <% if @refunds_by_status.fetch("succeeded", []).any? %>
+      <section
+        class="rounded-2xl border border-emerald-200 bg-emerald-50 p-6">
+        <h2 class="text-lg font-semibold text-emerald-900">
+          Refund completed
+        </h2>
+
+        <p class="mt-2 text-sm text-emerald-800">
+          Stripe has confirmed that the refund succeeded.
+        </p>
+
+        <ul class="mt-4 space-y-2">
+          <% @refunds_by_status.fetch("succeeded", []).each do |refund| %>
+            <li class="text-sm font-semibold text-emerald-900">
+              <%= "#{refund.currency} #{format('%.2f', refund.amount_cents / 100.0)}" %>
+              — Completed
+            </li>
+          <% end %>
+        </ul>
+      </section>
+    <% end %>
+    <% if @refunds_by_status.fetch("pending", []).any? %>
+      <section
+        class="rounded-2xl border border-amber-200 bg-amber-50 p-6">
+        <h2 class="text-lg font-semibold text-amber-900">
+          Refund pending
+        </h2>
+
+        <p class="mt-2 text-sm text-amber-800">
+          This refund has been requested and is awaiting processing.
+          No further action is required at this stage.
+        </p>
+
+        <ul class="mt-4 space-y-2">
+          <% @refunds_by_status.fetch("pending", []).each do |refund| %>
+            <li class="text-sm font-semibold text-amber-900">
+              <%= "#{refund.currency} #{format('%.2f', refund.amount_cents / 100.0)}" %>
+              — Pending
+            </li>
+          <% end %>
+        </ul>
+      </section>
+    <% end %>
+    <section class="rounded-2xl border border-medical-border bg-white p-8 shadow-sm">
+      <div class="mb-6 flex items-center justify-between gap-4">
+        <h2 class="text-lg font-semibold text-medical-navy">
+          Appointment details
+        </h2>
+
+        <%= render "staff/appointments/status_badge",
+                   appointment: @appointment %>
+      </div>
+
+      <dl class="grid gap-x-8 gap-y-6 sm:grid-cols-2">
+        <div>
+          <dt class="text-sm font-medium text-medical-muted">
+            Patient
+          </dt>
+
+          <dd class="mt-1 font-semibold text-medical-navy">
+            <%= @appointment.patient.first_name %>
+            <%= @appointment.patient.last_name %>
+          </dd>
+
+          <p class="mt-1 text-sm text-medical-muted">
+            <%= @appointment.patient.patient_number %>
+          </p>
+        </div>
+
+        <div>
+          <dt class="text-sm font-medium text-medical-muted">
+            Clinician
+          </dt>
+
+          <dd class="mt-1 font-semibold text-medical-navy">
+            <%= @appointment.clinician.full_name %>
+          </dd>
+        </div>
+
+        <div>
+          <dt class="text-sm font-medium text-medical-muted">
+            Date
+          </dt>
+
+          <dd class="mt-1 font-semibold text-medical-navy">
+            <%= local_time.strftime("%A, %d %B %Y") %>
+          </dd>
+        </div>
+
+        <div>
+          <dt class="text-sm font-medium text-medical-muted">
+            Time
+          </dt>
+
+          <dd class="mt-1 font-semibold text-medical-navy">
+            <%= local_time.strftime("%H:%M") %>
+          </dd>
+        </div>
+
+        <div class="sm:col-span-2">
+          <dt class="text-sm font-medium text-medical-muted">
+            Reason
+          </dt>
+
+          <dd class="mt-1 text-medical-ink">
+            <%= @appointment.reason.presence || "No reason provided" %>
+          </dd>
+        </div>
+      </dl>
+
+      <%= render "staff/appointments/lifecycle_controls",
+                 appointment: @appointment,
+                 allowed_status_transitions: @allowed_status_transitions %>
+    </section>
+
+    <%= render "financial_summary",
+               appointment: @appointment,
+               balance: @balance %>
+
+    <%= render "charges",
+               appointment: @appointment %>
+
+    <%= render "activity",
+               appointment: @appointment,
+               status_changes: @status_changes %>
+  </div>
+</div>

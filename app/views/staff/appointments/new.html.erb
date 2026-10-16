@@ -1,0 +1,129 @@
+<% content_for :title, "Book appointment | Ballyclare Medical" %>
+
+<div class="mx-auto max-w-5xl">
+  <div class="mb-8 flex items-start justify-between gap-6">
+    <div>
+      <p class="text-sm font-semibold uppercase tracking-[0.16em] text-medical-teal">
+        Appointments
+      </p>
+
+      <h1 class="mt-2 text-3xl font-semibold tracking-tight text-medical-navy">
+        Book appointment
+      </h1>
+
+      <p class="mt-2 max-w-2xl text-sm leading-6 text-medical-muted">
+        Book an appointment on behalf of a patient.
+      </p>
+    </div>
+
+    <%= link_to "Back to appointments",
+                practice_appointments_path,
+                class: "text-sm font-semibold text-medical-teal hover:text-medical-teal-dark" %>
+  </div>
+
+  <div class="rounded-2xl border border-medical-border bg-white p-8 shadow-sm">
+    <%= form_with url: practice_appointments_path,
+                  method: :post,
+                  data: {
+                    controller: "appointment-booking",
+                    slots_url: available_slots_practice_appointments_path
+                  } do |form| %>
+
+      <div class="space-y-8">
+        <div>
+          <%= form.label :patient_id,
+                         "Patient",
+                         class: "mb-2 block text-sm font-semibold text-medical-navy" %>
+
+          <%= render "shared/select_field",
+                     form: form,
+                     field: :patient_id,
+                     collection: @patients,
+                     value_method: :id,
+                     text_method: ->(patient) {
+                       "#{patient.last_name}, #{patient.first_name} — #{patient.patient_number}"
+                     },
+                     options: { prompt: "Select a patient" } %>
+        </div>
+
+        <div>
+          <%= form.label :clinician_id,
+                         "Clinician",
+                         class: "mb-2 block text-sm font-semibold text-medical-navy" %>
+
+          <%= render "shared/select_field",
+                     form: form,
+                     field: :clinician_id,
+                     collection: @clinicians,
+                     value_method: :id,
+                     text_method: ->(clinician) { clinician.full_name },
+                     options: { prompt: "Select a clinician" },
+                     html_options: {
+                       data: {
+                         appointment_booking_target: "clinician",
+                         action: "change->appointment-booking#loadSlots"
+                       }
+                     } %>
+        </div>
+
+        <div>
+          <div class="mb-3">
+            <h2 class="text-sm font-semibold text-medical-navy">
+              Available appointment
+            </h2>
+
+            <p class="mt-1 text-sm leading-6 text-medical-muted">
+              Choose an available time for the selected clinician.
+            </p>
+          </div>
+
+          <%= turbo_frame_tag "available_appointment_slots" do %>
+            <div class="rounded-xl border border-medical-border bg-medical-cream px-5 py-4">
+              <p class="text-sm text-medical-muted">
+                Select a clinician to view available appointments.
+              </p>
+            </div>
+          <% end %>
+        </div>
+
+        <div>
+          <%= form.label :reason,
+                         "Reason for appointment",
+                         class: "mb-2 block text-sm font-semibold text-medical-navy" %>
+
+          <%= form.text_area :reason,
+                             rows: 4,
+                             placeholder: "Enter the reason for the appointment",
+                             class: "block w-full rounded-xl border border-medical-border bg-white px-4 py-3 text-base text-medical-ink shadow-sm outline-none transition placeholder:text-medical-muted focus:border-medical-teal focus:ring-4 focus:ring-medical-teal/10" %>
+
+          <p class="mt-2 text-sm text-medical-muted">
+            Add a brief reason to help the clinician prepare for the appointment.
+          </p>
+        </div>
+
+        <div>
+          <%= form.label :charge_amount,
+                         "Consultation charge",
+                         class: "mb-2 block text-sm font-semibold text-medical-navy" %>
+
+          <div class="max-w-xs">
+            <%= form.number_field :charge_amount,
+                                  min: 0,
+                                  step: "0.01",
+                                  placeholder: "0.00",
+                                  class: "block w-full rounded-xl border border-medical-border bg-white px-4 py-3 text-base text-medical-ink shadow-sm outline-none transition placeholder:text-medical-muted focus:border-medical-teal focus:ring-4 focus:ring-medical-teal/10" %>
+          </div>
+
+          <p class="mt-2 text-sm text-medical-muted">
+            Enter the consultation charge for this appointment.
+          </p>
+        </div>
+
+        <div class="flex items-center justify-end border-t border-medical-border pt-6">
+          <%= form.submit "Book appointment",
+                          class: "cursor-pointer rounded-xl bg-medical-navy px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-medical-navy-deep focus:outline-none focus:ring-2 focus:ring-medical-navy focus:ring-offset-2" %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>

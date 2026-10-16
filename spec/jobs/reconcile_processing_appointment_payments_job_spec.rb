@@ -205,12 +205,14 @@ RSpec.describe ReconcileProcessingAppointmentPaymentsJob, type: :job do
       )
       payment.update_columns(updated_at: 20.minutes.ago)
 
+      other_currency = appointment.practice.currency.casecmp?("USD") ? "EUR" : "USD"
+
       payment_intent = instance_double(
         Stripe::PaymentIntent,
         id: "pi_wrong_currency",
         status: "succeeded",
         amount_received: 5000,
-        currency: "usd"
+        currency: other_currency.downcase
       )
 
       expect(Stripe::PaymentIntent)

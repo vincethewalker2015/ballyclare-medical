@@ -139,13 +139,15 @@ RSpec.describe Payments::ReconcileRefund do
         refunded_at: refunded_at
       )
 
+      persisted_refunded_at = refund.reload.refunded_at
+
       expect(Stripe::Refund).not_to receive(:retrieve)
 
       result = described_class.new(refund: refund).call
 
       expect(result.id).to eq(refund.id)
       expect(refund.reload.status).to eq("succeeded")
-      expect(refund.refunded_at).to eq(refunded_at)
+      expect(refund.refunded_at).to eq(persisted_refunded_at)
     end
 
     it "preserves the processing refund when Stripe is unavailable" do

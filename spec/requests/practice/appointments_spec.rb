@@ -292,6 +292,61 @@ RSpec.describe "Practice appointments", type: :request do
         expect(response.body).not_to include("Today appointment")
       end
 
+      it "lists completed appointments with money due regardless of appointment date" do
+        appointments = {}
+
+        Time.use_zone(practice.timezone) do
+          today = Time.zone.now.beginning_of_day
+
+          appointments[:unpaid] = create_diary_appointment(
+            starts_at: today - 3.days + 10.hours,
+            reason: "Outstanding completed consultation"
+          )
+          appointments[:paid] = create_diary_appointment(
+            starts_at: today - 2.days + 11.hours,
+            reason: "Paid completed consultation"
+          )
+          appointments[:booked] = create_diary_appointment(
+            starts_at: today + 1.day + 12.hours,
+            reason: "Unpaid future booking"
+          )
+        end
+
+        appointments.values_at(:unpaid, :paid).each do |appointment|
+          appointment.update!(status: "completed")
+        end
+
+        appointments.each_value do |appointment|
+          create(
+            :appointment_charge,
+            appointment: appointment,
+            patient: appointment.patient,
+            practice: practice,
+            amount_cents: 5000,
+            status: "active"
+          )
+        end
+
+        create(
+          :payment,
+          appointment: appointments[:paid],
+          appointment_hold: nil,
+          patient: appointments[:paid].patient,
+          amount_cents: 5000,
+          currency: "GBP",
+          status: "succeeded"
+        )
+
+        get practice_appointments_path(view: "payment_due")
+
+        expect(response).to have_http_status(:success)
+
+        diary = response.parsed_body.at_css("turbo-frame#appointment_diary_list")
+        expect(diary.text).to include("Outstanding completed consultation")
+        expect(diary.text).not_to include("Paid completed consultation")
+        expect(diary.text).not_to include("Unpaid future booking")
+      end
+
       it "shows the financial state of an appointment" do
         appointment = nil
 

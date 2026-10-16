@@ -228,5 +228,55 @@ RSpec.describe ReconcileProcessingAppointmentPaymentsJob, type: :job do
         Billing::AppointmentBalance.new(appointment: appointment).call[:balance_cents]
       ).to eq(5000)
     end
+
+    it "continues reconciling other payments when Stripe fails for one" do
+      appointment = create(:appointment)
+      create(:appointment_charge, appointment: appointment)
+
+      unavailable_payment = create(
+        :payment,
+        appointment: appointment,
+        appointment_hold: nil,
+        patient: appointment.patient,
+        provider_payment_id: "pi_unavailable",
+        status: "processing"
+      )
+
+      recovered_payment = create(
+        :payment,
+        appointment: appointment,
+        appointment_hold: nil,
+        patient: appointment.patient,
+        provider_payment_id: "pi_recovered",
+        status: "processing"
+      )
+
+      [unavailable_payment, recovered_payment].each do |payment|
+        payment.update_columns(updated_at: 20.minutes.ago)
+      end
+
+      allow(Stripe::PaymentIntent)
+        .to receive(:retrieve)
+        .with("pi_unavailable")
+        .and_raise(Stripe::APIConnectionError.new("Connection lost"))
+
+      allow(Stripe::PaymentIntent)
+        .to receive(:retrieve)
+        .with("pi_recovered")
+        .and_return(
+          instance_double(
+            Stripe::PaymentIntent,
+            id: "pi_recovered",
+            status: "succeeded",
+            amount_received: 5000,
+            currency: appointment.practice.currency.downcase
+          )
+        )
+
+      expect { described_class.new.perform }.not_to raise_error
+
+      expect(unavailable_payment.reload.status).to eq("processing")
+      expect(recovered_payment.reload.status).to eq("succeeded")
+    end
   end
 end

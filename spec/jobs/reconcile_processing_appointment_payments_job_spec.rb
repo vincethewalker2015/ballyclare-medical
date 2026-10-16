@@ -251,7 +251,7 @@ RSpec.describe ReconcileProcessingAppointmentPaymentsJob, type: :job do
         status: "processing"
       )
 
-      [unavailable_payment, recovered_payment].each do |payment|
+      [ unavailable_payment, recovered_payment ].each do |payment|
         payment.update_columns(updated_at: 20.minutes.ago)
       end
 

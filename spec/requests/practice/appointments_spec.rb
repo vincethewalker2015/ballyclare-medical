@@ -347,6 +347,55 @@ RSpec.describe "Practice appointments", type: :request do
         expect(diary.text).not_to include("Unpaid future booking")
       end
 
+      it "filters payment due appointments by clinician" do
+        other_clinician = StaffMember.create!(
+          practice: practice,
+          user: User.create!(
+            email: "payment-due-doctor@example.com",
+            password: "password123"
+          ),
+          staff_type: "doctor",
+          default_appointment_duration: 30,
+          first_name: "Other",
+          last_name: "Clinician"
+        )
+
+        Time.use_zone(practice.timezone) do
+          today = Time.zone.now.beginning_of_day
+
+          [
+            ["Selected clinician payment due", clinician, 10],
+            ["Other clinician payment due", other_clinician, 11]
+          ].each do |reason, appointment_clinician, hour|
+            appointment = create_diary_appointment(
+              starts_at: today - 2.days + hour.hours,
+              reason: reason,
+              clinician: appointment_clinician
+            )
+            appointment.update!(status: "completed")
+
+            create(
+              :appointment_charge,
+              appointment: appointment,
+              patient: appointment.patient,
+              practice: practice,
+              amount_cents: 5000,
+              status: "active"
+            )
+          end
+        end
+
+        get practice_appointments_path(
+          view: "payment_due",
+          clinician_id: clinician.id
+        )
+
+        expect(response).to have_http_status(:success)
+        diary = response.parsed_body.at_css("turbo-frame#appointment_diary_list")
+        expect(diary.text).to include("Selected clinician payment due")
+        expect(diary.text).not_to include("Other clinician payment due")
+      end
+
       it "shows the financial state of an appointment" do
         appointment = nil
 

@@ -149,5 +149,42 @@ RSpec.describe ReconcileProcessingAppointmentPaymentsJob, type: :job do
       expect(payment.reload.status).to eq("processing")
       expect(payment.paid_at).to be_nil
     end
+
+    it "releases a processing payment when Stripe confirms cancellation" do
+      appointment = create(:appointment)
+      create(:appointment_charge, appointment: appointment)
+
+      payment = create(
+        :payment,
+        appointment: appointment,
+        appointment_hold: nil,
+        patient: appointment.patient,
+        provider: "stripe",
+        provider_payment_id: "pi_cancelled_elsewhere",
+        amount_cents: 5000,
+        currency: appointment.practice.currency,
+        status: "processing"
+      )
+      payment.update_columns(updated_at: 20.minutes.ago)
+
+      payment_intent = instance_double(
+        Stripe::PaymentIntent,
+        id: "pi_cancelled_elsewhere",
+        status: "canceled"
+      )
+
+      expect(Stripe::PaymentIntent)
+        .to receive(:retrieve)
+        .with("pi_cancelled_elsewhere")
+        .and_return(payment_intent)
+
+      described_class.new.perform
+
+      expect(payment.reload.status).to eq("cancelled")
+      expect(payment.paid_at).to be_nil
+      expect(
+        Billing::AppointmentBalance.new(appointment: appointment).call[:balance_cents]
+      ).to eq(5000)
+    end
   end
 end

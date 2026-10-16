@@ -2,7 +2,7 @@ module Staff
   class AppointmentsController < BaseController
     def index
       @practice = current_practice
-      @diary_view = params[:view].presence_in(%w[today upcoming past]) || "today"
+      @diary_view = params[:view].presence_in(%w[today upcoming past payment_due]) || "today"
 
       @clinicians = current_practice
         .staff_members
@@ -38,6 +38,10 @@ module Staff
             appointments
               .where("appointment_slots.starts_at >= ?", tomorrow_start)
               .order("appointment_slots.starts_at ASC")
+          when "payment_due"
+            appointments
+              .where(status: "completed")
+              .order("appointment_slots.starts_at DESC")
           when "past"
             appointments
               .where("appointment_slots.starts_at < ?", today_start)
@@ -56,6 +60,12 @@ module Staff
       @appointment_balances = Billing::AppointmentBalances.new(
         appointments: @appointments
       ).call
+
+      if @diary_view == "payment_due"
+        @appointments = @appointments.select do |appointment|
+          @appointment_balances.fetch(appointment.id)[:balance_cents].positive?
+        end
+      end
     end
 
     def show

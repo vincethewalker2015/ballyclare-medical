@@ -175,6 +175,7 @@ RSpec.describe ReconcileProcessingAppointmentPaymentsJob, type: :job do
 
       expect(Stripe::PaymentIntent)
         .to receive(:retrieve)
+        .twice
         .with("pi_cancelled_elsewhere")
         .and_return(payment_intent)
 

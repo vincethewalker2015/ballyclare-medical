@@ -32,7 +32,7 @@ RSpec.describe "Staff user manual", type: :request do
   it "requires sign-in to view manual illustrations" do
     get "/docs/images/user_manual/patients-list-illustration.png"
 
-    expect(response).to redirect_to(new_user_session_path)
+    expect(response).to have_http_status(:unauthorized)
   end
 
   it "rejects paths outside the manual illustration folder" do

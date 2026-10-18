@@ -49,4 +49,37 @@ RSpec.describe Practices::BootstrapSeniorStaffAdmin do
     expect(practice.staff_members.find_by!(user: user).access_level)
       .to eq("senior_staff_admin")
   end
+  it "allows only one of two concurrent bootstrap attempts", :concurrency do
+    second_user = create(:user)
+    practice_id = practice.id
+    user_ids = [ user.id, second_user.id ]
+    ready = Queue.new
+    start = Queue.new
+
+    threads = user_ids.map do |user_id|
+      Thread.new do
+        ActiveRecord::Base.connection_pool.with_connection do
+          ready << true
+          start.pop
+
+          begin
+            Practices::BootstrapSeniorStaffAdmin.new(
+              practice: Practice.find(practice_id),
+              user: User.find(user_id)
+            ).call
+            :created
+          rescue Practices::BootstrapSeniorStaffAdmin::AlreadyProvisioned
+            :already_provisioned
+          end
+        end
+      end
+    end
+
+    2.times { ready.pop }
+    2.times { start << true }
+    results = threads.map(&:value)
+
+    expect(results.sort).to eq([ :already_provisioned, :created ])
+    expect(practice.staff_members.count).to eq(1)
+  end
 end

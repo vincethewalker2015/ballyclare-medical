@@ -30,6 +30,7 @@ class StaffMember < ApplicationRecord
     inclusion: { in: STAFF_TYPES }
 
   validates :access_level, presence: true, inclusion: { in: ACCESS_LEVELS }
+  validates :user_id, uniqueness: { scope: :practice_id }
 
   validates :default_appointment_duration,
     numericality: { only_integer: true, greater_than: 0 }

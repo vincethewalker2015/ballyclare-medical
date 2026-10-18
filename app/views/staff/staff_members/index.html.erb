@@ -41,6 +41,18 @@
               <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset <%= access_style %>">
                 <%= staff_member.access_level.humanize.titleize %>
               </span>
+              <% if @current_staff_member.access_level == "senior_staff_admin" && staff_member.id != @current_staff_member.id %>
+                <%= form_with url: access_level_practice_staff_member_path(staff_member), method: :patch,
+                  scope: :staff_member, class: "mt-2 flex flex-wrap items-center gap-2" do |form| %>
+                  <%= form.label :access_level, "Change access level", class: "sr-only" %>
+                  <%= form.select :access_level,
+                    StaffMember::ACCESS_LEVELS.map { |level| [ level.humanize.titleize, level ] },
+                    { selected: staff_member.access_level },
+                    class: "rounded-lg border border-medical-border bg-white px-3 py-2 text-sm text-medical-ink" %>
+                  <%= form.submit "Save access level",
+                    class: "rounded-full bg-medical-navy px-4 py-2 text-xs font-semibold text-white" %>
+                <% end %>
+              <% end %>
             </div>
           </li>
         <% end %>

@@ -23,6 +23,13 @@
 
 /* Markdown rendered on the staff User Manual page. */
 @layer components {
+  /* Explicit component styling keeps this badge consistent across Tailwind builds. */
+  .staff-clinician-badge {
+    background-color: #f3e8ff;
+    color: #6b21a8;
+    --tw-ring-color: #d8b4fe;
+  }
+
   .user-manual-markdown {
     color: var(--color-medical-ink);
     line-height: 1.75;

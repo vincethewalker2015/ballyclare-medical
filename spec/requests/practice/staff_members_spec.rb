@@ -33,6 +33,22 @@ RSpec.describe "Practice staff members", type: :request do
       expect(response.body).not_to include("Foreign Clinician")
     end
 
+    it "shows staff type and access level as separate directory information" do
+      admin = user.staff_members.find_by!(practice: practice)
+      admin.update!(access_level: "senior_staff_admin")
+      create(:staff_member, practice: practice, first_name: "Helen",
+        last_name: "Nurse", staff_type: "nurse", access_level: "staff")
+      sign_in user
+
+      get practice_staff_members_path
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Staff type")
+      expect(response.body).to include("Access level")
+      expect(response.body).to include("Senior Staff Admin")
+      expect(response.body).to include("Nurse")
+    end
+
     it "redirects visitors who are not signed in" do
       get practice_staff_members_path
 

@@ -197,6 +197,45 @@ RSpec.describe "Practice staff members", type: :request do
       expect(response).to redirect_to(practice_staff_members_path)
     end
 
+    it "lets a senior staff admin create a membership with staff access" do
+      user.staff_members.find_by!(practice: practice).update!(
+        access_level: "senior_staff_admin"
+      )
+      sign_in user
+
+      post practice_staff_members_path, params: {
+        staff_member: {
+          user_id: colleague.id,
+          first_name: "Alex",
+          last_name: "Smith",
+          staff_type: "doctor",
+          access_level: "senior_staff_admin"
+        }
+      }
+
+      expect(response).to redirect_to(practice_staff_members_path)
+      expect(practice.staff_members.find_by!(user: colleague).access_level).to eq("staff")
+    end
+
+    it "rejects a duplicate membership without creating a second record" do
+      create(:staff_member, practice: practice, user: colleague)
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      sign_in user
+
+      expect {
+        post practice_staff_members_path, params: {
+          staff_member: {
+            user_id: colleague.id,
+            first_name: "Duplicate",
+            last_name: "Account",
+            staff_type: "nurse"
+          }
+        }
+      }.not_to change(StaffMember, :count)
+
+      expect(response).to have_http_status(:unprocessable_content)
+    end
+
     it "forbids ordinary staff from creating a staff membership" do
       sign_in user
 

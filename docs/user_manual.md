@@ -154,39 +154,24 @@ editing controls are not yet available through the user interface. A
 permission-protected access-level update endpoint exists, but is not exposed
 in the staff directory.
 
-### Provisioning the first Senior Staff Admin
+### Setting up the first Senior Staff Admin
 
-**Platform operator procedure (currently via Rails console):**
+When a new practice is added, an authorised platform operator sets up its
+first Senior Staff Admin. The practice should provide the intended
+administrator's email address and confirm who is authorised to manage
+staff access.
 
-1. Create the practice and intended administrator's `User` account through
-   an authorised setup process, or identify existing records.
-2. Open an authorised Rails console for the intended environment.
-3. Locate the correct `Practice` and `User` records using trusted
-   identifiers; verify both before continuing.
-4. Invoke the bootstrap service:
+The initial setup is not yet available through the staff interface.
+Contact the platform operator to arrange it; practice staff do not need
+to use a terminal or Rails console. Once setup is complete, the
+administrator can sign in using their own account.
 
-   ```ruby
-   practice = Practice.find("PRACTICE_UUID")
-   user = User.find_by!(email: "admin@example.com")
+A practice can only go through this initial setup before any staff
+members have been registered. If the practice already has staff, contact
+the platform operator rather than trying to repeat the setup.
 
-   Practices::BootstrapSeniorStaffAdmin.new(
-     practice: practice,
-     user: user
-   ).call
-   ```
-
-The service creates an administrator-type staff membership with
-`senior_staff_admin` access. It operates only when the practice has **no
-existing staff members**. If anyone is already registered with the practice,
-it raises `Practices::BootstrapSeniorStaffAdmin::AlreadyProvisioned` instead
-of granting privileges. Concurrent attempts are protected by a database
-lock. Do not bypass this restriction by changing access levels manually.
-
-**Security:** Do not use shared accounts, hardcoded temporary passwords or
-public self-registration to grant senior permissions. The bootstrap service
-does **not** create a user or send an invitation. Secure staff invitation
-and password setup are planned separately. Avoid putting real patient or
-staff credentials in application logs or documentation.
+Staff invitations and self-service password setup are still being
+developed. Never share passwords or use a shared administrator login.
 
 ### Recovering administrative access
 

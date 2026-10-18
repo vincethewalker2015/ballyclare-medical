@@ -236,6 +236,26 @@ RSpec.describe "Practice staff members", type: :request do
       expect(response).to have_http_status(:unprocessable_content)
     end
 
+    it "handles a concurrent duplicate insert as a validation error" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      sign_in user
+
+      allow_any_instance_of(StaffMember).to receive(:save)
+        .and_raise(ActiveRecord::RecordNotUnique)
+
+      post practice_staff_members_path, params: {
+        staff_member: {
+          user_id: colleague.id,
+          first_name: "Alex",
+          last_name: "Smith",
+          staff_type: "nurse"
+        }
+      }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include("already")
+    end
+
     it "forbids ordinary staff from creating a staff membership" do
       sign_in user
 

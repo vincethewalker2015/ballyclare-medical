@@ -1,0 +1,23 @@
+<% content_for :title, "Patients | Ballyclare Medical" %>
+
+<div class="space-y-6">
+  <header>
+    <h1 class="text-4xl font-semibold text-medical-navy">Patients</h1>
+    <p class="mt-2 text-medical-muted">Patients registered with your practice.</p>
+  </header>
+
+  <section class="rounded-2xl border border-medical-border bg-white p-6">
+    <% if @patients.any? %>
+      <ul class="divide-y divide-medical-border">
+        <% @patients.each do |patient| %>
+          <li class="py-3 text-medical-ink">
+            <%= patient.first_name %> <%= patient.last_name %>
+            <span class="ml-2 text-sm text-medical-muted"><%= patient.patient_number %></span>
+          </li>
+        <% end %>
+      </ul>
+    <% else %>
+      <p class="text-medical-muted">No patients registered yet.</p>
+    <% end %>
+  </section>
+</div>

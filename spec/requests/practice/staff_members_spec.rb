@@ -66,6 +66,21 @@ RSpec.describe "Practice staff members", type: :request do
       expect(response.body).to include(access_level_practice_staff_member_path(target))
     end
 
+    it "identifies the signed-in staff member in the practice header" do
+      membership = user.staff_members.find_by!(practice: practice)
+      membership.update!(first_name: "Alex", last_name: "Morgan",
+        access_level: "senior_staff_admin")
+      sign_in user
+
+      get practice_staff_members_path
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Signed in as")
+      expect(response.body).to include("Alex Morgan")
+      expect(response.body).to include(user.email)
+      expect(response.body).to include("Senior Staff Admin")
+    end
+
     it "redirects visitors who are not signed in" do
       get practice_staff_members_path
 

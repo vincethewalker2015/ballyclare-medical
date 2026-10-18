@@ -13,9 +13,16 @@
     <% if @staff_members.any? %>
       <ul class="divide-y divide-medical-border">
         <% @staff_members.each do |staff_member| %>
-          <li class="py-3 text-medical-ink">
+          <li class="flex flex-wrap items-center gap-3 py-4 text-medical-ink">
             <span class="font-semibold"><%= staff_member.full_name %></span>
-            <span class="ml-2 text-sm text-medical-muted"><%= staff_member.staff_type.humanize %></span>
+            <% type_style = {
+              "doctor" => "bg-indigo-50 text-indigo-800 ring-indigo-200",
+              "nurse" => "bg-emerald-50 text-emerald-800 ring-emerald-200",
+              "administrator" => "bg-sky-50 text-sky-800 ring-sky-200"
+            }.fetch(staff_member.staff_type, "bg-slate-50 text-slate-700 ring-slate-200") %>
+            <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset <%= type_style %>">
+              <%= staff_member.staff_type.humanize %>
+            </span>
           </li>
         <% end %>
       </ul>

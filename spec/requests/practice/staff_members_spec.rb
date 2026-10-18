@@ -236,6 +236,46 @@ RSpec.describe "Practice staff members", type: :request do
       expect(response).to have_http_status(:unprocessable_content)
     end
 
+    it "sends password-setting instructions after creating a new staff account" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      sign_in user
+      ActionMailer::Base.deliveries.clear
+
+      post practice_staff_members_path, params: {
+        staff_member: {
+          email: "welcome.nurse@example.com",
+          first_name: "Alex",
+          last_name: "Smith",
+          staff_type: "nurse"
+        }
+      }
+
+      expect(response).to redirect_to(practice_staff_members_path)
+      expect(ActionMailer::Base.deliveries.map(&:to).flatten)
+        .to include("welcome.nurse@example.com")
+      expect(User.find_by!(email: "welcome.nurse@example.com").reset_password_sent_at)
+        .to be_present
+    end
+
+    it "does not send password-setting instructions if staff creation fails" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      sign_in user
+      ActionMailer::Base.deliveries.clear
+
+      post practice_staff_members_path, params: {
+        staff_member: {
+          email: "not-invited@example.com",
+          first_name: "Alex",
+          last_name: "Smith",
+          staff_type: "invalid_type"
+        }
+      }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(ActionMailer::Base.deliveries).to be_empty
+      expect(User.find_by(email: "not-invited@example.com")).to be_nil
+    end
+
     it "rolls back a new user account when staff membership validation fails" do
       user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
       sign_in user

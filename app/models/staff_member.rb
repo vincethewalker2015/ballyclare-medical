@@ -1,6 +1,6 @@
 class StaffMember < ApplicationRecord
   STAFF_TYPES = %w[doctor nurse administrator].freeze
-  ACCESS_LEVELS = %w[staff staff_admin senior_staff_admin].freeze
+  ACCESS_LEVELS = %w[staff staff_clinician staff_admin senior_staff_admin].freeze
 
   belongs_to :practice
   belongs_to :user
@@ -30,10 +30,19 @@ class StaffMember < ApplicationRecord
     inclusion: { in: STAFF_TYPES }
 
   validates :access_level, presence: true, inclusion: { in: ACCESS_LEVELS }
+  validate :clinician_access_requires_clinician_staff_type
+
   validates :user_id, uniqueness: { scope: :practice_id }
 
   validates :default_appointment_duration,
     numericality: { only_integer: true, greater_than: 0 }
+
+  def clinician_access_requires_clinician_staff_type
+    return unless access_level == "staff_clinician"
+    return if staff_type.in?(%w[doctor nurse])
+
+    errors.add(:access_level, "is only available to doctors and nurses")
+  end
 
   def full_name
     [ first_name, last_name ].compact_blank.join(" ")

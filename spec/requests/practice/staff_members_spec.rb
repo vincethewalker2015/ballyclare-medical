@@ -240,7 +240,7 @@ RSpec.describe "Practice staff members", type: :request do
       user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
       sign_in user
 
-      allow_any_instance_of(StaffMember).to receive(:save)
+      allow_any_instance_of(StaffMember).to receive(:save!)
         .and_raise(ActiveRecord::RecordNotUnique)
 
       post practice_staff_members_path, params: {

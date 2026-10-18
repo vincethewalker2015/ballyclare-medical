@@ -11,18 +11,37 @@
 
   <section class="rounded-2xl border border-medical-border bg-white p-6">
     <% if @staff_members.any? %>
+      <div class="hidden border-b border-medical-border pb-3 text-xs font-semibold uppercase tracking-wide text-medical-muted sm:grid sm:grid-cols-3 sm:gap-4">
+        <span>Name</span>
+        <span>Staff type</span>
+        <span>Access level</span>
+      </div>
       <ul class="divide-y divide-medical-border">
         <% @staff_members.each do |staff_member| %>
-          <li class="flex flex-wrap items-center gap-3 py-4 text-medical-ink">
+          <% type_style = {
+            "doctor" => "bg-indigo-50 text-indigo-800 ring-indigo-200",
+            "nurse" => "bg-emerald-50 text-emerald-800 ring-emerald-200",
+            "administrator" => "bg-sky-50 text-sky-800 ring-sky-200"
+          }.fetch(staff_member.staff_type, "bg-slate-50 text-slate-700 ring-slate-200") %>
+          <% access_style = {
+            "staff" => "bg-slate-100 text-slate-700 ring-slate-200",
+            "staff_admin" => "bg-amber-50 text-amber-800 ring-amber-200",
+            "senior_staff_admin" => "bg-teal-50 text-teal-800 ring-teal-200"
+          }.fetch(staff_member.access_level, "bg-slate-100 text-slate-700 ring-slate-200") %>
+          <li class="grid gap-3 py-4 text-medical-ink sm:grid-cols-3 sm:items-center sm:gap-4">
             <span class="font-semibold"><%= staff_member.full_name %></span>
-            <% type_style = {
-              "doctor" => "bg-indigo-50 text-indigo-800 ring-indigo-200",
-              "nurse" => "bg-emerald-50 text-emerald-800 ring-emerald-200",
-              "administrator" => "bg-sky-50 text-sky-800 ring-sky-200"
-            }.fetch(staff_member.staff_type, "bg-slate-50 text-slate-700 ring-slate-200") %>
-            <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset <%= type_style %>">
-              <%= staff_member.staff_type.humanize %>
-            </span>
+            <div>
+              <span class="mb-1 block text-xs text-medical-muted sm:hidden">Staff type</span>
+              <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset <%= type_style %>">
+                <%= staff_member.staff_type.humanize %>
+              </span>
+            </div>
+            <div>
+              <span class="mb-1 block text-xs text-medical-muted sm:hidden">Access level</span>
+              <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset <%= access_style %>">
+                <%= staff_member.access_level.humanize.titleize %>
+              </span>
+            </div>
           </li>
         <% end %>
       </ul>

@@ -28,7 +28,7 @@
 
   <body class="min-h-screen bg-medical-cream text-medical-ink antialiased">
     <header class="border-b border-medical-border bg-white">
-      <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-8">
+      <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-6 py-4 lg:px-8">
         <%= link_to practice_appointments_path,
                     class: "flex items-center gap-3" do %>
 
@@ -47,16 +47,15 @@
           </span>
         <% end %>
 
-        <div class="flex flex-wrap items-center justify-end gap-4">
+        <div class="flex min-w-0 items-center justify-end gap-3">
           <% if @current_staff_member.present? %>
-            <div class="flex items-center gap-3 rounded-xl border border-medical-border bg-medical-cream px-3 py-2" aria-label="Signed-in account">
-              <span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-medical-teal-soft text-sm font-bold text-medical-navy" aria-hidden="true">
+            <div class="flex min-w-0 items-center gap-2" aria-label="Signed-in account">
+              <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-medical-teal-soft text-xs font-bold text-medical-navy" aria-hidden="true">
                 <%= @current_staff_member.first_name.to_s.first.upcase.presence || current_user.email.first.upcase %><%= @current_staff_member.last_name.to_s.first.upcase %>
               </span>
-              <div class="min-w-0 text-sm">
-                <span class="block text-xs text-medical-muted">Signed in as</span>
-                <span class="block font-semibold text-medical-navy"><%= @current_staff_member.full_name.presence || current_user.email %></span>
-                <span class="block break-all text-xs text-medical-muted"><%= current_user.email %></span>
+              <div class="min-w-0 text-sm leading-tight">
+                <span class="block truncate font-semibold text-medical-navy"><%= @current_staff_member.full_name.presence || current_user.email %></span>
+                <span class="block truncate text-xs text-medical-muted" title="<%= current_user.email %>"><%= current_user.email %></span>
                 <span class="block text-xs font-medium text-medical-teal-dark"><%= @current_staff_member.access_level.humanize.titleize %></span>
               </div>
             </div>
@@ -90,6 +89,10 @@
                       class: "flex items-center rounded-xl px-4 py-3 text-sm font-semibold #{controller_name == 'patients' ? 'bg-medical-teal-soft text-medical-navy' : 'text-medical-muted hover:bg-medical-teal-soft hover:text-medical-navy'}" do %>
             Patients
           <% end %>
+
+          <%= link_to "Staff", practice_staff_members_path,
+                      class: "flex items-center rounded-xl px-4 py-3 text-sm font-semibold #{controller_name == 'staff_members' ? 'bg-medical-teal-soft text-medical-navy' : 'text-medical-muted hover:bg-medical-teal-soft hover:text-medical-navy'}",
+                      aria: { current: (controller_name == "staff_members" ? "page" : nil) } %>
 
           <% %w[Payments Clinical Administration].each do |item| %>
             <span class="flex cursor-not-allowed items-center rounded-xl px-4 py-3 text-sm font-medium text-medical-muted opacity-60">

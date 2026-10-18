@@ -193,5 +193,34 @@ RSpec.describe "Practice patients", type: :request do
       expect(response).to have_http_status(:not_found)
       expect(foreign_patient.reload.first_name).to eq("Original")
     end
+
+    it "rejects invalid edits without changing the patient" do
+      patient = create(:patient, practice: practice, first_name: "Original")
+      sign_in user
+
+      patch practice_patient_path(patient), params: {
+        patient: { first_name: "" }
+      }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include("First name")
+      expect(patient.reload.first_name).to eq("Original")
+    end
+
+    it "does not allow an edit to reassign a patient to another practice" do
+      patient = create(:patient, practice: practice)
+      other_practice = create(:practice)
+      sign_in user
+
+      patch practice_patient_path(patient), params: {
+        patient: { first_name: "Updated", practice_id: other_practice.id }
+      }
+
+      expect(response).to redirect_to(practice_patient_path(patient))
+      expect(patient.reload).to have_attributes(
+        first_name: "Updated",
+        practice: practice
+      )
+    end
   end
 end

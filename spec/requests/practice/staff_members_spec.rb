@@ -62,7 +62,10 @@ RSpec.describe "Practice staff members", type: :request do
       get practice_staff_members_path
 
       expect(response).to have_http_status(:success)
+      expect(response.body).to include("Edit access")
       expect(response.body).to include("Change access level")
+      expect(response.body).to include("<details")
+      expect(response.body).to include("Cancel")
       expect(response.body).to include(access_level_practice_staff_member_path(target))
     end
 

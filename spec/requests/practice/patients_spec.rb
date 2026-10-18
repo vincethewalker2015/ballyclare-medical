@@ -79,5 +79,61 @@ RSpec.describe "Practice patients", type: :request do
       )
       expect(response).to redirect_to(practice_patients_path)
     end
+
+    it "rejects invalid patient details without creating a record" do
+      sign_in user
+
+      expect {
+        post practice_patients_path, params: {
+          patient: {
+            patient_number: "INVALID-001",
+            first_name: "",
+            last_name: "Jones",
+            date_of_birth: "1992-04-17"
+          }
+        }
+      }.not_to change(Patient, :count)
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include("First name")
+    end
+
+    it "rejects duplicate patient numbers within the same practice" do
+      create(:patient, practice: practice, patient_number: "EXISTING-001")
+      sign_in user
+
+      expect {
+        post practice_patients_path, params: {
+          patient: {
+            patient_number: "EXISTING-001",
+            first_name: "Alice",
+            last_name: "Jones",
+            date_of_birth: "1992-04-17"
+          }
+        }
+      }.not_to change(Patient, :count)
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include("Patient number has already been taken")
+    end
+
+    it "ignores a submitted practice id and assigns the current practice" do
+      other_practice = create(:practice)
+      sign_in user
+
+      expect {
+        post practice_patients_path, params: {
+          patient: {
+            practice_id: other_practice.id,
+            patient_number: "SECURE-001",
+            first_name: "Alice",
+            last_name: "Jones",
+            date_of_birth: "1992-04-17"
+          }
+        }
+      }.to change(practice.patients, :count).by(1)
+
+      expect(other_practice.patients.where(patient_number: "SECURE-001")).to be_empty
+    end
   end
 end

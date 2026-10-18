@@ -148,4 +148,69 @@ RSpec.describe "Practice staff members", type: :request do
       expect(foreign_staff.reload.access_level).to eq("staff")
     end
   end
+  describe "staff creation" do
+    let(:colleague) { create(:user) }
+
+    it "lets a staff admin open the new staff form" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      sign_in user
+
+      get new_practice_staff_member_path
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("New staff member")
+    end
+
+    it "forbids ordinary staff from opening the creation form" do
+      sign_in user
+
+      get new_practice_staff_member_path
+
+      expect(response).to have_http_status(:forbidden)
+    end
+
+    it "lets a staff admin add an existing user with ordinary staff access" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      sign_in user
+
+      expect {
+        post practice_staff_members_path, params: {
+          staff_member: {
+            user_id: colleague.id,
+            first_name: "Alex",
+            last_name: "Smith",
+            staff_type: "nurse",
+            default_appointment_duration: 30,
+            access_level: "senior_staff_admin",
+            practice_id: create(:practice).id
+          }
+        }
+      }.to change(practice.staff_members, :count).by(1)
+
+      membership = practice.staff_members.find_by!(user: colleague)
+      expect(membership).to have_attributes(
+        first_name: "Alex",
+        last_name: "Smith",
+        staff_type: "nurse",
+        access_level: "staff"
+      )
+      expect(response).to redirect_to(practice_staff_members_path)
+    end
+
+    it "forbids ordinary staff from creating a staff membership" do
+      sign_in user
+
+      expect {
+        post practice_staff_members_path, params: {
+          staff_member: {
+            user_id: colleague.id,
+            staff_type: "doctor",
+            access_level: "senior_staff_admin"
+          }
+        }
+      }.not_to change(StaffMember, :count)
+
+      expect(response).to have_http_status(:forbidden)
+    end
+  end
 end

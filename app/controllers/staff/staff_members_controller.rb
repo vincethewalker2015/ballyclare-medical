@@ -8,7 +8,6 @@ module Staff
       return head :forbidden unless staff_administrator?
 
       @staff_member = current_practice.staff_members.new
-      @available_users = User.order(:email)
     end
 
     def create
@@ -20,7 +19,6 @@ module Staff
       if @staff_member.save
         redirect_to practice_staff_members_path, notice: "Staff member created successfully."
       else
-        @available_users = User.order(:email)
         render :new, status: :unprocessable_content
       end
     end

@@ -89,6 +89,50 @@ RSpec.describe "Practice staff members", type: :request do
       expect(target.reload.access_level).to eq("staff")
     end
 
+    it "rejects an unrecognised access level without changing the staff member" do
+      user.staff_members.find_by!(practice: practice).update!(
+        access_level: "senior_staff_admin"
+      )
+      sign_in user
+
+      patch access_level_practice_staff_member_path(target), params: {
+        staff_member: { access_level: "superuser" }
+      }
+
+      expect(response).to redirect_to(practice_staff_members_path)
+      expect(target.reload.access_level).to eq("staff")
+    end
+
+    it "prevents a senior staff admin from demoting themselves" do
+      senior = user.staff_members.find_by!(practice: practice)
+      senior.update!(access_level: "senior_staff_admin")
+      sign_in user
+
+      patch access_level_practice_staff_member_path(senior), params: {
+        staff_member: { access_level: "staff" }
+      }
+
+      expect(response).to have_http_status(:forbidden)
+      expect(senior.reload.access_level).to eq("senior_staff_admin")
+    end
+
+    it "preserves the last senior staff admin even when another senior tries to demote them" do
+      senior = user.staff_members.find_by!(practice: practice)
+      senior.update!(access_level: "senior_staff_admin")
+      second_senior = create(
+        :staff_member, practice: practice, access_level: "senior_staff_admin"
+      )
+      sign_in user
+
+      patch access_level_practice_staff_member_path(second_senior), params: {
+        staff_member: { access_level: "staff" }
+      }
+
+      expect(response).to redirect_to(practice_staff_members_path)
+      expect(second_senior.reload.access_level).to eq("staff")
+      expect(senior.reload.access_level).to eq("senior_staff_admin")
+    end
+
     it "does not allow a senior admin to change another practice's staff" do
       user.staff_members.find_by!(practice: practice).update!(
         access_level: "senior_staff_admin"

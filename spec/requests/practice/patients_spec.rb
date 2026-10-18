@@ -9,6 +9,16 @@ RSpec.describe "Practice patients", type: :request do
   end
 
   describe "GET /practice/patients" do
+    it "includes a Patients link in the practice navigation" do
+      sign_in user
+
+      get practice_patients_path
+
+      navigation = response.parsed_body.at_css('nav[aria-label="Practice navigation"]')
+      expect(navigation).to be_present
+      expect(navigation.at_css('a[href="' + practice_patients_path + '"]')).to be_present
+    end
+
     it "lists patients from the signed-in staff member's practice only" do
       own_patient = create(
         :patient,

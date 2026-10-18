@@ -1,5 +1,6 @@
 class StaffMember < ApplicationRecord
   STAFF_TYPES = %w[doctor nurse administrator].freeze
+  ACCESS_LEVELS = %w[staff staff_admin senior_staff_admin].freeze
 
   belongs_to :practice
   belongs_to :user
@@ -27,6 +28,8 @@ class StaffMember < ApplicationRecord
   validates :staff_type,
     presence: true,
     inclusion: { in: STAFF_TYPES }
+
+  validates :access_level, presence: true, inclusion: { in: ACCESS_LEVELS }
 
   validates :default_appointment_duration,
     numericality: { only_integer: true, greater_than: 0 }

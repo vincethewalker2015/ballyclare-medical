@@ -136,4 +136,62 @@ RSpec.describe "Practice patients", type: :request do
       expect(other_practice.patients.where(patient_number: "SECURE-001")).to be_empty
     end
   end
+  describe "GET /practice/patients/:id" do
+    it "shows a patient from the current practice" do
+      patient = create(:patient, practice: practice, first_name: "Alice", last_name: "Jones")
+      sign_in user
+
+      get practice_patient_path(patient)
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Alice", "Jones", patient.patient_number)
+    end
+
+    it "does not show a patient from another practice" do
+      foreign_patient = create(:patient, practice: create(:practice))
+      sign_in user
+
+      get practice_patient_path(foreign_patient)
+
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
+  describe "GET /practice/patients/:id/edit" do
+    it "shows the edit form for a patient in the current practice" do
+      patient = create(:patient, practice: practice)
+      sign_in user
+
+      get edit_practice_patient_path(patient)
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Edit patient")
+    end
+  end
+
+  describe "PATCH /practice/patients/:id" do
+    it "updates a patient in the current practice" do
+      patient = create(:patient, practice: practice)
+      sign_in user
+
+      patch practice_patient_path(patient), params: {
+        patient: { first_name: "Updated", last_name: "Name" }
+      }
+
+      expect(response).to redirect_to(practice_patient_path(patient))
+      expect(patient.reload).to have_attributes(first_name: "Updated", last_name: "Name")
+    end
+
+    it "does not update a patient from another practice" do
+      foreign_patient = create(:patient, practice: create(:practice), first_name: "Original")
+      sign_in user
+
+      patch practice_patient_path(foreign_patient), params: {
+        patient: { first_name: "Changed" }
+      }
+
+      expect(response).to have_http_status(:not_found)
+      expect(foreign_patient.reload.first_name).to eq("Original")
+    end
+  end
 end

@@ -82,6 +82,30 @@ RSpec.describe StaffMember do
       expect(staff_member).to be_persisted
     end
   end
+  describe "practice membership uniqueness" do
+    it "rejects a second membership for the same user and practice" do
+      practice = create(:practice)
+      user = create(:user)
+      create(:staff_member, practice: practice, user: user)
+
+      duplicate = build(:staff_member, practice: practice, user: user)
+
+      expect(duplicate).not_to be_valid
+      expect(duplicate.errors[:user_id]).to be_present
+    end
+
+    it "allows the same user to belong to another practice" do
+      user = create(:user)
+      create(:staff_member, user: user, practice: create(:practice))
+
+      second_membership = build(
+        :staff_member, user: user, practice: create(:practice)
+      )
+
+      expect(second_membership).to be_valid
+    end
+  end
+
   describe "practice-specific access levels" do
     it "defaults new staff members to ordinary staff access" do
       staff_member = create(:staff_member)

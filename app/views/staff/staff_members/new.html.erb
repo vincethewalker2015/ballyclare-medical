@@ -18,9 +18,8 @@
 
       <div>
         <%= form.label :user_id, "User account", class: "block text-sm font-semibold text-medical-navy" %>
-        <%= form.collection_select :user_id, @available_users, :id, :email,
-          { prompt: "Select an existing user" },
-          { class: "mt-1 block w-full rounded-lg border border-medical-border p-3" } %>
+        <%= form.text_field :user_id, class: "mt-1 block w-full rounded-lg border border-medical-border p-3" %>
+        <p class="mt-1 text-sm text-medical-muted">Enter the existing account ID supplied by your platform operator. Email invitations are not available yet.</p>
       </div>
 
       <% [ [ :first_name, "First name" ], [ :last_name, "Last name" ],

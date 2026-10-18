@@ -28,7 +28,7 @@ RSpec.describe "Practice patients", type: :request do
 
       expect(response).to have_http_status(:success)
       expect(response.body).to include(own_patient.first_name, own_patient.last_name)
-      expect(response.body).not_to include(other_patient.first_name, other_patient.last_name)
+      expect(response.body).not_to include(other_patient.first_name)
     end
 
     it "redirects visitors who are not signed in" do

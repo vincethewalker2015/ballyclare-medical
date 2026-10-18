@@ -4,6 +4,27 @@ module Staff
       @staff_members = current_practice.staff_members.order(:last_name, :first_name)
     end
 
+    def new
+      return head :forbidden unless staff_administrator?
+
+      @staff_member = current_practice.staff_members.new
+      @available_users = User.order(:email)
+    end
+
+    def create
+      return head :forbidden unless staff_administrator?
+
+      @staff_member = current_practice.staff_members.new(staff_member_params)
+      @staff_member.access_level = "staff"
+
+      if @staff_member.save
+        redirect_to practice_staff_members_path, notice: "Staff member created successfully."
+      else
+        @available_users = User.order(:email)
+        render :new, status: :unprocessable_content
+      end
+    end
+
     def access_level
       return head :forbidden unless current_staff_member.access_level == "senior_staff_admin"
 
@@ -23,6 +44,17 @@ module Staff
     end
 
     private
+
+    def staff_administrator?
+      current_staff_member.access_level.in?(%w[staff_admin senior_staff_admin])
+    end
+
+    def staff_member_params
+      params.require(:staff_member).permit(
+        :user_id, :first_name, :last_name, :staff_type,
+        :default_appointment_duration, :registration_number
+      )
+    end
 
     def access_level_params
       params.require(:staff_member).permit(:access_level)

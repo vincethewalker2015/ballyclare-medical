@@ -21,6 +21,9 @@ module Staff
       else
         render :new, status: :unprocessable_content
       end
+    rescue ActiveRecord::RecordNotUnique
+      @staff_member.errors.add(:user_id, "already belongs to this practice")
+      render :new, status: :unprocessable_content
     end
 
     def access_level

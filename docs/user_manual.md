@@ -138,8 +138,7 @@ responsibilities. Their *access level* separately determines administrative
 authority within that practice:
 
 - **Staff** (`staff`) — the default level for every new staff membership.
-- **Staff Admin** (`staff_admin`) — intended to manage ordinary staff
-  accounts once staff creation is available.
+- **Staff Admin** (`staff_admin`) — can add ordinary staff members to the practice.
 - **Senior Staff Admin** (`senior_staff_admin`) — can change access levels
   for staff in their own practice.
 
@@ -149,10 +148,34 @@ as well as requests affecting staff in a different practice. Senior Staff
 Admins cannot demote themselves. A staff member's access level in one
 practice does not confer those permissions in another.
 
-**Current limitation:** Staff account creation, invitations and access-level
-editing controls are not yet available through the user interface. A
-permission-protected access-level update endpoint exists, but is not exposed
-in the staff directory.
+### Adding a staff member
+
+Staff Admins and Senior Staff Admins can add colleagues to their practice.
+Open the staff directory at `/practice/staff_members` and select
+**New staff member**. Enter the colleague's email address, name, staff type
+(doctor, nurse or administrator), and any applicable registration number
+and appointment duration. Then select **Create staff member**.
+
+New colleagues always start with **Staff** access. A Senior Staff Admin must
+approve any subsequent change to their access level.
+
+If the email address is new to Ballyclare Medical, the system creates an
+account and sends password-setting instructions to that address. The
+colleague follows the email link to choose a password before signing in.
+If an account already exists, it is linked to the practice without changing
+the person's existing password or sending another password-setting email.
+
+If an error appears, correct the details and try again. An existing staff
+member cannot be added to the same practice twice.
+
+**Email availability:** Sending invitations requires the platform operator
+to configure the application's outgoing email service. If an expected
+message does not arrive, ask the platform operator to check email delivery;
+do not share passwords or create a duplicate account.
+
+**Current limitation:** The staff directory does not yet include an
+access-level editing control. Senior Staff Admin authorisation is enforced
+by the server, but that operation is not exposed in the interface.
 
 ### Setting up the first Senior Staff Admin
 
@@ -170,8 +193,9 @@ A practice can only go through this initial setup before any staff
 members have been registered. If the practice already has staff, contact
 the platform operator rather than trying to repeat the setup.
 
-Staff invitations and self-service password setup are still being
-developed. Never share passwords or use a shared administrator login.
+The initial Senior Staff Admin setup is a separate operator process; the
+ordinary staff invitation form cannot grant senior permissions.
+Never share passwords or use a shared administrator login.
 
 ### Recovering administrative access
 

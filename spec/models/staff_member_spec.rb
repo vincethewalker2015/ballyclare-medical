@@ -82,4 +82,39 @@ RSpec.describe StaffMember do
       expect(staff_member).to be_persisted
     end
   end
+  describe "practice-specific access levels" do
+    it "defaults new staff members to ordinary staff access" do
+      staff_member = create(:staff_member)
+
+      expect(staff_member.reload.access_level).to eq("staff")
+    end
+
+    it "persists a senior administrator privilege only on that practice membership" do
+      user = create(:user)
+      primary_practice = create(:practice)
+      other_practice = create(:practice)
+
+      senior_membership = create(
+        :staff_member,
+        user: user,
+        practice: primary_practice,
+        access_level: "senior_staff_admin"
+      )
+      other_membership = create(
+        :staff_member,
+        user: user,
+        practice: other_practice
+      )
+
+      expect(senior_membership.reload.access_level).to eq("senior_staff_admin")
+      expect(other_membership.reload.access_level).to eq("staff")
+    end
+
+    it "rejects unrecognised access levels" do
+      staff_member = build(:staff_member, access_level: "superuser")
+
+      expect(staff_member).not_to be_valid
+      expect(staff_member.errors[:access_level]).to be_present
+    end
+  end
 end

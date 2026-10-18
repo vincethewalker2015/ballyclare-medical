@@ -18,6 +18,24 @@ module Staff
       end
     end
 
+    def show
+      @patient = current_practice.patients.find(params[:id])
+    end
+
+    def edit
+      @patient = current_practice.patients.find(params[:id])
+    end
+
+    def update
+      @patient = current_practice.patients.find(params[:id])
+
+      if @patient.update(patient_params)
+        redirect_to practice_patient_path(@patient), notice: "Patient updated successfully."
+      else
+        render :edit, status: :unprocessable_content
+      end
+    end
+
     private
 
     def patient_params

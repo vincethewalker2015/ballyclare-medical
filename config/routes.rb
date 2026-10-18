@@ -8,6 +8,7 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
   scope "/practice", module: "staff", as: "practice" do
+  resources :patients, only: %i[index]
   resources :availability_blocks,
         path: "availability",
         only:  %i[index new create edit update] do

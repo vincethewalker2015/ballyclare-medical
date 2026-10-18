@@ -450,3 +450,44 @@ For regression tests covering refunds and the staff appointment page:
 ```bash
 bundle exec rspec spec/models/refund_spec.rb spec/requests/practice/appointments_spec.rb spec/services/appointments/change_status_spec.rb
 ```
+
+## Practice administration: initial administrator setup
+
+The following procedure is for authorised platform operators and developers,
+not practice staff. The staff-facing explanation is in
+[`docs/user_manual.md`](docs/user_manual.md).
+
+### Provisioning the first Senior Staff Admin (platform operators)
+
+**Platform operator procedure (currently via Rails console):**
+
+1. Create the practice and intended administrator's `User` account through
+   an authorised setup process, or identify existing records.
+2. Open an authorised Rails console for the intended environment.
+3. Locate the correct `Practice` and `User` records using trusted
+   identifiers; verify both before continuing.
+4. Invoke the bootstrap service:
+
+   ```ruby
+   practice = Practice.find("PRACTICE_UUID")
+   user = User.find_by!(email: "admin@example.com")
+
+   Practices::BootstrapSeniorStaffAdmin.new(
+     practice: practice,
+     user: user
+   ).call
+   ```
+
+The service creates an administrator-type staff membership with
+`senior_staff_admin` access. It operates only when the practice has **no
+existing staff members**. If anyone is already registered with the practice,
+it raises `Practices::BootstrapSeniorStaffAdmin::AlreadyProvisioned` instead
+of granting privileges. Concurrent attempts are protected by a database
+lock. Do not bypass this restriction by changing access levels manually.
+
+**Security:** Do not use shared accounts, hardcoded temporary passwords or
+public self-registration to grant senior permissions. The bootstrap service
+does **not** create a user or send an invitation. Secure staff invitation
+and password setup are planned separately. Avoid putting real patient or
+staff credentials in application logs or documentation.
+

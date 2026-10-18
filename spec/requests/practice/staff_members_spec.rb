@@ -128,6 +128,32 @@ RSpec.describe "Practice staff members", type: :request do
       expect(target.reload.access_level).to eq("staff_admin")
     end
 
+    it "allows a senior staff admin to assign Staff Clinician access to a nurse" do
+      senior = user.staff_members.find_by!(practice: practice)
+      senior.update!(access_level: "senior_staff_admin")
+      clinician = create(:staff_member, practice: practice, staff_type: "nurse")
+      sign_in user
+
+      patch access_level_practice_staff_member_path(clinician), params: {
+        staff_member: { access_level: "staff_clinician" }
+      }
+
+      expect(response).to redirect_to(practice_staff_members_path)
+      expect(clinician.reload.access_level).to eq("staff_clinician")
+    end
+
+    it "rejects Staff Clinician access for an administrator" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "senior_staff_admin")
+      sign_in user
+
+      patch access_level_practice_staff_member_path(target), params: {
+        staff_member: { access_level: "staff_clinician" }
+      }
+
+      expect(response).to redirect_to(practice_staff_members_path)
+      expect(target.reload.access_level).to eq("staff")
+    end
+
     it "forbids ordinary staff from changing access levels" do
       sign_in user
 

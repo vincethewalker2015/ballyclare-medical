@@ -15,14 +15,24 @@ module Staff
 
       @staff_member = current_practice.staff_members.new(staff_member_params)
       @staff_member.access_level = "staff"
+      @email = params.require(:staff_member)[:email]
 
-      if @staff_member.save
-        redirect_to practice_staff_members_path, notice: "Staff member created successfully."
-      else
-        render :new, status: :unprocessable_content
+      StaffMember.transaction do
+        if !@email.nil?
+          @staff_member.user = Staff::ProvisionUserAccount.new(email: @email).call
+        end
+
+        @staff_member.save!
       end
+
+      redirect_to practice_staff_members_path, notice: "Staff member created successfully."
     rescue ActiveRecord::RecordNotUnique
       @staff_member.errors.add(:user_id, "already belongs to this practice")
+      render :new, status: :unprocessable_content
+    rescue ActiveRecord::RecordInvalid => error
+      if error.record.is_a?(User)
+        @staff_member.errors.add(:base, "Enter a valid email address")
+      end
       render :new, status: :unprocessable_content
     end
 

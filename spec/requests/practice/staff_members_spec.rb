@@ -81,6 +81,19 @@ RSpec.describe "Practice staff members", type: :request do
       expect(response.body).to include("Senior Staff Admin")
     end
 
+    it "shows a Staff navigation link and a compact signed-in identity" do
+      sign_in user
+
+      get practice_staff_members_path
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include('href="' + practice_staff_members_path + '"')
+      expect(response.body).to include('aria-current="page"')
+      expect(response.body).to include('aria-label="Signed-in account"')
+      expect(response.body).to include(user.email)
+      expect(response.body).not_to include("Staff workspace")
+    end
+
     it "redirects visitors who are not signed in" do
       get practice_staff_members_path
 

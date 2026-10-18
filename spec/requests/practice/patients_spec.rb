@@ -45,4 +45,39 @@ RSpec.describe "Practice patients", type: :request do
       expect(response).to have_http_status(:forbidden)
     end
   end
+  describe "GET /practice/patients/new" do
+    it "shows the new patient form to staff" do
+      sign_in user
+
+      get new_practice_patient_path
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("New patient")
+    end
+  end
+
+  describe "POST /practice/patients" do
+    it "creates a patient belonging to the signed-in staff member's practice" do
+      sign_in user
+
+      expect {
+        post practice_patients_path, params: {
+          patient: {
+            patient_number: "NEW-001",
+            first_name: "Alice",
+            last_name: "Jones",
+            date_of_birth: "1992-04-17"
+          }
+        }
+      }.to change(practice.patients, :count).by(1)
+
+      patient = practice.patients.find_by!(patient_number: "NEW-001")
+      expect(patient).to have_attributes(
+        first_name: "Alice",
+        last_name: "Jones",
+        date_of_birth: Date.new(1992, 4, 17)
+      )
+      expect(response).to redirect_to(practice_patients_path)
+    end
+  end
 end

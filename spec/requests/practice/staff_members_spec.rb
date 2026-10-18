@@ -49,6 +49,23 @@ RSpec.describe "Practice staff members", type: :request do
       expect(response.body).to include("Nurse")
     end
 
+    it "offers access-level editing only to senior staff admins" do
+      target = create(:staff_member, practice: practice, first_name: "Helen",
+        last_name: "Nurse", staff_type: "nurse", access_level: "staff")
+      admin = user.staff_members.find_by!(practice: practice)
+      sign_in user
+
+      get practice_staff_members_path
+      expect(response.body).not_to include("Change access level")
+
+      admin.update!(access_level: "senior_staff_admin")
+      get practice_staff_members_path
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Change access level")
+      expect(response.body).to include(access_level_practice_staff_member_path(target))
+    end
+
     it "redirects visitors who are not signed in" do
       get practice_staff_members_path
 

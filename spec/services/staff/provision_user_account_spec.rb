@@ -31,5 +31,28 @@ RSpec.describe Staff::ProvisionUserAccount do
 
       expect(User.find_by(email: "invalid-email")).to be_nil
     end
+
+    it "reuses the same account when two requests arrive together", :concurrency do
+      email = "shared.clinician@example.com"
+      ready = Queue.new
+      start = Queue.new
+
+      threads = 2.times.map do
+        Thread.new do
+          ActiveRecord::Base.connection_pool.with_connection do
+            ready << true
+            start.pop
+            described_class.new(email: email).call.id
+          end
+        end
+      end
+
+      2.times { ready.pop }
+      2.times { start << true }
+      account_ids = threads.map(&:value)
+
+      expect(account_ids.uniq.size).to eq(1)
+      expect(User.where(email: email).count).to eq(1)
+    end
   end
 end

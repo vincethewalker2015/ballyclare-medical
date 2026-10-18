@@ -120,8 +120,84 @@ Only available slots can be selected during staff appointment booking.
 
 ## User and Staff Administration
 
-Staff access depends on the user's practice membership and permissions.
-Administrative capabilities are being developed incrementally.
+### Patient records
+
+Staff can open **Patients** from the practice navigation to view patients
+registered with their practice. Select **New patient** to register a patient,
+entering a unique patient number, first name, last name and date of birth.
+Select a patient from the list to view or edit their details. Patient records
+from other practices are not available through these pages.
+
+### Staff directory and access levels
+
+The staff directory is currently available at `/practice/staff_members`.
+It lists staff members associated with the signed-in user's practice.
+
+A staff member's type (doctor, nurse or administrator) describes their
+responsibilities. Their *access level* separately determines administrative
+authority within that practice:
+
+- **Staff** (`staff`) — the default level for every new staff membership.
+- **Staff Admin** (`staff_admin`) — intended to manage ordinary staff
+  accounts once staff creation is available.
+- **Senior Staff Admin** (`senior_staff_admin`) — can change access levels
+  for staff in their own practice.
+
+Only Senior Staff Admins may change another staff member's access level.
+The server rejects requests from ordinary Staff and Staff Admin accounts,
+as well as requests affecting staff in a different practice. Senior Staff
+Admins cannot demote themselves. A staff member's access level in one
+practice does not confer those permissions in another.
+
+**Current limitation:** Staff account creation, invitations and access-level
+editing controls are not yet available through the user interface. A
+permission-protected access-level update endpoint exists, but is not exposed
+in the staff directory.
+
+### Provisioning the first Senior Staff Admin
+
+**Platform operator procedure (currently via Rails console):**
+
+1. Create the practice and intended administrator's `User` account through
+   an authorised setup process, or identify existing records.
+2. Open an authorised Rails console for the intended environment.
+3. Locate the correct `Practice` and `User` records using trusted
+   identifiers; verify both before continuing.
+4. Invoke the bootstrap service:
+
+   ```ruby
+   practice = Practice.find("PRACTICE_UUID")
+   user = User.find_by!(email: "admin@example.com")
+
+   Practices::BootstrapSeniorStaffAdmin.new(
+     practice: practice,
+     user: user
+   ).call
+   ```
+
+The service creates an administrator-type staff membership with
+`senior_staff_admin` access. It operates only when the practice has **no
+existing staff members**. If anyone is already registered with the practice,
+it raises `Practices::BootstrapSeniorStaffAdmin::AlreadyProvisioned` instead
+of granting privileges. Concurrent attempts are protected by a database
+lock. Do not bypass this restriction by changing access levels manually.
+
+**Security:** Do not use shared accounts, hardcoded temporary passwords or
+public self-registration to grant senior permissions. The bootstrap service
+does **not** create a user or send an invitation. Secure staff invitation
+and password setup are planned separately. Avoid putting real patient or
+staff credentials in application logs or documentation.
+
+### Recovering administrative access
+
+If a practice has existing staff but no accessible Senior Staff Admin,
+**do not rerun bootstrap or create a substitute privileged account using
+seed data**. Escalate to an authorised platform operator to verify the
+practice and account ownership before recovery. A dedicated, audited
+recovery workflow has not yet been implemented.
+
+Protection against losing the last active Senior Staff Admin during
+deactivation or removal is also planned before those actions are available.
 
 ## Troubleshooting
 

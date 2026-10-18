@@ -134,6 +134,21 @@ RSpec.describe StaffMember do
       expect(other_membership.reload.access_level).to eq("staff")
     end
 
+    it "allows clinicians to have the Staff Clinician access level" do
+      staff_member = create(:staff_member, staff_type: "doctor",
+        access_level: "staff_clinician")
+
+      expect(staff_member.reload.access_level).to eq("staff_clinician")
+    end
+
+    it "does not assign Staff Clinician access to administrators" do
+      staff_member = build(:staff_member, staff_type: "administrator",
+        access_level: "staff_clinician")
+
+      expect(staff_member).not_to be_valid
+      expect(staff_member.errors[:access_level]).to be_present
+    end
+
     it "rejects unrecognised access levels" do
       staff_member = build(:staff_member, access_level: "superuser")
 

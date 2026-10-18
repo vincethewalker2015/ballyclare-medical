@@ -17,13 +17,18 @@ module Staff
       @staff_member.access_level = "staff"
       @email = params.require(:staff_member)[:email]
 
+      newly_created_account = false
+
       StaffMember.transaction do
-        if !@email.nil?
+        unless @email.nil?
           @staff_member.user = Staff::ProvisionUserAccount.new(email: @email).call
+          newly_created_account = @staff_member.user.previously_new_record?
         end
 
         @staff_member.save!
       end
+
+      @staff_member.user.send_reset_password_instructions if newly_created_account
 
       redirect_to practice_staff_members_path, notice: "Staff member created successfully."
     rescue ActiveRecord::RecordNotUnique

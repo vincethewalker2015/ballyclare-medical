@@ -152,12 +152,19 @@ A staff member's type (doctor, nurse or administrator) describes their
 responsibilities. Their *access level* separately determines administrative
 authority within that practice:
 
-- **Staff** (`staff`) — the default level for every new staff membership.
-- **Staff Admin** (`staff_admin`) — can add ordinary staff members to the practice.
-- **Senior Staff Admin** (`senior_staff_admin`) — can change access levels
+- **Staff** — the default level for every new staff membership.
+- **Staff Clinician** — available to doctors and nurses. Additional access to
+  medical records is planned but has not yet been enabled.
+- **Staff Admin** — can add ordinary staff members to the practice.
+- **Senior Staff Admin** — can change access levels
   for staff in their own practice.
 
 Only Senior Staff Admins may change another staff member's access level.
+To do so, open **Staff**, select **Edit access** beside a colleague, choose
+the appropriate level and select **Save access level**. Select **Cancel**
+to leave their access unchanged. Staff Clinician is available only for
+colleagues whose staff type is Doctor or Nurse.
+
 The server rejects requests from ordinary Staff and Staff Admin accounts,
 as well as requests affecting staff in a different practice. Senior Staff
 Admins cannot demote themselves. A staff member's access level in one
@@ -198,10 +205,6 @@ member cannot be added to the same practice twice.
 to configure the application's outgoing email service. If an expected
 message does not arrive, ask the platform operator to check email delivery;
 do not share passwords or create a duplicate account.
-
-**Current limitation:** The staff directory does not yet include an
-access-level editing control. Senior Staff Admin authorisation is enforced
-by the server, but that operation is not exposed in the interface.
 
 ### Setting up the first Senior Staff Admin
 

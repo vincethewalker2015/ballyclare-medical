@@ -12,7 +12,7 @@
       <ul class="divide-y divide-medical-border">
         <% @patients.each do |patient| %>
           <li class="py-3 text-medical-ink">
-            <%= patient.first_name %> <%= patient.last_name %>
+            <%= link_to "#{patient.first_name} #{patient.last_name}", practice_patient_path(patient), class: "font-semibold text-medical-navy hover:underline" %>
             <span class="ml-2 text-sm text-medical-muted"><%= patient.patient_number %></span>
           </li>
         <% end %>

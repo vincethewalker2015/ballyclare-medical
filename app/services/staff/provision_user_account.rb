@@ -17,9 +17,9 @@ module Staff
       )
     rescue ActiveRecord::RecordNotUnique
       User.find_by!(email: @email)
-    rescue ActiveRecord::RecordInvalid => error
+    rescue ActiveRecord::RecordInvalid
       existing_user = User.find_by(email: @email)
-      raise unless existing_user && error.record.errors.added?(:email, :taken)
+      raise unless existing_user
 
       existing_user
     end

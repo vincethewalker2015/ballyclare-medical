@@ -236,6 +236,25 @@ RSpec.describe "Practice staff members", type: :request do
       expect(response).to have_http_status(:unprocessable_content)
     end
 
+    it "rolls back a new user account when staff membership validation fails" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      sign_in user
+
+      expect {
+        post practice_staff_members_path, params: {
+          staff_member: {
+            email: "unassigned@example.com",
+            first_name: "Alex",
+            last_name: "Smith",
+            staff_type: "invalid_type"
+          }
+        }
+      }.not_to change { [ User.count, StaffMember.count ] }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(User.find_by(email: "unassigned@example.com")).to be_nil
+    end
+
     it "handles a concurrent duplicate insert as a validation error" do
       user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
       sign_in user

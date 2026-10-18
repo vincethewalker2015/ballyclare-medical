@@ -122,13 +122,28 @@ Only available slots can be selected during staff appointment booking.
 
 ### Patient records
 
+![Simplified illustration of the practice patient list with a new patient button](images/user_manual/patients-list-illustration.png)
+
+*Patients list: View patients registered with your practice, open an existing
+patient record or begin a new registration.*
+
 Staff can open **Patients** from the practice navigation to view patients
 registered with their practice. Select **New patient** to register a patient,
 entering a unique patient number, first name, last name and date of birth.
 Select a patient from the list to view or edit their details. Patient records
 from other practices are not available through these pages.
 
+![Simplified illustration of the patient registration form](images/user_manual/new-patient-illustration.png)
+
+*New patient: Enter the patient number, first name, last name and date of
+birth, then save the new patient record.*
+
 ### Staff directory and access levels
+
+![Simplified illustration of the staff directory with staff types and access levels](images/user_manual/staff-directory-illustration.png)
+
+*Staff directory: View colleagues linked to your practice. Staff type describes
+their responsibilities; access level determines their administrative permissions.*
 
 The staff directory is currently available at `/practice/staff_members`.
 It lists staff members associated with the signed-in user's practice.
@@ -150,6 +165,11 @@ practice does not confer those permissions in another.
 
 ### Adding a staff member
 
+![Simplified illustration of the new staff member form](images/user_manual/new-staff-member-illustration.png)
+
+*New staff member: Enter your colleague's email address and practice details,
+then select Create staff member.*
+
 Staff Admins and Senior Staff Admins can add colleagues to their practice.
 Open the staff directory at `/practice/staff_members` and select
 **New staff member**. Enter the colleague's email address, name, staff type
@@ -164,6 +184,12 @@ account and sends password-setting instructions to that address. The
 colleague follows the email link to choose a password before signing in.
 If an account already exists, it is linked to the practice without changing
 the person's existing password or sending another password-setting email.
+
+![Simplified illustration of the staff onboarding flow from account creation to sign-in](images/user_manual/staff-invitation-flow-illustration.png)
+
+*Staff onboarding: An administrator adds a colleague, the new colleague
+receives password-setting instructions, chooses a password and signs in.
+Existing account holders continue using their current password.*
 
 If an error appears, correct the details and try again. An existing staff
 member cannot be added to the same practice twice.

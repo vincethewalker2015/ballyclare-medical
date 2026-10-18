@@ -47,4 +47,61 @@ RSpec.describe "Practice staff members", type: :request do
       expect(response).to have_http_status(:forbidden)
     end
   end
+  describe "PATCH /practice/staff_members/:id/access_level" do
+    let(:target) { create(:staff_member, practice: practice, access_level: "staff") }
+
+    it "allows a senior staff admin to assign staff admin access" do
+      user.staff_members.find_by!(practice: practice).update!(
+        access_level: "senior_staff_admin"
+      )
+      sign_in user
+
+      patch access_level_practice_staff_member_path(target), params: {
+        staff_member: { access_level: "staff_admin" }
+      }
+
+      expect(response).to redirect_to(practice_staff_members_path)
+      expect(target.reload.access_level).to eq("staff_admin")
+    end
+
+    it "forbids ordinary staff from changing access levels" do
+      sign_in user
+
+      patch access_level_practice_staff_member_path(target), params: {
+        staff_member: { access_level: "senior_staff_admin" }
+      }
+
+      expect(response).to have_http_status(:forbidden)
+      expect(target.reload.access_level).to eq("staff")
+    end
+
+    it "forbids staff admins from changing access levels" do
+      user.staff_members.find_by!(practice: practice).update!(
+        access_level: "staff_admin"
+      )
+      sign_in user
+
+      patch access_level_practice_staff_member_path(target), params: {
+        staff_member: { access_level: "senior_staff_admin" }
+      }
+
+      expect(response).to have_http_status(:forbidden)
+      expect(target.reload.access_level).to eq("staff")
+    end
+
+    it "does not allow a senior admin to change another practice's staff" do
+      user.staff_members.find_by!(practice: practice).update!(
+        access_level: "senior_staff_admin"
+      )
+      foreign_staff = create(:staff_member, practice: create(:practice))
+      sign_in user
+
+      patch access_level_practice_staff_member_path(foreign_staff), params: {
+        staff_member: { access_level: "staff_admin" }
+      }
+
+      expect(response).to have_http_status(:not_found)
+      expect(foreign_staff.reload.access_level).to eq("staff")
+    end
+  end
 end

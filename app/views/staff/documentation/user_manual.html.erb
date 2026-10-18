@@ -18,8 +18,8 @@
   <article class="user-manual-markdown rounded-2xl border border-medical-border bg-white p-6 shadow-sm sm:p-10">
     <%= sanitize(
           @manual_html,
-          tags: %w[h1 h2 h3 h4 p ul ol li strong em a code pre blockquote hr table thead tbody tr th td],
-          attributes: %w[href title]
+          tags: %w[h1 h2 h3 h4 p ul ol li strong em a img code pre blockquote hr table thead tbody tr th td],
+          attributes: %w[href src alt title]
         ) %>
   </article>
 </div>

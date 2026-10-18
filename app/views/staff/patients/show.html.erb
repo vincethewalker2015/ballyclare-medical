@@ -1,0 +1,21 @@
+<% content_for :title, "Patient details | Ballyclare Medical" %>
+
+<div class="mx-auto max-w-2xl space-y-6">
+  <header>
+    <h1 class="text-4xl font-semibold text-medical-navy"><%= @patient.first_name %> <%= @patient.last_name %></h1>
+    <p class="mt-2 text-medical-muted">Patient number: <%= @patient.patient_number %></p>
+  </header>
+
+  <section class="rounded-2xl border border-medical-border bg-white p-6">
+    <dl class="space-y-4">
+      <div><dt class="text-sm font-semibold text-medical-muted">First name</dt><dd><%= @patient.first_name %></dd></div>
+      <div><dt class="text-sm font-semibold text-medical-muted">Last name</dt><dd><%= @patient.last_name %></dd></div>
+      <div><dt class="text-sm font-semibold text-medical-muted">Date of birth</dt><dd><%= @patient.date_of_birth %></dd></div>
+    </dl>
+  </section>
+
+  <div class="flex gap-4">
+    <%= link_to "Edit patient", edit_practice_patient_path(@patient), class: "rounded-full bg-medical-navy px-6 py-3 text-sm font-semibold text-white" %>
+    <%= link_to "Back to patients", practice_patients_path, class: "px-4 py-3 text-medical-navy" %>
+  </div>
+</div>

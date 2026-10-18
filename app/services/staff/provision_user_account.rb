@@ -15,6 +15,13 @@ module Staff
         password: password,
         password_confirmation: password
       )
+    rescue ActiveRecord::RecordNotUnique
+      User.find_by!(email: @email)
+    rescue ActiveRecord::RecordInvalid => error
+      existing_user = User.find_by(email: @email)
+      raise unless existing_user && error.record.errors.added?(:email, :taken)
+
+      existing_user
     end
   end
 end

@@ -371,6 +371,27 @@ RSpec.describe "Practice staff members", type: :request do
       expect(colleague.reload.encrypted_password).to eq(password_digest)
     end
 
+    it "does not send password-setting instructions for an existing user" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      existing_digest = colleague.encrypted_password
+      sign_in user
+      ActionMailer::Base.deliveries.clear
+
+      post practice_staff_members_path, params: {
+        staff_member: {
+          email: colleague.email,
+          first_name: "Alex",
+          last_name: "Smith",
+          staff_type: "doctor"
+        }
+      }
+
+      expect(response).to redirect_to(practice_staff_members_path)
+      expect(ActionMailer::Base.deliveries).to be_empty
+      expect(colleague.reload.encrypted_password).to eq(existing_digest)
+      expect(colleague.reset_password_sent_at).to be_nil
+    end
+
     it "does not create an account or membership for an invalid email address" do
       user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
       sign_in user

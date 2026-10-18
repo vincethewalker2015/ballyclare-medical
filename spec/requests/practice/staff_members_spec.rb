@@ -75,7 +75,7 @@ RSpec.describe "Practice staff members", type: :request do
       get practice_staff_members_path
 
       expect(response).to have_http_status(:success)
-      expect(response.body).to include("Signed in as")
+      expect(response.body).to include('aria-label="Signed-in account"')
       expect(response.body).to include("Alex Morgan")
       expect(response.body).to include(user.email)
       expect(response.body).to include("Senior Staff Admin")

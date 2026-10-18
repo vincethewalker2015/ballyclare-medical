@@ -4,6 +4,9 @@
   <header>
     <h1 class="text-4xl font-semibold text-medical-navy">Staff</h1>
     <p class="mt-2 text-medical-muted">People working at your practice.</p>
+    <% if @current_staff_member.access_level.in?(%w[staff_admin senior_staff_admin]) %>
+      <%= link_to "New staff member", new_practice_staff_member_path, class: "mt-4 inline-flex rounded-full bg-medical-navy px-6 py-3 text-sm font-semibold text-white" %>
+    <% end %>
   </header>
 
   <section class="rounded-2xl border border-medical-border bg-white p-6">

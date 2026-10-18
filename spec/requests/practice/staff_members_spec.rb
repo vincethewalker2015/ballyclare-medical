@@ -256,6 +256,80 @@ RSpec.describe "Practice staff members", type: :request do
       expect(response.body).to include("already")
     end
 
+    it "shows an email field instead of asking for a user account ID" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      sign_in user
+
+      get new_practice_staff_member_path
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include('name="staff_member[email]"')
+      expect(response.body).not_to include('name="staff_member[user_id]"')
+    end
+
+    it "creates an ordinary staff membership using a new email address" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      sign_in user
+
+      expect {
+        post practice_staff_members_path, params: {
+          staff_member: {
+            email: "new.nurse@example.com",
+            first_name: "Alex",
+            last_name: "Smith",
+            staff_type: "nurse",
+            access_level: "senior_staff_admin"
+          }
+        }
+      }.to change(User, :count).by(1)
+        .and change(practice.staff_members, :count).by(1)
+
+      membership = practice.staff_members.find_by!(
+        user: User.find_by!(email: "new.nurse@example.com")
+      )
+      expect(membership.access_level).to eq("staff")
+      expect(response).to redirect_to(practice_staff_members_path)
+    end
+
+    it "reuses an existing account by email without changing its password" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      password_digest = colleague.encrypted_password
+      sign_in user
+
+      expect {
+        post practice_staff_members_path, params: {
+          staff_member: {
+            email: colleague.email,
+            first_name: "Alex",
+            last_name: "Smith",
+            staff_type: "doctor"
+          }
+        }
+      }.not_to change(User, :count)
+
+      expect(response).to redirect_to(practice_staff_members_path)
+      expect(practice.staff_members.find_by!(user: colleague).access_level).to eq("staff")
+      expect(colleague.reload.encrypted_password).to eq(password_digest)
+    end
+
+    it "does not create an account or membership for an invalid email address" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      sign_in user
+
+      expect {
+        post practice_staff_members_path, params: {
+          staff_member: {
+            email: "not-an-email",
+            first_name: "Alex",
+            last_name: "Smith",
+            staff_type: "nurse"
+          }
+        }
+      }.not_to change { [ User.count, StaffMember.count ] }
+
+      expect(response).to have_http_status(:unprocessable_content)
+    end
+
     it "forbids ordinary staff from creating a staff membership" do
       sign_in user
 

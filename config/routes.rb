@@ -9,7 +9,7 @@ Rails.application.routes.draw do
 
   scope "/practice", module: "staff", as: "practice" do
   resources :patients, only: %i[index show new create edit update]
-  resources :staff_members, only: %i[index] do
+  resources :staff_members, only: %i[index new create] do
     member do
       patch :access_level
     end

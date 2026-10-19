@@ -632,17 +632,25 @@ RSpec.describe "Practice staff members", type: :request do
       expect(target.reload.first_name).to eq("Helen")
     end
 
-    it "keeps editing practice-scoped" do
+    it "does not allow editing a staff member from another practice" do
       user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
       foreign_staff = create(:staff_member, practice: create(:practice))
       sign_in user
 
       get edit_practice_staff_member_path(foreign_staff)
+
       expect(response).to have_http_status(:not_found)
+    end
+
+    it "does not allow updating a staff member from another practice" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      foreign_staff = create(:staff_member, practice: create(:practice))
+      sign_in user
 
       patch practice_staff_member_path(foreign_staff), params: {
         staff_member: { first_name: "Changed" }
       }
+
       expect(response).to have_http_status(:not_found)
       expect(foreign_staff.reload.first_name).not_to eq("Changed")
     end

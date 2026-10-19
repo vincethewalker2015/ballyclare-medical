@@ -453,6 +453,7 @@ RSpec.describe "Practice staff members", type: :request do
 
       expect(response).to have_http_status(:success)
       expect(response.body).not_to include("Default appointment duration")
+      expect(response.body).not_to include('name="staff_member[default_appointment_duration]"')
     end
 
     it "shows an email field instead of asking for a user account ID" do

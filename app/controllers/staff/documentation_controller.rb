@@ -20,11 +20,20 @@ module Staff
     end
 
     def image
-      filename = params[:image].to_s
-      return head :not_found unless filename.match?(/\A[a-z0-9-]+\.png\z/)
+      image_path = case params[:image]
+      when "patients-list-illustration.png"
+        Rails.root.join("docs/images/user_manual/patients-list-illustration.png")
+      when "new-patient-illustration.png"
+        Rails.root.join("docs/images/user_manual/new-patient-illustration.png")
+      when "staff-directory-illustration.png"
+        Rails.root.join("docs/images/user_manual/staff-directory-illustration.png")
+      when "new-staff-member-illustration.png"
+        Rails.root.join("docs/images/user_manual/new-staff-member-illustration.png")
+      when "staff-invitation-flow-illustration.png"
+        Rails.root.join("docs/images/user_manual/staff-invitation-flow-illustration.png")
+      end
 
-      image_path = Rails.root.join("docs/images/user_manual", filename)
-      return head :not_found unless image_path.file?
+      return head :not_found unless image_path&.file?
 
       send_file image_path, type: "image/png", disposition: "inline"
     end

@@ -311,7 +311,6 @@ RSpec.describe "Practice staff members", type: :request do
             first_name: "Alex",
             last_name: "Smith",
             staff_type: "nurse",
-            default_appointment_duration: 30,
             access_level: "senior_staff_admin",
             practice_id: create(:practice).id
           }
@@ -444,6 +443,16 @@ RSpec.describe "Practice staff members", type: :request do
 
       expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include("already")
+    end
+
+    it "does not ask for a default appointment duration" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      sign_in user
+
+      get new_practice_staff_member_path
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).not_to include("Default appointment duration")
     end
 
     it "shows an email field instead of asking for a user account ID" do

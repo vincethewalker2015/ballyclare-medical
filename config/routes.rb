@@ -17,6 +17,7 @@ Rails.application.routes.draw do
   resources :staff_members, only: %i[index new create edit update] do
     member do
       patch :access_level
+      patch :deactivate
     end
   end
   resources :availability_blocks,

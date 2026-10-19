@@ -69,6 +69,46 @@ module Staff
       end
     end
 
+    def deactivate
+      return head :forbidden unless staff_administrator?
+
+      staff_member = current_practice.staff_members.find(params[:id])
+      return head :forbidden if staff_member.id == current_staff_member.id
+
+      unless current_staff_member.access_level == "senior_staff_admin" ||
+             !staff_member.access_level.in?(%w[staff_admin senior_staff_admin])
+        return head :forbidden
+      end
+
+      StaffMember.transaction do
+        current_practice.lock!
+        staff_member.lock!
+
+        if staff_member.active? &&
+           staff_member.access_level == "senior_staff_admin" &&
+           !current_practice.staff_members.where(active: true, access_level: "senior_staff_admin")
+             .where.not(id: staff_member.id).exists?
+          staff_member.errors.add(:base, "The last active senior staff administrator cannot be deactivated")
+        end
+
+        if staff_member.active? &&
+           Appointment.joins(:appointment_slot)
+             .where(clinician_id: staff_member.id)
+             .where(appointment_slots: { starts_at: Time.current.. })
+             .where.not(status: "cancelled").exists?
+          staff_member.errors.add(:base, "Review future appointments before deactivating this clinician")
+        end
+
+        staff_member.update!(active: false) if staff_member.errors.empty?
+      end
+
+      if staff_member.errors.any?
+        redirect_to practice_staff_members_path, alert: staff_member.errors.full_messages.to_sentence
+      else
+        redirect_to practice_staff_members_path, notice: "Staff member deactivated."
+      end
+    end
+
     def access_level
       return head :forbidden unless current_staff_member.access_level == "senior_staff_admin"
 
@@ -78,6 +118,15 @@ module Staff
       if staff_member.id == current_staff_member.id &&
          requested_access_level != "senior_staff_admin"
         return head :forbidden
+      end
+
+      if requested_access_level != "senior_staff_admin" &&
+         staff_member.access_level == "senior_staff_admin" &&
+         staff_member.active? &&
+         !current_practice.staff_members.where(active: true, access_level: "senior_staff_admin")
+           .where.not(id: staff_member.id).exists?
+        return redirect_to practice_staff_members_path,
+          alert: "The last active senior staff administrator cannot be demoted."
       end
 
       if staff_member.update(access_level_params)

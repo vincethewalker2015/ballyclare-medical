@@ -13,7 +13,7 @@ module Staff
     def set_current_staff_member
       @current_staff_member = current_user.staff_members.first
 
-      return if @current_staff_member.present?
+      return if @current_staff_member&.active?
 
       head :forbidden
     end

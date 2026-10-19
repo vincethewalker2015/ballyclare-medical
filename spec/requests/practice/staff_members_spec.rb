@@ -692,4 +692,149 @@ RSpec.describe "Practice staff members", type: :request do
       expect(response.body).to include(edit_practice_staff_member_path(target))
     end
   end
+  describe "PATCH /practice/staff_members/:id/deactivate" do
+    let(:target) { create(:staff_member, practice: practice, staff_type: "nurse") }
+
+    it "allows a staff admin to deactivate ordinary staff" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      sign_in user
+
+      patch deactivate_practice_staff_member_path(target)
+
+      expect(response).to redirect_to(practice_staff_members_path)
+      expect(target.reload.active).to be(false)
+    end
+
+    it "forbids ordinary staff from deactivating others" do
+      sign_in user
+      patch deactivate_practice_staff_member_path(target)
+
+      expect(response).to have_http_status(:forbidden)
+      expect(target.reload.active).to be(true)
+    end
+
+    it "forbids staff admins from deactivating other administrators" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      target.update!(access_level: "staff_admin")
+      sign_in user
+
+      patch deactivate_practice_staff_member_path(target)
+
+      expect(response).to have_http_status(:forbidden)
+      expect(target.reload.active).to be(true)
+    end
+
+    it "allows a senior administrator to deactivate another administrator" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "senior_staff_admin")
+      target.update!(staff_type: "administrator", access_level: "staff_admin")
+      sign_in user
+
+      patch deactivate_practice_staff_member_path(target)
+
+      expect(response).to redirect_to(practice_staff_members_path)
+      expect(target.reload.active).to be(false)
+    end
+
+    it "prevents self-deactivation" do
+      admin = user.staff_members.find_by!(practice: practice)
+      admin.update!(access_level: "senior_staff_admin")
+      sign_in user
+
+      patch deactivate_practice_staff_member_path(admin)
+
+      expect(response).to have_http_status(:forbidden)
+      expect(admin.reload.active).to be(true)
+    end
+
+    it "preserves the last active senior administrator" do
+      senior = user.staff_members.find_by!(practice: practice)
+      senior.update!(access_level: "senior_staff_admin")
+      other_senior = create(:staff_member, practice: practice, access_level: "senior_staff_admin")
+      sign_in user
+
+      patch deactivate_practice_staff_member_path(other_senior)
+      expect(other_senior.reload.active).to be(false)
+      expect(senior.reload.active).to be(true)
+    end
+
+    it "does not allow deactivation across practices" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      foreign_staff = create(:staff_member, practice: create(:practice))
+      sign_in user
+
+      patch deactivate_practice_staff_member_path(foreign_staff)
+
+      expect(response).to have_http_status(:not_found)
+      expect(foreign_staff.reload.active).to be(true)
+    end
+
+    it "forbids deactivation when the clinician has future appointments" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      sign_in user
+      block = create(:availability_block, practice: practice, clinician: target)
+      slot = create(:appointment_slot, practice: practice, clinician: target,
+        availability_block: block, starts_at: 2.days.from_now, ends_at: 2.days.from_now + 30.minutes)
+      create(:appointment, practice: practice, clinician: target, appointment_slot: slot)
+
+      patch deactivate_practice_staff_member_path(target)
+
+      expect(response).to redirect_to(practice_staff_members_path)
+      expect(target.reload.active).to be(true)
+      expect(flash[:alert]).to include("Review future appointments")
+    end
+
+    it "blocks practice access for a deactivated membership" do
+      admin = user.staff_members.find_by!(practice: practice)
+      admin.update!(active: false)
+      sign_in user
+
+      get practice_staff_members_path
+
+      expect(response).to have_http_status(:forbidden)
+    end
+
+    it "shows deactivation actions to authorised administrators only" do
+      target
+      sign_in user
+      get practice_staff_members_path
+      expect(response.body).not_to include("Deactivate")
+
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      get practice_staff_members_path
+      expect(response.body).to include(deactivate_practice_staff_member_path(target))
+    end
+  end
+  describe "deactivation safeguards" do
+    it "rejects demotion of the last active senior administrator" do
+      senior = user.staff_members.find_by!(practice: practice)
+      senior.update!(access_level: "senior_staff_admin")
+      second_senior = create(:staff_member, practice: practice, access_level: "senior_staff_admin")
+      second_senior.update!(active: false)
+      sign_in user
+
+      patch access_level_practice_staff_member_path(second_senior), params: {
+        staff_member: { access_level: "staff" }
+      }
+
+      expect(response).to redirect_to(practice_staff_members_path)
+      expect(senior.reload.access_level).to eq("senior_staff_admin")
+    end
+
+    it "does not deactivate an administrator with future appointments" do
+      admin = user.staff_members.find_by!(practice: practice)
+      admin.update!(access_level: "senior_staff_admin")
+      target = create(:staff_member, practice: practice, staff_type: "doctor")
+      availability = create(:availability_block, practice: practice, clinician: target)
+      slot = create(:appointment_slot, practice: practice, clinician: target,
+        availability_block: availability, starts_at: 3.days.from_now,
+        ends_at: 3.days.from_now + 30.minutes)
+      create(:appointment, practice: practice, clinician: target, appointment_slot: slot)
+      sign_in user
+
+      patch deactivate_practice_staff_member_path(target)
+
+      expect(target.reload.active).to be(true)
+      expect(flash[:alert]).to include("Review future appointments")
+    end
+  end
 end

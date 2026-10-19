@@ -6,7 +6,7 @@ module Staff
 
       @clinicians = current_practice
         .staff_members
-        .where(staff_type: %w[doctor nurse])
+        .where(staff_type: %w[doctor nurse], active: true)
         .order(:last_name, :first_name)
 
       @selected_clinician_id = params[:clinician_id].presence
@@ -161,7 +161,7 @@ module Staff
 
       @clinician = current_practice
         .staff_members
-        .where(staff_type: %w[doctor nurse])
+        .where(staff_type: %w[doctor nurse], active: true)
         .find(params[:clinician_id])
 
       @appointment_slots = current_practice

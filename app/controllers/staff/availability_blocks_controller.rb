@@ -23,7 +23,7 @@ module Staff
     def create
       clinician = current_practice
         .staff_members
-        .where(staff_type: %w[doctor nurse])
+        .where(staff_type: %w[doctor nurse], active: true)
         .find(availability_block_params[:clinician_id])
 
       starts_at = local_time(
@@ -101,7 +101,7 @@ module Staff
 
       clinician = current_practice
         .staff_members
-        .where(staff_type: %w[doctor nurse])
+        .where(staff_type: %w[doctor nurse], active: true)
         .find(availability_block_params[:clinician_id])
 
       starts_at = local_time(
@@ -173,7 +173,7 @@ module Staff
     def load_clinicians
       @clinicians = current_practice
         .staff_members
-        .where(staff_type: %w[doctor nurse])
+        .where(staff_type: %w[doctor nurse], active: true)
         .order(:last_name, :first_name)
     end
 

@@ -567,4 +567,121 @@ RSpec.describe "Practice staff members", type: :request do
       expect(response).to have_http_status(:forbidden)
     end
   end
+  describe "staff details editing" do
+    let(:target) do
+      create(:staff_member, practice: practice, first_name: "Helen",
+        last_name: "Nurse", staff_type: "nurse")
+    end
+
+    it "lets a staff admin open the edit form" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      sign_in user
+
+      get edit_practice_staff_member_path(target)
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Edit staff member")
+      expect(response.body).to include("Registration number")
+      expect(response.body).not_to include('name="staff_member[access_level]"')
+    end
+
+    it "updates staff details without changing access or account ownership" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      sign_in user
+      original_user_id = target.user_id
+
+      patch practice_staff_member_path(target), params: {
+        staff_member: { first_name: "Helena", last_name: "Smith",
+          registration_number: "NMC-123", staff_type: "nurse",
+          access_level: "senior_staff_admin", user_id: user.id,
+          practice_id: create(:practice).id, active: false }
+      }
+
+      expect(response).to redirect_to(practice_staff_members_path)
+      expect(target.reload).to have_attributes(first_name: "Helena",
+        last_name: "Smith", registration_number: "NMC-123",
+        access_level: "staff", user_id: original_user_id, active: true,
+        practice_id: practice.id)
+    end
+
+    it "lets a senior staff admin edit staff details" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "senior_staff_admin")
+      sign_in user
+
+      patch practice_staff_member_path(target), params: {
+        staff_member: { first_name: "Helena" }
+      }
+
+      expect(response).to redirect_to(practice_staff_members_path)
+      expect(target.reload.first_name).to eq("Helena")
+    end
+
+    it "forbids clinicians from opening or submitting edits" do
+      user.staff_members.find_by!(practice: practice).update!(
+        staff_type: "doctor", access_level: "staff_clinician"
+      )
+      sign_in user
+
+      get edit_practice_staff_member_path(target)
+      expect(response).to have_http_status(:forbidden)
+
+      patch practice_staff_member_path(target), params: {
+        staff_member: { first_name: "Changed" }
+      }
+      expect(response).to have_http_status(:forbidden)
+      expect(target.reload.first_name).to eq("Helen")
+    end
+
+    it "keeps editing practice-scoped" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      foreign_staff = create(:staff_member, practice: create(:practice))
+      sign_in user
+
+      get edit_practice_staff_member_path(foreign_staff)
+      expect(response).to have_http_status(:not_found)
+
+      patch practice_staff_member_path(foreign_staff), params: {
+        staff_member: { first_name: "Changed" }
+      }
+      expect(response).to have_http_status(:not_found)
+      expect(foreign_staff.reload.first_name).not_to eq("Changed")
+    end
+
+    it "renders validation errors without saving invalid staff types" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      sign_in user
+
+      patch practice_staff_member_path(target), params: {
+        staff_member: { staff_type: "invalid_type" }
+      }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include("Edit staff member")
+      expect(target.reload.staff_type).to eq("nurse")
+    end
+
+    it "rejects removing a clinician type while clinician access is assigned" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      target.update!(access_level: "staff_clinician")
+      sign_in user
+
+      patch practice_staff_member_path(target), params: {
+        staff_member: { staff_type: "administrator" }
+      }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(target.reload.staff_type).to eq("nurse")
+    end
+
+    it "shows edit links only to administrators" do
+      sign_in user
+      get practice_staff_members_path
+      expect(response.body).not_to include("Edit details")
+
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      get practice_staff_members_path
+      expect(response.body).to include(edit_practice_staff_member_path(target))
+    end
+  end
+
 end

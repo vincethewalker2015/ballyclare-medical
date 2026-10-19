@@ -79,6 +79,24 @@ RSpec.describe StaffMember do
     end
   end
 
+  describe "optional registration numbers" do
+    it "stores a blank registration number as nil" do
+      member = create(:staff_member, registration_number: "")
+
+      expect(member.reload.registration_number).to be_nil
+    end
+
+    it "allows multiple staff in the same practice without registration numbers" do
+      practice = create(:practice)
+      create(:staff_member, practice: practice, registration_number: "")
+
+      second_member = create(:staff_member, practice: practice, registration_number: "")
+
+      expect(second_member).to be_persisted
+      expect(second_member.reload.registration_number).to be_nil
+    end
+  end
+
   describe "practice membership uniqueness" do
     it "rejects a second membership for the same user and practice" do
       practice = create(:practice)

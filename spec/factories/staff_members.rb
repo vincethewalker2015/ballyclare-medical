@@ -3,5 +3,7 @@ FactoryBot.define do
     practice
     user
     staff_type { "doctor" }
+    first_name { "Alex" }
+    last_name { "Morgan" }
   end
 end

@@ -21,6 +21,7 @@
         <div>
           <%= form.label field, label, class: "block text-sm font-semibold text-medical-navy" %>
           <%= form.text_field field, autocomplete: ({ first_name: "given-name", last_name: "family-name" }[field] || "off"),
+            required: field.in?(%i[first_name last_name]),
             class: "mt-1 block w-full rounded-lg border border-medical-border p-3" %>
         </div>
       <% end %>

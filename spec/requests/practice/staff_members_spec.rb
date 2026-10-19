@@ -837,6 +837,30 @@ RSpec.describe "Practice staff members", type: :request do
       expect(flash[:alert]).to include("Review future appointments")
     end
   end
+  describe "name validation during staff creation" do
+    %w[first_name last_name].each do |missing_field|
+      it "rejects a missing #{missing_field} without creating an account" do
+        user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+        sign_in user
+
+        attributes = {
+          email: "missing-name@example.com",
+          first_name: "Roberta",
+          last_name: "Munro",
+          staff_type: "administrator"
+        }
+        attributes[missing_field] = ""
+
+        expect {
+          post practice_staff_members_path, params: { staff_member: attributes }
+        }.not_to change { [ User.count, StaffMember.count ] }
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response.body).to include("can't be blank")
+      end
+    end
+  end
+
   describe "PATCH /practice/staff_members/:id/reactivate" do
     let(:target) do
       create(:staff_member, practice: practice, staff_type: "nurse", active: false)

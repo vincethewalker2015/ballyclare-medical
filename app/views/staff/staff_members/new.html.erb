@@ -30,7 +30,8 @@
              [ :registration_number, "Registration number (optional)" ] ].each do |field, label| %>
         <div>
           <%= form.label field, label, class: "block text-sm font-semibold text-medical-navy" %>
-          <%= form.text_field field, autocomplete: ({ first_name: "given-name", last_name: "family-name" }[field] || "off"), class: "mt-1 block w-full rounded-lg border border-medical-border p-3",
+          <%= form.text_field field, autocomplete: ({ first_name: "given-name", last_name: "family-name" }[field] || "off"),
+            required: field.in?(%i[first_name last_name]), class: "mt-1 block w-full rounded-lg border border-medical-border p-3",
             data: { form_validation_target: "field", action: "blur->form-validation#validate input->form-validation#validateOnInput" } %>
           <p id="staff_member_<%= field %>_error" data-form-validation-target="feedback" class="mt-1 hidden text-sm text-red-700" role="alert"></p>
         </div>

@@ -35,7 +35,9 @@ RSpec.describe StaffMember do
       staff_member.assign_attributes(
         practice: practice,
         user: user,
-        staff_type: "doctor"
+        staff_type: "doctor",
+        first_name: "Alex",
+        last_name: "Morgan"
       )
       expect(staff_member).to be_valid
     end
@@ -44,7 +46,9 @@ RSpec.describe StaffMember do
       staff_member.assign_attributes(
         practice: practice,
         user: user,
-        staff_type: "administrator"
+        staff_type: "administrator",
+        first_name: "Alex",
+        last_name: "Morgan"
       )
       expect(staff_member).to be_valid
     end
@@ -59,6 +63,22 @@ RSpec.describe StaffMember do
       expect(staff_member).to be_persisted
     end
   end
+  describe "name requirements" do
+    it "requires a first name" do
+      member = build(:staff_member, first_name: "")
+
+      expect(member).not_to be_valid
+      expect(member.errors[:first_name]).to be_present
+    end
+
+    it "requires a last name" do
+      member = build(:staff_member, last_name: "")
+
+      expect(member).not_to be_valid
+      expect(member.errors[:last_name]).to be_present
+    end
+  end
+
   describe "practice membership uniqueness" do
     it "rejects a second membership for the same user and practice" do
       practice = create(:practice)

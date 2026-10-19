@@ -21,7 +21,7 @@ RSpec.describe "Practice appointments", type: :request do
     StaffMember.create!(
       practice: practice,
       user: user,
-      staff_type: "administrator",
+      staff_type: "administrator"
     )
   end
 
@@ -102,7 +102,7 @@ RSpec.describe "Practice appointments", type: :request do
         StaffMember.create!(
           practice: other_practice,
           user: other_user,
-          staff_type: "doctor",
+          staff_type: "doctor"
         )
       end
 
@@ -195,7 +195,7 @@ RSpec.describe "Practice appointments", type: :request do
         StaffMember.create!(
           practice: practice,
           user: clinician_user,
-          staff_type: "doctor",
+          staff_type: "doctor"
         )
       end
 
@@ -639,7 +639,7 @@ RSpec.describe "Practice appointments", type: :request do
             email: "external-diary-doctor@example.com",
             password: "password123"
           ),
-          staff_type: "doctor",
+          staff_type: "doctor"
         )
 
         get practice_appointments_path(
@@ -672,7 +672,7 @@ RSpec.describe "Practice appointments", type: :request do
           email: "doctor@example.com",
           password: "password123"
         ),
-        staff_type: "doctor",
+        staff_type: "doctor"
       )
     end
 

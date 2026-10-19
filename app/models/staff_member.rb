@@ -34,9 +34,6 @@ class StaffMember < ApplicationRecord
 
   validates :user_id, uniqueness: { scope: :practice_id }
 
-  validates :default_appointment_duration,
-    numericality: { only_integer: true, greater_than: 0 }
-
   def clinician_access_requires_clinician_staff_type
     return unless access_level == "staff_clinician"
     return if staff_type.in?(%w[doctor nurse])

@@ -81,6 +81,7 @@ module Staff
       end
 
       StaffMember.transaction do
+        current_practice.lock!
         staff_member.lock!
 
         if staff_member.active? &&
@@ -117,6 +118,15 @@ module Staff
       if staff_member.id == current_staff_member.id &&
          requested_access_level != "senior_staff_admin"
         return head :forbidden
+      end
+
+      if requested_access_level != "senior_staff_admin" &&
+         staff_member.access_level == "senior_staff_admin" &&
+         staff_member.active? &&
+         !current_practice.staff_members.where(active: true, access_level: "senior_staff_admin")
+           .where.not(id: staff_member.id).exists?
+        return redirect_to practice_staff_members_path,
+          alert: "The last active senior staff administrator cannot be demoted."
       end
 
       if staff_member.update(access_level_params)

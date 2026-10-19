@@ -804,4 +804,37 @@ RSpec.describe "Practice staff members", type: :request do
       expect(response.body).to include(deactivate_practice_staff_member_path(target))
     end
   end
+  describe "deactivation safeguards" do
+    it "rejects demotion of the last active senior administrator" do
+      senior = user.staff_members.find_by!(practice: practice)
+      senior.update!(access_level: "senior_staff_admin")
+      second_senior = create(:staff_member, practice: practice, access_level: "senior_staff_admin")
+      second_senior.update!(active: false)
+      sign_in user
+
+      patch access_level_practice_staff_member_path(second_senior), params: {
+        staff_member: { access_level: "staff" }
+      }
+
+      expect(response).to redirect_to(practice_staff_members_path)
+      expect(senior.reload.access_level).to eq("senior_staff_admin")
+    end
+
+    it "does not deactivate an administrator with future appointments" do
+      admin = user.staff_members.find_by!(practice: practice)
+      admin.update!(access_level: "senior_staff_admin")
+      target = create(:staff_member, practice: practice, staff_type: "doctor")
+      availability = create(:availability_block, practice: practice, clinician: target)
+      slot = create(:appointment_slot, practice: practice, clinician: target,
+        availability_block: availability, starts_at: 3.days.from_now,
+        ends_at: 3.days.from_now + 30.minutes)
+      create(:appointment, practice: practice, clinician: target, appointment_slot: slot)
+      sign_in user
+
+      patch deactivate_practice_staff_member_path(target)
+
+      expect(target.reload.active).to be(true)
+      expect(flash[:alert]).to include("Review future appointments")
+    end
+  end
 end

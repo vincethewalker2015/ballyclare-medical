@@ -31,33 +31,11 @@ RSpec.describe StaffMember do
       expect(staff_member.errors[:staff_type]).to be_present
     end
 
-    it "is not valid with a zero default appointment duration" do
-      staff_member.assign_attributes(
-        practice: practice,
-        user: user,
-        staff_type: "doctor",
-        default_appointment_duration: 0
-      )
-      expect(staff_member).not_to be_valid
-    end
-
-    it "has an error on default_appointment_duration for zero" do
-      staff_member.assign_attributes(
-        practice: practice,
-        user: user,
-        staff_type: "doctor",
-        default_appointment_duration: 0
-      )
-      staff_member.valid?
-      expect(staff_member.errors[:default_appointment_duration]).to be_present
-    end
-
     it "is valid with required attributes" do
       staff_member.assign_attributes(
         practice: practice,
         user: user,
-        staff_type: "doctor",
-        default_appointment_duration: 20
+        staff_type: "doctor"
       )
       expect(staff_member).to be_valid
     end
@@ -66,8 +44,7 @@ RSpec.describe StaffMember do
       staff_member.assign_attributes(
         practice: practice,
         user: user,
-        staff_type: "administrator",
-        default_appointment_duration: 20
+        staff_type: "administrator"
       )
       expect(staff_member).to be_valid
     end

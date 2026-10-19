@@ -15,7 +15,6 @@ module Practices
           user: @user,
           staff_type: "administrator",
           access_level: "senior_staff_admin",
-          default_appointment_duration: 20
         )
       end
     end

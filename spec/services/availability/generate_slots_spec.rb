@@ -23,7 +23,6 @@ RSpec.describe Availability::GenerateSlots do
         practice: practice,
         user: user,
         staff_type: "doctor",
-        default_appointment_duration: 20
       )
     end
 

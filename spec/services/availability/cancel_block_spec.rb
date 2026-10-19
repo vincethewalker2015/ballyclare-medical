@@ -22,7 +22,6 @@ RSpec.describe Availability::CancelBlock do
       practice: practice,
       user: clinician_user,
       staff_type: "doctor",
-      default_appointment_duration: 30
     )
   end
 

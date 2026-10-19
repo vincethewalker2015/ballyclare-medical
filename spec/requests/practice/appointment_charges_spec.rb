@@ -22,7 +22,6 @@ RSpec.describe "Practice appointment charges", type: :request do
       practice: practice,
       user: user,
       staff_type: "administrator",
-      default_appointment_duration: 30
     )
   end
 
@@ -38,7 +37,6 @@ RSpec.describe "Practice appointment charges", type: :request do
       practice: practice,
       user: clinician_user,
       staff_type: "doctor",
-      default_appointment_duration: 30
     )
   end
 
@@ -197,7 +195,6 @@ RSpec.describe "Practice appointment charges", type: :request do
           practice: other_practice,
           user: other_clinician_user,
           staff_type: "doctor",
-          default_appointment_duration: 30
         )
       end
 

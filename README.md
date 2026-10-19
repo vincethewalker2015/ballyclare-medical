@@ -321,7 +321,6 @@ StaffMember.find_or_create_by!(
   practice: practice
 ) do |staff|
   staff.staff_type = "administrator"
-  staff.default_appointment_duration = 30
 end
 ```
 

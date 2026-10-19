@@ -70,7 +70,6 @@ module Staff
     def staff_member_params
       params.require(:staff_member).permit(
         :first_name, :last_name, :staff_type,
-        :default_appointment_duration, :registration_number
       )
     end
 

@@ -43,6 +43,32 @@ module Staff
       render :new, status: :unprocessable_content
     end
 
+    def edit
+      return head :forbidden unless staff_administrator?
+
+      @staff_member = current_practice.staff_members.find(params[:id])
+    end
+
+    def update
+      return head :forbidden unless staff_administrator?
+
+      @staff_member = current_practice.staff_members.find(params[:id])
+      attributes = staff_member_params
+      if attributes[:staff_type].present? &&
+         attributes[:staff_type] != @staff_member.staff_type &&
+         @staff_member.access_level == "staff_clinician" &&
+         !attributes[:staff_type].in?(%w[doctor nurse])
+        @staff_member.errors.add(:staff_type, "cannot change while Staff Clinician access is assigned")
+        return render :edit, status: :unprocessable_content
+      end
+
+      if @staff_member.update(attributes)
+        redirect_to practice_staff_members_path, notice: "Staff details updated."
+      else
+        render :edit, status: :unprocessable_content
+      end
+    end
+
     def access_level
       return head :forbidden unless current_staff_member.access_level == "senior_staff_admin"
 
@@ -69,7 +95,7 @@ module Staff
 
     def staff_member_params
       params.require(:staff_member).permit(
-        :first_name, :last_name, :staff_type,
+        :first_name, :last_name, :staff_type, :registration_number
       )
     end
 

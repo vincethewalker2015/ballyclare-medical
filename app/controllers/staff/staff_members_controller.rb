@@ -109,6 +109,25 @@ module Staff
       end
     end
 
+    def reactivate
+      return head :forbidden unless staff_administrator?
+
+      staff_member = current_practice.staff_members.find(params[:id])
+
+      unless current_staff_member.access_level == "senior_staff_admin" ||
+             !staff_member.access_level.in?(%w[staff_admin senior_staff_admin])
+        return head :forbidden
+      end
+
+      StaffMember.transaction do
+        current_practice.lock!
+        staff_member.lock!
+        staff_member.update!(active: true) unless staff_member.active?
+      end
+
+      redirect_to practice_staff_members_path, notice: "Staff member reactivated."
+    end
+
     def access_level
       return head :forbidden unless current_staff_member.access_level == "senior_staff_admin"
 

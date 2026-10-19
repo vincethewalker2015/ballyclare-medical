@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_18_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_18_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -468,7 +468,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_18_090000) do
     t.index ["practice_id", "user_id"], name: "index_staff_members_on_practice_id_and_user_id", unique: true
     t.index ["practice_id"], name: "index_staff_members_on_practice_id"
     t.index ["user_id"], name: "index_staff_members_on_user_id"
-    t.check_constraint "access_level::text = ANY (ARRAY['staff'::character varying, 'staff_admin'::character varying, 'senior_staff_admin'::character varying]::text[])", name: "staff_members_access_level_allowed"
+    t.check_constraint "access_level::text = ANY (ARRAY['staff'::character varying, 'staff_clinician'::character varying, 'staff_admin'::character varying, 'senior_staff_admin'::character varying]::text[])", name: "staff_members_access_level_allowed"
     t.check_constraint "staff_type::text = ANY (ARRAY['doctor'::character varying, 'nurse'::character varying, 'administrator'::character varying]::text[])", name: "staff_members_appointment_duration_must_be_positive"
   end
 

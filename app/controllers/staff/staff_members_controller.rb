@@ -15,15 +15,17 @@ module Staff
 
       @staff_member = current_practice.staff_members.new(staff_member_params)
       @staff_member.access_level = "staff"
-      @email = params.require(:staff_member)[:email]
+      @email = params.require(:staff_member)[:email].to_s.strip
+      if @email.blank?
+        @staff_member.errors.add(:base, "Enter an email address")
+        return render :new, status: :unprocessable_content
+      end
 
       newly_created_account = false
 
       StaffMember.transaction do
-        unless @email.nil?
-          @staff_member.user = Staff::ProvisionUserAccount.new(email: @email).call
-          newly_created_account = @staff_member.user.previously_new_record?
-        end
+        @staff_member.user = Staff::ProvisionUserAccount.new(email: @email).call
+        newly_created_account = @staff_member.user.previously_new_record?
 
         @staff_member.save!
       end
@@ -67,7 +69,7 @@ module Staff
 
     def staff_member_params
       params.require(:staff_member).permit(
-        :user_id, :first_name, :last_name, :staff_type,
+        :first_name, :last_name, :staff_type,
         :default_appointment_duration, :registration_number
       )
     end

@@ -1,44 +1,39 @@
 #!/usr/bin/env ruby
 
-require 'bundler/setup'
+require "bundler/setup"
 
-puts "🔍 Running linting tools..."
-puts "=" * 50
+fix = ARGV.delete("--fix") || ARGV.delete("-a")
+unless ARGV.empty?
+  warn "Usage: bin/lint [--fix]"
+  exit 2
+end
 
-puts "\n📋 RuboCop (Ruby code):"
-rubocop_result = system("RUBYOPT='-W0' bin/rubocop --format progress --display-cop-names")
+def run_check(label, *command)
+  puts "\n#{label}"
+  system(*command)
+end
 
-puts "\n📝 ERB Lint (Templates):"
-erb_lint_result = system("RUBYOPT='-W0' bundle exec erb_lint --lint-all --show-linter-names")
+if fix
+  puts "Auto-correcting Ruby and ERB templates..."
+  corrected = run_check("RuboCop autocorrect", "bin/rubocop", "-a")
+  corrected = run_check("ERB Lint autocorrect", "bundle", "exec", "erb_lint", "-a", "--lint-all") && corrected
+  unless corrected
+    warn "\nAuto-correction reported errors. Review the output above."
+    exit 1
+  end
+end
 
-puts "\n🔒 Brakeman (Security):"
-brakeman_result = system("RUBYOPT='-W0' bundle exec brakeman --quiet --no-pager")
+puts "Running Ruby, ERB, and security checks..."
+results = [
+  run_check("RuboCop", "bin/rubocop"),
+  run_check("ERB Lint", "bundle", "exec", "erb_lint", "--lint-all"),
+  run_check("Brakeman", "bin/brakeman", "--no-pager")
+]
 
-puts "\n" + "=" * 50
-if rubocop_result && erb_lint_result && brakeman_result
-  puts "✅ All linting checks passed!"
+if results.all?
+  puts "\nAll linting checks passed."
+  exit 0
 else
-  puts "❌ Some linting issues found. Run with --fix to auto-correct:"
-  puts "   bundle exec rubocop -a"
-  puts "   bundle exec erb_lint -a --lint-all"
+  warn "\nOne or more linting checks failed."
+  exit 1
 end
-
-# Check for autocorrect flag
-if ARGV.include?('--fix') || ARGV.include?('-a')
-  puts "\n🔧 Auto-correcting issues..."
-  system(
-    "find app spec test -type f \\( -name '*.rb' -o -name '*.erb' \\) " \
-    "-exec sed -i '' 's/[[:blank:]]*$//' {} +"
-  )
-  puts "\n📋 RuboCop autocorrect:"
-  system("RUBYOPT='-W0' bin/rubocop -a")
-
-  puts "\n📝 ERB Lint autocorrect:"
-  system("RUBYOPT='-W0' bundle exec erb_lint -a --lint-all")
-
-  puts "\n✅ Auto-correction complete!"
-end
-
-puts "\nLinting complete!"
-
-exit 1 unless rubocop_result && erb_lint_result && brakeman_result

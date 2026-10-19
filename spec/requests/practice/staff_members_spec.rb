@@ -260,6 +260,46 @@ RSpec.describe "Practice staff members", type: :request do
       expect(response).to have_http_status(:forbidden)
     end
 
+    it "rejects user-ID-only creation without linking an existing account" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      sign_in user
+
+      expect {
+        post practice_staff_members_path, params: {
+          staff_member: {
+            user_id: colleague.id,
+            first_name: "Alex",
+            last_name: "Smith",
+            staff_type: "nurse"
+          }
+        }
+      }.not_to change(StaffMember, :count)
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(practice.staff_members.find_by(user: colleague)).to be_nil
+    end
+
+    it "ignores an injected user ID when creating staff by email" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      sign_in user
+
+      post practice_staff_members_path, params: {
+        staff_member: {
+          user_id: colleague.id,
+          email: "safe.new.staff@example.com",
+          first_name: "Alex",
+          last_name: "Smith",
+          staff_type: "nurse"
+        }
+      }
+
+      expect(response).to redirect_to(practice_staff_members_path)
+      expect(practice.staff_members.find_by(user: colleague)).to be_nil
+      expect(practice.staff_members.find_by!(
+        user: User.find_by!(email: "safe.new.staff@example.com")
+      ).access_level).to eq("staff")
+    end
+
     it "lets a staff admin add an existing user with ordinary staff access" do
       user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
       sign_in user

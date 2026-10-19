@@ -19,7 +19,9 @@ RSpec.describe "Practice appointment charges", type: :request do
 
   let!(:staff_member) do
     StaffMember.create!(
-      practice: practice,
+      first_name: "Alex",
+        last_name: "Morgan",
+        practice: practice,
       user: user,
       staff_type: "administrator",
     )
@@ -34,7 +36,9 @@ RSpec.describe "Practice appointment charges", type: :request do
 
   let(:clinician) do
     StaffMember.create!(
-      practice: practice,
+      first_name: "Alex",
+        last_name: "Morgan",
+        practice: practice,
       user: clinician_user,
       staff_type: "doctor",
     )
@@ -192,7 +196,9 @@ RSpec.describe "Practice appointment charges", type: :request do
 
       let(:other_clinician) do
         StaffMember.create!(
-          practice: other_practice,
+          first_name: "Alex",
+        last_name: "Morgan",
+        practice: other_practice,
           user: other_clinician_user,
           staff_type: "doctor",
         )

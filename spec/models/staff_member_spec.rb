@@ -82,4 +82,78 @@ RSpec.describe StaffMember do
       expect(staff_member).to be_persisted
     end
   end
+  describe "practice membership uniqueness" do
+    it "rejects a second membership for the same user and practice" do
+      practice = create(:practice)
+      user = create(:user)
+      create(:staff_member, practice: practice, user: user)
+
+      duplicate = build(:staff_member, practice: practice, user: user)
+
+      expect(duplicate).not_to be_valid
+      expect(duplicate.errors[:user_id]).to be_present
+    end
+
+    it "allows the same user to belong to another practice" do
+      user = create(:user)
+      create(:staff_member, user: user, practice: create(:practice))
+
+      second_membership = build(
+        :staff_member, user: user, practice: create(:practice)
+      )
+
+      expect(second_membership).to be_valid
+    end
+  end
+
+  describe "practice-specific access levels" do
+    it "defaults new staff members to ordinary staff access" do
+      staff_member = create(:staff_member)
+
+      expect(staff_member.reload.access_level).to eq("staff")
+    end
+
+    it "persists a senior administrator privilege only on that practice membership" do
+      user = create(:user)
+      primary_practice = create(:practice)
+      other_practice = create(:practice)
+
+      senior_membership = create(
+        :staff_member,
+        user: user,
+        practice: primary_practice,
+        access_level: "senior_staff_admin"
+      )
+      other_membership = create(
+        :staff_member,
+        user: user,
+        practice: other_practice
+      )
+
+      expect(senior_membership.reload.access_level).to eq("senior_staff_admin")
+      expect(other_membership.reload.access_level).to eq("staff")
+    end
+
+    it "allows clinicians to have the Staff Clinician access level" do
+      staff_member = create(:staff_member, staff_type: "doctor",
+        access_level: "staff_clinician")
+
+      expect(staff_member.reload.access_level).to eq("staff_clinician")
+    end
+
+    it "does not assign Staff Clinician access to administrators" do
+      staff_member = build(:staff_member, staff_type: "administrator",
+        access_level: "staff_clinician")
+
+      expect(staff_member).not_to be_valid
+      expect(staff_member.errors[:access_level]).to be_present
+    end
+
+    it "rejects unrecognised access levels" do
+      staff_member = build(:staff_member, access_level: "superuser")
+
+      expect(staff_member).not_to be_valid
+      expect(staff_member.errors[:access_level]).to be_present
+    end
+  end
 end

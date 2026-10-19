@@ -1,0 +1,54 @@
+<% content_for :title, "New staff member | Ballyclare Medical" %>
+
+<div class="mx-auto max-w-2xl space-y-6">
+  <h1 class="text-4xl font-semibold text-medical-navy">New staff member</h1>
+  <p class="text-medical-muted">Add a colleague using their email address. New accounts will need a secure password-setting invitation before they can sign in.</p>
+
+  <section class="rounded-2xl border border-medical-border bg-white p-6">
+    <%= form_with model: @staff_member, url: practice_staff_members_path, class: "space-y-5" do |form| %>
+      <% if @staff_member.errors.any? %>
+        <div role="alert" class="rounded-lg bg-red-50 p-4 text-red-800">
+          <ul class="list-disc pl-5">
+            <% @staff_member.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <div>
+        <%= label_tag "staff_member_email", "Email address", class: "block text-sm font-semibold text-medical-navy" %>
+        <%= email_field_tag "staff_member[email]", @email, required: true,
+          id: "staff_member_email", autocomplete: "email",
+          class: "mt-1 block w-full rounded-lg border border-medical-border p-3" %>
+        <p class="mt-1 text-sm text-medical-muted">New accounts receive password-setting instructions by email when email delivery is configured.</p>
+      </div>
+
+      <% [ [ :first_name, "First name" ], [ :last_name, "Last name" ],
+             [ :registration_number, "Registration number (optional)" ] ].each do |field, label| %>
+        <div>
+          <%= form.label field, label, class: "block text-sm font-semibold text-medical-navy" %>
+          <%= form.text_field field, autocomplete: ({ first_name: "given-name", last_name: "family-name" }[field] || "off"), class: "mt-1 block w-full rounded-lg border border-medical-border p-3" %>
+        </div>
+      <% end %>
+
+      <div>
+        <%= form.label :staff_type, "Staff type", class: "block text-sm font-semibold text-medical-navy" %>
+        <%= form.select :staff_type, StaffMember::STAFF_TYPES.map { |type| [ type.humanize, type ] },
+          {}, class: "mt-1 block w-full rounded-lg border border-medical-border p-3" %>
+      </div>
+
+      <div>
+        <%= form.label :default_appointment_duration, "Default appointment duration (minutes)", class: "block text-sm font-semibold text-medical-navy" %>
+        <%= form.number_field :default_appointment_duration, min: 1, value: @staff_member.default_appointment_duration || 20,
+          class: "mt-1 block w-full rounded-lg border border-medical-border p-3" %>
+      </div>
+
+      <p class="text-sm text-medical-muted">New staff always start with Staff access.</p>
+      <div class="flex gap-4">
+        <%= form.submit "Create staff member", class: "rounded-full bg-medical-navy px-6 py-3 font-semibold text-white" %>
+        <%= link_to "Cancel", practice_staff_members_path, class: "px-4 py-3 text-medical-navy" %>
+      </div>
+    <% end %>
+  </section>
+</div>

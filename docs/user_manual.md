@@ -120,8 +120,122 @@ Only available slots can be selected during staff appointment booking.
 
 ## User and Staff Administration
 
-Staff access depends on the user's practice membership and permissions.
-Administrative capabilities are being developed incrementally.
+### Patient records
+
+![Simplified illustration of the practice patient list with a new patient button](images/user_manual/patients-list-illustration.png)
+
+*Patients list: View patients registered with your practice, open an existing
+patient record or begin a new registration.*
+
+Staff can open **Patients** from the practice navigation to view patients
+registered with their practice. Select **New patient** to register a patient,
+entering a unique patient number, first name, last name and date of birth.
+Select a patient from the list to view or edit their details. Patient records
+from other practices are not available through these pages.
+
+![Simplified illustration of the patient registration form](images/user_manual/new-patient-illustration.png)
+
+*New patient: Enter the patient number, first name, last name and date of
+birth, then save the new patient record.*
+
+### Staff directory and access levels
+
+![Simplified illustration of the staff directory with staff types and access levels](images/user_manual/staff-directory-illustration.png)
+
+*Staff directory: View colleagues linked to your practice. Staff type describes
+their responsibilities; access level determines their administrative permissions.*
+
+The staff directory is currently available at `/practice/staff_members`.
+It lists staff members associated with the signed-in user's practice.
+
+A staff member's type (doctor, nurse or administrator) describes their
+responsibilities. Their *access level* separately determines administrative
+authority within that practice:
+
+- **Staff** — the default level for every new staff membership.
+- **Staff Clinician** — available to doctors and nurses. Additional access to
+  medical records is planned but has not yet been enabled.
+- **Staff Admin** — can add ordinary staff members to the practice.
+- **Senior Staff Admin** — can change access levels
+  for staff in their own practice.
+
+Only Senior Staff Admins may change another staff member's access level.
+To do so, open **Staff**, select **Edit access** beside a colleague, choose
+the appropriate level and select **Save access level**. Select **Cancel**
+to leave their access unchanged. Staff Clinician is available only for
+colleagues whose staff type is Doctor or Nurse.
+
+The server rejects requests from ordinary Staff and Staff Admin accounts,
+as well as requests affecting staff in a different practice. Senior Staff
+Admins cannot demote themselves. A staff member's access level in one
+practice does not confer those permissions in another.
+
+### Adding a staff member
+
+![Simplified illustration of the new staff member form](images/user_manual/new-staff-member-illustration.png)
+
+*New staff member: Enter your colleague's email address and practice details,
+then select Create staff member.*
+
+Staff Admins and Senior Staff Admins can add colleagues to their practice.
+Open the staff directory at `/practice/staff_members` and select
+**New staff member**. Enter the colleague's email address, name, staff type
+(doctor, nurse or administrator), and any applicable registration number
+and appointment duration. Then select **Create staff member**.
+
+New colleagues always start with **Staff** access. A Senior Staff Admin must
+approve any subsequent change to their access level.
+
+If the email address is new to Ballyclare Medical, the system creates an
+account and sends password-setting instructions to that address. The
+colleague follows the email link to choose a password before signing in.
+If an account already exists, it is linked to the practice without changing
+the person's existing password or sending another password-setting email.
+
+![Simplified illustration of the staff onboarding flow from account creation to sign-in](images/user_manual/staff-invitation-flow-illustration.png)
+
+*Staff onboarding: An administrator adds a colleague, the new colleague
+receives password-setting instructions, chooses a password and signs in.
+Existing account holders continue using their current password.*
+
+If an error appears, correct the details and try again. An existing staff
+member cannot be added to the same practice twice.
+
+**Email availability:** Sending invitations requires the platform operator
+to configure the application's outgoing email service. If an expected
+message does not arrive, ask the platform operator to check email delivery;
+do not share passwords or create a duplicate account.
+
+### Setting up the first Senior Staff Admin
+
+When a new practice is added, an authorised platform operator sets up its
+first Senior Staff Admin. The practice should provide the intended
+administrator's email address and confirm who is authorised to manage
+staff access.
+
+The initial setup is not yet available through the staff interface.
+Contact the platform operator to arrange it; practice staff do not need
+to use a terminal or Rails console. Once setup is complete, the
+administrator can sign in using their own account.
+
+A practice can only go through this initial setup before any staff
+members have been registered. If the practice already has staff, contact
+the platform operator rather than trying to repeat the setup.
+
+The initial Senior Staff Admin setup is a separate operator process; the
+ordinary staff invitation form cannot grant senior permissions.
+Never share passwords or use a shared administrator login.
+
+### Recovering administrative access
+
+If a practice has existing staff but no accessible Senior Staff Admin,
+**do not rerun bootstrap or create a substitute privileged account using
+seed data**. Escalate to an authorised platform operator to verify the
+practice and account ownership before recovery. A dedicated, audited
+recovery workflow has not yet been implemented.
+
+Protection against losing the last active Senior Staff Admin during
+deactivation or removal is also planned before those actions are available.
 
 ## Troubleshooting
 

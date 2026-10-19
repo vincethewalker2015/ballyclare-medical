@@ -450,3 +450,80 @@ For regression tests covering refunds and the staff appointment page:
 ```bash
 bundle exec rspec spec/models/refund_spec.rb spec/requests/practice/appointments_spec.rb spec/services/appointments/change_status_spec.rb
 ```
+
+## Practice administration: initial administrator setup
+
+The following procedure is for authorised platform operators and developers,
+not practice staff. The staff-facing explanation is in
+[`docs/user_manual.md`](docs/user_manual.md).
+
+### Provisioning the first Senior Staff Admin (platform operators)
+
+**Platform operator procedure (currently via Rails console):**
+
+1. Create the practice and intended administrator's `User` account through
+   an authorised setup process, or identify existing records.
+2. Open an authorised Rails console for the intended environment.
+3. Locate the correct `Practice` and `User` records using trusted
+   identifiers; verify both before continuing.
+4. Invoke the bootstrap service:
+
+   ```ruby
+   practice = Practice.find("PRACTICE_UUID")
+   user = User.find_by!(email: "admin@example.com")
+
+   Practices::BootstrapSeniorStaffAdmin.new(
+     practice: practice,
+     user: user
+   ).call
+   ```
+
+The service creates an administrator-type staff membership with
+`senior_staff_admin` access. It operates only when the practice has **no
+existing staff members**. If anyone is already registered with the practice,
+it raises `Practices::BootstrapSeniorStaffAdmin::AlreadyProvisioned` instead
+of granting privileges. Concurrent attempts are protected by a database
+lock. Do not bypass this restriction by changing access levels manually.
+
+**Security:** Do not use shared accounts, hardcoded temporary passwords or
+public self-registration to grant senior permissions. The bootstrap service
+does **not** create a user or send an invitation. Ordinary staff accounts can now receive Devise password-setting instructions
+when created through the staff UI; initial senior bootstrap does not send them. Avoid putting real patient or
+staff credentials in application logs or documentation.
+
+
+### Staff invitation email configuration
+
+The staff creation form at `/practice/staff_members/new` is available to
+`staff_admin` and `senior_staff_admin` memberships. A new email address
+creates a `User` and `StaffMember` in one transaction. On successful
+creation, the controller calls Devise's
+`send_reset_password_instructions` for **newly created accounts only**.
+Existing accounts retain their password and do not receive this email.
+No invitation is sent if validation prevents staff membership creation.
+
+Before enabling staff onboarding outside a test environment:
+
+1. Configure a verified sender address in
+   `config/initializers/devise.rb` (currently a placeholder).
+2. Configure a real outgoing email delivery service for production in
+   `config/environments/production.rb` and set a public HTTPS host in
+   `config.action_mailer.default_url_options` (currently `example.com`).
+   Keep SMTP credentials in environment variables or Rails credentials;
+   never commit them.
+3. Verify email delivery and the complete password-setting link flow in
+   a deployed staging environment. Confirm reset links point to the
+   correct application host and that the new user can sign in.
+4. Ensure delivery failures are monitored. The application does not yet
+   provide an administrator-facing resend invitation action.
+
+The test environment uses Action Mailer's `:test` delivery method and
+does not send real email. Run the staff request suite with:
+
+```bash
+bundle exec rspec spec/requests/practice/staff_members_spec.rb
+```
+
+**Deployment blocker:** Production SMTP, sender identity and application
+host are not configured in the repository. Do not present staff invitations
+as operational in production until those are set up and verified.

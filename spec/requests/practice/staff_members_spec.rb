@@ -307,7 +307,7 @@ RSpec.describe "Practice staff members", type: :request do
       expect {
         post practice_staff_members_path, params: {
           staff_member: {
-            user_id: colleague.id,
+            email: colleague.email,
             first_name: "Alex",
             last_name: "Smith",
             staff_type: "nurse",
@@ -336,7 +336,7 @@ RSpec.describe "Practice staff members", type: :request do
 
       post practice_staff_members_path, params: {
         staff_member: {
-          user_id: colleague.id,
+          email: colleague.email,
           first_name: "Alex",
           last_name: "Smith",
           staff_type: "doctor",
@@ -356,7 +356,7 @@ RSpec.describe "Practice staff members", type: :request do
       expect {
         post practice_staff_members_path, params: {
           staff_member: {
-            user_id: colleague.id,
+            email: colleague.email,
             first_name: "Duplicate",
             last_name: "Account",
             staff_type: "nurse"
@@ -435,7 +435,7 @@ RSpec.describe "Practice staff members", type: :request do
 
       post practice_staff_members_path, params: {
         staff_member: {
-          user_id: colleague.id,
+          email: colleague.email,
           first_name: "Alex",
           last_name: "Smith",
           staff_type: "nurse"
@@ -547,7 +547,7 @@ RSpec.describe "Practice staff members", type: :request do
       expect {
         post practice_staff_members_path, params: {
           staff_member: {
-            user_id: colleague.id,
+            email: colleague.email,
             staff_type: "doctor",
             access_level: "senior_staff_admin"
           }

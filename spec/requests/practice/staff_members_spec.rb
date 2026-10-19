@@ -692,5 +692,4 @@ RSpec.describe "Practice staff members", type: :request do
       expect(response.body).to include(edit_practice_staff_member_path(target))
     end
   end
-
 end

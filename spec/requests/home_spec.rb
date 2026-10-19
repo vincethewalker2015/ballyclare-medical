@@ -6,7 +6,7 @@ RSpec.describe "Public landing page", type: :request do
 
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Ballyclare Medical")
-    expect(response.body).to include("Care for every stage of life")
+    expect(response.parsed_body.at_css("#hero-heading").text.squish).to eq("Care for every stage of life")
     expect(response.body).to include("Services")
     expect(response.body).to include("Our team")
     expect(response.body).to include("How appointments work")

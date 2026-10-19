@@ -22,7 +22,6 @@ RSpec.describe "Practice appointments", type: :request do
       practice: practice,
       user: user,
       staff_type: "administrator",
-      default_appointment_duration: 30
     )
   end
 
@@ -104,7 +103,6 @@ RSpec.describe "Practice appointments", type: :request do
           practice: other_practice,
           user: other_user,
           staff_type: "doctor",
-          default_appointment_duration: 30
         )
       end
 
@@ -198,7 +196,6 @@ RSpec.describe "Practice appointments", type: :request do
           practice: practice,
           user: clinician_user,
           staff_type: "doctor",
-          default_appointment_duration: 30
         )
       end
 
@@ -421,7 +418,6 @@ RSpec.describe "Practice appointments", type: :request do
             password: "password123"
           ),
           staff_type: "doctor",
-          default_appointment_duration: 30,
           first_name: "Other",
           last_name: "Clinician"
         )
@@ -600,7 +596,6 @@ RSpec.describe "Practice appointments", type: :request do
             password: "password123"
           ),
           staff_type: "doctor",
-          default_appointment_duration: 30,
           first_name: "Second",
           last_name: "Doctor"
         )
@@ -645,7 +640,6 @@ RSpec.describe "Practice appointments", type: :request do
             password: "password123"
           ),
           staff_type: "doctor",
-          default_appointment_duration: 30
         )
 
         get practice_appointments_path(
@@ -679,7 +673,6 @@ RSpec.describe "Practice appointments", type: :request do
           password: "password123"
         ),
         staff_type: "doctor",
-        default_appointment_duration: 30
       )
     end
 

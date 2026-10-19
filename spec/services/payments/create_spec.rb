@@ -21,6 +21,8 @@ RSpec.describe Payments::Create do
     StaffMember.create!(
       first_name: "Alex",
         last_name: "Morgan",
+        first_name: "Alex",
+        last_name: "Morgan",
         practice: practice,
       user: clinician_user,
       staff_type: "doctor",

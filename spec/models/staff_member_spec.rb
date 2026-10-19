@@ -35,7 +35,7 @@ RSpec.describe StaffMember do
       staff_member.assign_attributes(
         practice: practice,
         user: user,
-        staff_type: "doctor",
+        staff_type: "doctor"
       )
       expect(staff_member).to be_valid
     end
@@ -44,7 +44,7 @@ RSpec.describe StaffMember do
       staff_member.assign_attributes(
         practice: practice,
         user: user,
-        staff_type: "administrator",
+        staff_type: "administrator"
       )
       expect(staff_member).to be_valid
     end

@@ -33,7 +33,7 @@
             <div class="flex flex-wrap items-center gap-2">
               <span class="font-semibold"><%= staff_member.full_name %></span>
               <% unless staff_member.active? %>
-                <span class="text-xs font-semibold text-red-700">Inactive</span>
+                <span class="inline-flex items-center rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 ring-1 ring-inset ring-red-200">Inactive</span>
               <% end %>
             </div>
             <div>

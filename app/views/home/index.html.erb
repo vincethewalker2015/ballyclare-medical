@@ -1,0 +1,127 @@
+<% content_for :title, "Ballyclare Medical | Care centred on you" %>
+
+<div class="mx-auto max-w-[1500px] px-4 py-4 sm:px-6 sm:py-6 lg:px-10">
+  <div class="overflow-hidden rounded-[2rem] border border-medical-border bg-white shadow-sm">
+    <header class="relative z-10 border-b border-medical-border/70 bg-white/95">
+      <nav aria-label="Main navigation" class="mx-auto flex flex-wrap items-center justify-between gap-4 px-6 py-5 lg:px-12">
+        <%= link_to root_path, class: "font-serif text-2xl font-semibold tracking-tight text-medical-navy sm:text-3xl" do %>
+          Ballyclare <span class="text-medical-teal-dark">Medical</span>
+        <% end %>
+        <div class="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm font-medium text-medical-navy lg:gap-x-8">
+          <%= link_to "Services", "#services", class: "transition hover:text-medical-teal-dark" %>
+          <%= link_to "Our team", "#team", class: "transition hover:text-medical-teal-dark" %>
+          <%= link_to "About", "#about", class: "transition hover:text-medical-teal-dark" %>
+          <%= link_to "Contact", "#contact", class: "transition hover:text-medical-teal-dark" %>
+          <% if user_signed_in? %>
+            <%= link_to "Staff workspace", practice_appointments_path, class: "rounded-xl bg-medical-navy px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-medical-navy-deep" %>
+          <% else %>
+            <%= link_to "Staff sign in", new_user_session_path, class: "rounded-xl bg-medical-navy px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-medical-navy-deep" %>
+          <% end %>
+        </div>
+      </nav>
+    </header>
+
+    <main>
+      <section aria-labelledby="hero-heading" class="relative isolate flex min-h-[590px] items-center overflow-hidden bg-[#e9f0f0]">
+        <img
+          src="https://images.unsplash.com/photo-1781513144825-aa1e284c5950?auto=format&amp;fit=crop&amp;w=1800&amp;q=85"
+          alt="Bright, modern reception area with soft natural light"
+          class="absolute inset-0 h-full w-full object-cover object-center"
+          fetchpriority="high">
+        <div aria-hidden="true" class="absolute inset-0 bg-gradient-to-r from-white via-white/95 to-white/25 lg:via-white/85 lg:to-transparent"></div>
+        <div class="relative w-full px-7 py-20 sm:px-12 lg:px-16">
+          <div class="max-w-[680px]">
+            <p class="mb-5 text-xs font-bold uppercase tracking-[0.25em] text-medical-teal-dark">Welcome to Ballyclare Medical</p>
+            <h1 id="hero-heading" class="font-serif text-5xl leading-[1.08] tracking-tight text-medical-navy sm:text-6xl lg:text-7xl">
+              Care for every <span class="italic text-medical-teal-dark">stage of life</span>
+            </h1>
+            <p class="mt-7 max-w-xl text-lg leading-relaxed text-medical-muted sm:text-xl">
+              Thoughtful, personalised healthcare with a focus on listening, understanding and helping you feel at ease.
+            </p>
+            <div class="mt-9 flex flex-wrap gap-3">
+              <%= link_to "#appointments", class: "inline-flex items-center justify-center rounded-full bg-medical-navy px-7 py-4 text-sm font-semibold text-white shadow-sm transition hover:bg-medical-navy-deep" do %>
+                How appointments work <span aria-hidden="true" class="ml-3">→</span>
+              <% end %>
+              <%= link_to "Explore our services", "#services", class: "inline-flex items-center justify-center rounded-full border border-medical-border bg-white px-7 py-4 text-sm font-semibold text-medical-navy transition hover:bg-medical-teal-soft" %>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="services" aria-labelledby="services-heading" class="scroll-mt-6 border-t border-medical-border bg-white px-7 py-14 sm:px-12 lg:px-16">
+        <div class="max-w-2xl">
+          <p class="text-xs font-bold uppercase tracking-[0.2em] text-medical-teal-dark">What matters to us</p>
+          <h2 id="services-heading" class="mt-3 font-serif text-3xl text-medical-navy sm:text-4xl">Supporting your health, together</h2>
+          <p class="mt-4 leading-7 text-medical-muted">From everyday questions to longer-term health needs, our approach is grounded in clear communication and attentive care.</p>
+        </div>
+        <div class="mt-9 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div class="rounded-2xl border border-medical-border bg-medical-cream p-6">
+            <span aria-hidden="true" class="text-3xl text-medical-teal-dark">✚</span>
+            <h3 class="mt-5 font-semibold text-medical-navy">General practice</h3>
+            <p class="mt-2 text-sm leading-6 text-medical-muted">Support for everyday health concerns and questions.</p>
+          </div>
+          <div class="rounded-2xl border border-medical-border bg-medical-cream p-6">
+            <span aria-hidden="true" class="text-3xl text-medical-teal-dark">♡</span>
+            <h3 class="mt-5 font-semibold text-medical-navy">Preventive health</h3>
+            <p class="mt-2 text-sm leading-6 text-medical-muted">Conversations about staying well and looking ahead.</p>
+          </div>
+          <div class="rounded-2xl border border-medical-border bg-medical-cream p-6">
+            <span aria-hidden="true" class="text-3xl text-medical-teal-dark">◎</span>
+            <h3 class="mt-5 font-semibold text-medical-navy">Ongoing care</h3>
+            <p class="mt-2 text-sm leading-6 text-medical-muted">A thoughtful approach to continuing health needs.</p>
+          </div>
+          <div class="rounded-2xl border border-medical-border bg-medical-cream p-6">
+            <span aria-hidden="true" class="text-3xl text-medical-teal-dark">✧</span>
+            <h3 class="mt-5 font-semibold text-medical-navy">Personal guidance</h3>
+            <p class="mt-2 text-sm leading-6 text-medical-muted">Helping you understand options and next steps.</p>
+          </div>
+        </div>
+        <p class="mt-5 text-xs text-medical-muted">Specific services and their availability should be confirmed with the practice.</p>
+      </section>
+
+      <section id="about" aria-labelledby="about-heading" class="scroll-mt-6 bg-medical-teal-soft/60 px-7 py-16 sm:px-12 lg:px-16">
+        <div class="grid gap-10 lg:grid-cols-2 lg:items-center">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.2em] text-medical-teal-dark">A welcoming approach</p>
+            <h2 id="about-heading" class="mt-3 font-serif text-4xl leading-tight text-medical-navy">Care that starts with a conversation</h2>
+          </div>
+          <p class="max-w-xl text-lg leading-8 text-medical-muted">We believe that good care starts with taking the time to listen. This space is being developed to make it easier for patients to discover the practice, find helpful information and connect with the right people.</p>
+        </div>
+      </section>
+
+      <section id="team" aria-labelledby="team-heading" class="scroll-mt-6 border-b border-medical-border px-7 py-16 sm:px-12 lg:px-16">
+        <p class="text-xs font-bold uppercase tracking-[0.2em] text-medical-teal-dark">The people behind the care</p>
+        <h2 id="team-heading" class="mt-3 font-serif text-4xl text-medical-navy">Meet our team</h2>
+        <p class="mt-4 max-w-2xl leading-7 text-medical-muted">We're preparing a space to introduce our clinicians and staff. Team profiles will appear here when they're ready to share publicly.</p>
+      </section>
+
+      <section id="appointments" aria-labelledby="appointments-heading" class="scroll-mt-6 px-7 py-16 sm:px-12 lg:px-16">
+        <div class="rounded-3xl bg-medical-navy px-7 py-10 text-white sm:px-12">
+          <div class="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-[0.2em] text-[#a5d9d3]">Appointments</p>
+              <h2 id="appointments-heading" class="mt-3 font-serif text-3xl sm:text-4xl">How appointments work</h2>
+              <p class="mt-4 max-w-2xl leading-7 text-white/80">Online patient booking isn't available through this website yet. Appointment arrangements and contact details will be published here when confirmed.</p>
+            </div>
+            <%= link_to "Contact information", "#contact", class: "inline-flex items-center justify-center rounded-full border border-white/40 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10" %>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer id="contact" class="scroll-mt-6 border-t border-medical-border bg-[#f5f8f7] px-7 py-12 sm:px-12 lg:px-16">
+      <div class="flex flex-wrap justify-between gap-8">
+        <div>
+          <p class="font-serif text-2xl font-semibold text-medical-navy">Ballyclare Medical</p>
+          <p class="mt-3 max-w-sm text-sm leading-6 text-medical-muted">Contact details and opening hours will be added once confirmed.</p>
+        </div>
+        <div>
+          <h2 class="font-semibold text-medical-navy">Contact</h2>
+          <p class="mt-3 text-sm text-medical-muted">Practice contact information coming soon.</p>
+          <%= link_to "Staff sign in", new_user_session_path, class: "mt-4 inline-block text-sm font-semibold text-medical-teal-dark underline underline-offset-4" %>
+        </div>
+      </div>
+      <p class="mt-10 border-t border-medical-border pt-6 text-xs text-medical-muted">© <%= Date.current.year %> Ballyclare Medical. Reception photograph by <a href="https://unsplash.com/photos/ECBg5FQkBXI" class="underline underline-offset-2" rel="noopener noreferrer">何青蓝 on Unsplash</a>.</p>
+    </footer>
+  </div>
+</div>

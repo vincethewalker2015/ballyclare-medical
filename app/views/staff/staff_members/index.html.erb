@@ -30,7 +30,12 @@
             "senior_staff_admin" => "bg-teal-50 text-teal-800 ring-teal-200"
           }.fetch(staff_member.access_level, "bg-slate-100 text-slate-700 ring-slate-200") %>
           <li class="grid gap-3 py-4 text-medical-ink sm:grid-cols-3 sm:items-center sm:gap-4">
-            <span class="font-semibold"><%= staff_member.full_name %></span>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="font-semibold"><%= staff_member.full_name %></span>
+              <% unless staff_member.active? %>
+                <span class="text-xs font-semibold text-red-700">Inactive</span>
+              <% end %>
+            </div>
             <div>
               <span class="mb-1 block text-xs text-medical-muted sm:hidden">Staff type</span>
               <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset <%= type_style %>">
@@ -45,9 +50,6 @@
               <% if @current_staff_member.access_level.in?(%w[staff_admin senior_staff_admin]) %>
                 <%= link_to "Edit details", edit_practice_staff_member_path(staff_member),
                   class: "mt-2 inline-flex rounded-lg border border-medical-border px-3 py-2 text-xs font-semibold text-medical-navy hover:bg-medical-teal-soft" %>
-              <% end %>
-              <% unless staff_member.active? %>
-                <span class="mt-2 inline-flex text-xs font-semibold text-red-700">Inactive</span>
               <% end %>
               <% if !staff_member.active? &&
                     (@current_staff_member.access_level == "senior_staff_admin" ||

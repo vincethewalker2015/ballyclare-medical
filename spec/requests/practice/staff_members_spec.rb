@@ -856,7 +856,7 @@ RSpec.describe "Practice staff members", type: :request do
         }.not_to change { [ User.count, StaffMember.count ] }
 
         expect(response).to have_http_status(:unprocessable_content)
-        expect(response.body).to include("can't be blank")
+        expect(response.parsed_body.text).to include("can't be blank")
       end
     end
   end

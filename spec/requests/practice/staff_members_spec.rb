@@ -674,6 +674,7 @@ RSpec.describe "Practice staff members", type: :request do
     end
 
     it "shows edit links only to administrators" do
+      target
       sign_in user
       get practice_staff_members_path
       expect(response.body).not_to include("Edit details")

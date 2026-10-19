@@ -15,3 +15,4 @@ application.register("payment-status", PaymentStatusController)
 
 import StripePaymentController from "./stripe_payment_controller"
 application.register("stripe-payment", StripePaymentController)
+\nimport FormValidationController from "./form_validation_controller"\napplication.register("form-validation", FormValidationController)\n

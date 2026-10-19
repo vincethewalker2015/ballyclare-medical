@@ -18,6 +18,7 @@ Rails.application.routes.draw do
     member do
       patch :access_level
       patch :deactivate
+      patch :reactivate
     end
   end
   resources :availability_blocks,

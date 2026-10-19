@@ -837,4 +837,108 @@ RSpec.describe "Practice staff members", type: :request do
       expect(flash[:alert]).to include("Review future appointments")
     end
   end
+  describe "PATCH /practice/staff_members/:id/reactivate" do
+    let(:target) do
+      create(:staff_member, practice: practice, staff_type: "nurse", active: false)
+    end
+
+    it "lets staff admins reactivate ordinary staff" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      sign_in user
+
+      patch reactivate_practice_staff_member_path(target)
+
+      expect(response).to redirect_to(practice_staff_members_path)
+      expect(target.reload.active).to be(true)
+      expect(flash[:notice]).to eq("Staff member reactivated.")
+    end
+
+    it "lets senior staff admins reactivate administrators" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "senior_staff_admin")
+      target.update!(staff_type: "administrator", access_level: "staff_admin")
+      sign_in user
+
+      patch reactivate_practice_staff_member_path(target)
+
+      expect(response).to redirect_to(practice_staff_members_path)
+      expect(target.reload.active).to be(true)
+    end
+
+    it "forbids ordinary staff from reactivating colleagues" do
+      sign_in user
+
+      patch reactivate_practice_staff_member_path(target)
+
+      expect(response).to have_http_status(:forbidden)
+      expect(target.reload.active).to be(false)
+    end
+
+    it "forbids staff admins from reactivating other administrators" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      target.update!(access_level: "staff_admin")
+      sign_in user
+
+      patch reactivate_practice_staff_member_path(target)
+
+      expect(response).to have_http_status(:forbidden)
+      expect(target.reload.active).to be(false)
+    end
+
+    it "cannot reactivate staff in another practice" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "senior_staff_admin")
+      foreign_staff = create(:staff_member, practice: create(:practice), active: false)
+      sign_in user
+
+      patch reactivate_practice_staff_member_path(foreign_staff)
+
+      expect(response).to have_http_status(:not_found)
+      expect(foreign_staff.reload.active).to be(false)
+    end
+
+    it "does not reactivate an account through an inactive administrator" do
+      admin = user.staff_members.find_by!(practice: practice)
+      admin.update!(active: false, access_level: "senior_staff_admin")
+      sign_in user
+
+      patch reactivate_practice_staff_member_path(target)
+
+      expect(response).to have_http_status(:forbidden)
+      expect(target.reload.active).to be(false)
+    end
+
+    it "does not reopen cancelled availability" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      availability = create(:availability_block, practice: practice, clinician: target,
+        cancelled_at: Time.current)
+      sign_in user
+
+      patch reactivate_practice_staff_member_path(target)
+
+      expect(target.reload.active).to be(true)
+      expect(availability.reload).to be_cancelled
+    end
+
+    it "shows reactivation controls only when authorised" do
+      target
+      sign_in user
+      get practice_staff_members_path
+      expect(response.body).not_to include(reactivate_practice_staff_member_path(target))
+
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      get practice_staff_members_path
+      expect(response.body).to include(reactivate_practice_staff_member_path(target))
+      expect(response.body).to include("Inactive")
+    end
+
+    it "is safe to request reactivation of an already active member" do
+      user.staff_members.find_by!(practice: practice).update!(access_level: "staff_admin")
+      target.update!(active: true)
+      sign_in user
+
+      patch reactivate_practice_staff_member_path(target)
+
+      expect(response).to redirect_to(practice_staff_members_path)
+      expect(target.reload.active).to be(true)
+    end
+  end
 end

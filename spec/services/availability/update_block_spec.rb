@@ -23,7 +23,6 @@ RSpec.describe Availability::UpdateBlock do
         practice: practice,
         user: user,
         staff_type: "doctor",
-        default_appointment_duration: 30
       )
     end
 

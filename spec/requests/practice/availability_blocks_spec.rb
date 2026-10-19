@@ -21,6 +21,8 @@ RSpec.describe "Practice availability", type: :request do
     StaffMember.create!(
       first_name: "Alex",
         last_name: "Morgan",
+        first_name: "Alex",
+        last_name: "Morgan",
         practice: practice,
       user: user,
       staff_type: "administrator"
@@ -37,6 +39,8 @@ RSpec.describe "Practice availability", type: :request do
   let!(:clinician) do
     StaffMember.create!(
       first_name: "Alex",
+        last_name: "Morgan",
+        first_name: "Alex",
         last_name: "Morgan",
         practice: practice,
       user: clinician_user,
@@ -269,6 +273,8 @@ end
         StaffMember.create!(
           first_name: "Alex",
         last_name: "Morgan",
+        first_name: "Alex",
+        last_name: "Morgan",
         practice: other_practice,
           user: other_user,
           staff_type: "doctor",
@@ -333,6 +339,8 @@ end
 
     let(:other_clinician) do
       StaffMember.create!(
+        first_name: "Alex",
+        last_name: "Morgan",
         first_name: "Alex",
         last_name: "Morgan",
         practice: other_practice,
@@ -556,6 +564,8 @@ end
         StaffMember.create!(
           first_name: "Alex",
         last_name: "Morgan",
+        first_name: "Alex",
+        last_name: "Morgan",
         practice: other_practice,
           user: other_user,
           staff_type: "doctor",
@@ -628,6 +638,8 @@ end
 
         other_clinician = StaffMember.create!(
           first_name: "Alex",
+        last_name: "Morgan",
+        first_name: "Alex",
         last_name: "Morgan",
         practice: other_practice,
           user: other_user,

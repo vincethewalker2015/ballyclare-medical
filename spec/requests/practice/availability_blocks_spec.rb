@@ -22,7 +22,6 @@ RSpec.describe "Practice availability", type: :request do
       practice: practice,
       user: user,
       staff_type: "administrator",
-      default_appointment_duration: 30
     )
   end
 
@@ -40,7 +39,6 @@ RSpec.describe "Practice availability", type: :request do
       staff_type: "doctor",
       first_name: "Test",
       last_name: "Doctor",
-      default_appointment_duration: 30
     )
   end
 
@@ -270,7 +268,6 @@ end
           staff_type: "doctor",
           first_name: "Other",
           last_name: "Doctor",
-          default_appointment_duration: 30
         )
       end
 
@@ -335,7 +332,6 @@ end
         staff_type: "doctor",
         first_name: "Other",
         last_name: "Doctor",
-        default_appointment_duration: 30
       )
     end
 
@@ -555,7 +551,6 @@ end
           staff_type: "doctor",
           first_name: "Other",
           last_name: "Doctor",
-          default_appointment_duration: 30
         )
       end
 
@@ -625,7 +620,6 @@ end
           practice: other_practice,
           user: other_user,
           staff_type: "doctor",
-          default_appointment_duration: 30
         )
 
         other_block = AvailabilityBlock.create!(

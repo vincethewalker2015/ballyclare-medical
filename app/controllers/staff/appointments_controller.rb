@@ -1,6 +1,6 @@
 module Staff
   class AppointmentsController < BaseController
-    before_action :require_operational_access
+    before_action :require_operational_access, except: %i[index show]
     def index
       @practice = current_practice
       @diary_view = params[:view].presence_in(%w[today upcoming past payment_due]) || "today"

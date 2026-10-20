@@ -48,7 +48,7 @@ module Staff
       return head :forbidden unless staff_administrator?
 
       @staff_member = current_practice.staff_members.find(params[:id])
-      return head :forbidden unless can_manage_staff_member?(@staff_member)
+      head :forbidden unless can_manage_staff_member?(@staff_member)
     end
 
     def update

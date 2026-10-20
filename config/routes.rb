@@ -3,7 +3,7 @@ Rails.application.routes.draw do
 
   root "home#index"
 
-  devise_for :users
+  devise_for :users, controllers: { sessions: "users/sessions" }
 
   get "/staff/invitation/accept", to: "staff/invitations#edit", as: :edit_staff_invitation
   patch "/staff/invitation/accept", to: "staff/invitations#update", as: :staff_invitation

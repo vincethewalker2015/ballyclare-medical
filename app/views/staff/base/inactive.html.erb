@@ -1,0 +1,7 @@
+<div class="mx-auto max-w-xl px-6 py-16">
+  <div class="rounded-2xl border border-medical-border bg-white p-8">
+    <h1 class="text-3xl font-semibold text-medical-navy">Your staff account is inactive</h1>
+    <p class="mt-4 text-medical-muted">Your practice access has been deactivated. Please contact your practice administrator if you believe this is a mistake.</p>
+    <%= button_to "Sign out", destroy_user_session_path, method: :delete, class: "mt-6 rounded-full bg-medical-navy px-6 py-3 font-semibold text-white" %>
+  </div>
+</div>

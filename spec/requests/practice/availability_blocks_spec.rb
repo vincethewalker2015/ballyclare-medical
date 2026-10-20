@@ -23,7 +23,8 @@ RSpec.describe "Practice availability", type: :request do
       last_name: "Morgan",
       practice: practice,
       user: user,
-      staff_type: "administrator"
+      staff_type: "administrator",
+      access_level: "staff_admin"
     )
   end
 

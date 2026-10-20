@@ -100,10 +100,7 @@ module Staff
       @availability_block =
         current_practice.availability_blocks.find(params[:id])
 
-      clinician = current_practice
-        .staff_members
-        .where(staff_type: %w[doctor nurse], active: true)
-        .find(availability_block_params[:clinician_id])
+      clinician = permitted_clinicians.find(availability_block_params[:clinician_id])
 
       starts_at = local_time(
         availability_block_params[:date],

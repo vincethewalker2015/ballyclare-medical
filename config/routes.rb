@@ -5,6 +5,9 @@ Rails.application.routes.draw do
 
   devise_for :users
 
+  get "/staff/invitation/accept", to: "staff/invitations#edit", as: :edit_staff_invitation
+  patch "/staff/invitation/accept", to: "staff/invitations#update", as: :staff_invitation
+
   get "/docs/user_manual", to: "staff/documentation#user_manual", as: :user_manual
   get "/docs/images/user_manual/:image", to: "staff/documentation#image",
       as: :user_manual_image, format: false,

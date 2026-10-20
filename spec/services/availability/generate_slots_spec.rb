@@ -20,6 +20,8 @@ RSpec.describe Availability::GenerateSlots do
 
     let!(:doctor) do
       StaffMember.create!(
+        first_name: "Alex",
+        last_name: "Morgan",
         practice: practice,
         user: user,
         staff_type: "doctor",

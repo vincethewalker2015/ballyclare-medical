@@ -16,11 +16,18 @@
         </div>
       <% end %>
 
+      <div>
+        <span class="block text-sm font-semibold text-medical-navy">Email address</span>
+        <p class="mt-1 rounded-lg border border-medical-border bg-gray-50 p-3 text-medical-navy"><%= @staff_member.user.email %></p>
+        <p class="mt-1 text-sm text-medical-muted">Email addresses cannot be changed here.</p>
+      </div>
+
       <% [ [ :first_name, "First name" ], [ :last_name, "Last name" ],
              [ :registration_number, "Registration number (optional)" ] ].each do |field, label| %>
         <div>
           <%= form.label field, label, class: "block text-sm font-semibold text-medical-navy" %>
           <%= form.text_field field, autocomplete: ({ first_name: "given-name", last_name: "family-name" }[field] || "off"),
+            required: field.in?(%i[first_name last_name]),
             class: "mt-1 block w-full rounded-lg border border-medical-border p-3" %>
         </div>
       <% end %>

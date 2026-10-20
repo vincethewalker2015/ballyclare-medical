@@ -1,7 +1,12 @@
 Rails.application.routes.draw do
+  mount LetterOpenerWeb::Engine, at: "/letter_opener" if Rails.env.development?
+
   root "home#index"
 
-  devise_for :users
+  devise_for :users, controllers: { sessions: "users/sessions" }
+
+  get "/staff/invitation/accept", to: "staff/invitations#edit", as: :edit_staff_invitation
+  patch "/staff/invitation/accept", to: "staff/invitations#update", as: :staff_invitation
 
   get "/docs/user_manual", to: "staff/documentation#user_manual", as: :user_manual
   get "/docs/images/user_manual/:image", to: "staff/documentation#image",

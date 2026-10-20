@@ -2,7 +2,7 @@
 import { Turbo } from "@hotwired/turbo-rails";
 import "./controllers";
 
-Turbo.config.forms.confirm = (message) => {
+Turbo.config.forms.confirm = (message, element) => {
   const dialog = document.getElementById("turbo-confirm-dialog");
   const messageElement = document.getElementById("turbo-confirm-message");
 
@@ -11,6 +11,26 @@ Turbo.config.forms.confirm = (message) => {
   }
 
   messageElement.textContent = message;
+
+  const cancelButton = dialog.querySelector('button[value="cancel"]');
+  const confirmButton = dialog.querySelector('button[value="confirm"]');
+  const action = element?.dataset.confirmAction || "availability";
+  const labels = {
+    availability: ["Keep availability", "Cancel availability"],
+    reactivate: ["Keep inactive", "Reactivate staff member"],
+    deactivate: ["Keep active", "Deactivate staff member"]
+  };
+  const [cancelLabel, confirmLabel] = labels[action] || ["Cancel", "Confirm"];
+  cancelButton.textContent = cancelLabel;
+  confirmButton.textContent = confirmLabel;
+  const destructive = action !== "reactivate";
+  confirmButton.classList.toggle("bg-red-600", destructive);
+  confirmButton.classList.toggle("hover:bg-red-700", destructive);
+  confirmButton.classList.toggle("focus:ring-red-600", destructive);
+  confirmButton.classList.toggle("bg-medical-teal", !destructive);
+  confirmButton.classList.toggle("hover:bg-medical-teal-dark", !destructive);
+  confirmButton.classList.toggle("focus:ring-medical-teal", !destructive);
+
 
   return new Promise((resolve) => {
     const cleanup = () => {

@@ -15,7 +15,7 @@ module Staff
 
       return if @current_staff_member&.active?
 
-      head :forbidden
+      render "staff/base/inactive", status: :forbidden
     end
 
     def set_current_practice

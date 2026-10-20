@@ -26,6 +26,7 @@ module Staff
       StaffMember.transaction do
         @staff_member.user = Staff::ProvisionUserAccount.new(email: @email).call
         newly_created_account = @staff_member.user.previously_new_record?
+        @staff_member.user.update!(invitation_pending_at: Time.current) if newly_created_account
 
         @staff_member.save!
       end

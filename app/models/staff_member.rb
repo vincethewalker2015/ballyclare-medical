@@ -25,11 +25,14 @@ class StaffMember < ApplicationRecord
     foreign_key: :author_id,
     dependent: :restrict_with_error
 
+  before_validation :normalise_registration_number
+
   validates :staff_type,
     presence: true,
     inclusion: { in: STAFF_TYPES }
 
   validates :access_level, presence: true, inclusion: { in: ACCESS_LEVELS }
+  validates :first_name, :last_name, presence: true
   validate :clinician_access_requires_clinician_staff_type
 
   validates :user_id, uniqueness: { scope: :practice_id }
@@ -39,6 +42,10 @@ class StaffMember < ApplicationRecord
     return if staff_type.in?(%w[doctor nurse])
 
     errors.add(:access_level, "is only available to doctors and nurses")
+  end
+
+  def normalise_registration_number
+    self.registration_number = registration_number.presence
   end
 
   def full_name

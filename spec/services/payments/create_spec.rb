@@ -19,7 +19,11 @@ RSpec.describe Payments::Create do
 
   let!(:clinician) do
     StaffMember.create!(
-      practice: practice,
+      first_name: "Alex",
+        last_name: "Morgan",
+        first_name: "Alex",
+        last_name: "Morgan",
+        practice: practice,
       user: clinician_user,
       staff_type: "doctor",
     )

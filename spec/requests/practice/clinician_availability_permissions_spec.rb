@@ -18,8 +18,10 @@ RSpec.describe "Clinician availability permissions", type: :request do
     get new_practice_availability_block_path
 
     expect(response).to have_http_status(:success)
-    expect(response.body).to include(clinician.full_name)
-    expect(response.body).not_to include(colleague.full_name)
+    options = response.parsed_body.css("select#availability_block_clinician_id option")
+    clinician_ids = options.map { |option| option["value"] }.reject(&:blank?)
+    expect(clinician_ids).to eq([clinician.id])
+    expect(clinician_ids).not_to include(colleague.id)
   end
 
   it "forbids editing a colleague's availability" do

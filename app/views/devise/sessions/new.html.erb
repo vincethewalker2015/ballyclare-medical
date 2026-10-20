@@ -16,10 +16,10 @@
       </p>
     </div>
 
-    <% if flash[:alert].present? %>
+    <% if @inactive_account_alert.present? %>
       <div role="alert" class="mb-6 rounded-xl border border-red-200 bg-red-50 p-5 text-red-800">
         <h2 class="font-semibold">Unable to sign in</h2>
-        <p class="mt-1 text-sm"><%= flash[:alert] %></p>
+        <p class="mt-1 text-sm"><%= @inactive_account_alert %></p>
       </div>
     <% end %>
 

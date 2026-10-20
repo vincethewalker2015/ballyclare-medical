@@ -11,7 +11,7 @@
 
   <section class="rounded-2xl border border-medical-border bg-white p-6">
     <% if @staff_members.any? %>
-      <div class="hidden border-b border-medical-border pb-3 text-xs font-semibold uppercase tracking-wide text-medical-muted sm:grid sm:grid-cols-3 sm:gap-4">
+      <div class="hidden border-b border-medical-border pb-3 text-xs font-semibold uppercase tracking-wide text-medical-muted sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,0.65fr)_minmax(0,2fr)] sm:gap-4">
         <span>Name</span>
         <span>Staff type</span>
         <span>Access level</span>
@@ -29,7 +29,7 @@
             "staff_admin" => "bg-amber-50 text-amber-800 ring-amber-200",
             "senior_staff_admin" => "bg-teal-50 text-teal-800 ring-teal-200"
           }.fetch(staff_member.access_level, "bg-slate-100 text-slate-700 ring-slate-200") %>
-          <li class="grid gap-3 py-4 text-medical-ink sm:grid-cols-3 sm:items-center sm:gap-4">
+          <li class="grid gap-3 py-4 text-medical-ink sm:grid-cols-[minmax(0,1fr)_minmax(0,0.65fr)_minmax(0,2fr)] sm:items-center sm:gap-4">
             <div class="flex flex-wrap items-center gap-2">
               <span class="font-semibold"><%= staff_member.full_name %></span>
               <% unless staff_member.active? %>
@@ -44,7 +44,7 @@
             </div>
             <div>
               <span class="mb-1 block text-xs text-medical-muted sm:hidden">Access level</span>
-              <div class="flex flex-wrap items-center gap-2 xl:flex-nowrap">
+              <div class="flex min-w-0 flex-wrap items-center gap-2">
               <span class="inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset <%= access_style %>">
                 <%= staff_member.access_level.humanize.titleize %>
               </span>

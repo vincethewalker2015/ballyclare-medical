@@ -31,9 +31,14 @@ RSpec.describe "Practice operational permissions", type: :request do
     end
   end
 
-  include_examples "protected operational endpoint", :practice_appointments_path
   include_examples "protected operational endpoint", :practice_patients_path
   include_examples "protected operational endpoint", :practice_availability_blocks_path
+
+  it "allows basic staff to view the appointment diary without booking controls" do
+    get practice_appointments_path
+    expect(response).to have_http_status(:success)
+    expect(response.body).not_to include("Book appointment")
+  end
 
   it "blocks basic staff from appointment creation and financial actions before loading records" do
     get new_practice_appointment_path

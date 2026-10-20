@@ -44,19 +44,20 @@
             </div>
             <div>
               <span class="mb-1 block text-xs text-medical-muted sm:hidden">Access level</span>
-              <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset <%= access_style %>">
+              <div class="flex flex-wrap items-center gap-2 xl:flex-nowrap">
+              <span class="inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset <%= access_style %>">
                 <%= staff_member.access_level.humanize.titleize %>
               </span>
               <% if @current_staff_member.access_level.in?(%w[staff_admin senior_staff_admin]) %>
                 <%= link_to "Edit details", edit_practice_staff_member_path(staff_member),
-                  class: "mt-2 inline-flex rounded-lg border border-medical-border px-3 py-2 text-xs font-semibold text-medical-navy hover:bg-medical-teal-soft" %>
+                  class: "inline-flex whitespace-nowrap rounded-lg border border-medical-border px-3 py-2 text-xs font-semibold text-medical-navy hover:bg-medical-teal-soft" %>
               <% end %>
               <% if !staff_member.active? &&
                     (@current_staff_member.access_level == "senior_staff_admin" ||
                      (@current_staff_member.access_level == "staff_admin" &&
                       !staff_member.access_level.in?(%w[staff_admin senior_staff_admin]))) %>
                 <%= button_to "Reactivate", reactivate_practice_staff_member_path(staff_member), method: :patch,
-                  class: "mt-2 rounded-lg border border-medical-border px-3 py-2 text-xs font-semibold text-medical-navy",
+                  class: "whitespace-nowrap rounded-lg border border-medical-border px-3 py-2 text-xs font-semibold text-medical-navy",
                   form: { data: { turbo_confirm: "Reactivate this staff member? Their practice access will be restored." } } %>
               <% end %>
               <% if staff_member.active? && @current_staff_member.id != staff_member.id &&
@@ -64,11 +65,11 @@
                      (@current_staff_member.access_level == "staff_admin" &&
                       !staff_member.access_level.in?(%w[staff_admin senior_staff_admin]))) %>
                 <%= button_to "Deactivate", deactivate_practice_staff_member_path(staff_member), method: :patch,
-                  class: "mt-2 rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700",
+                  class: "whitespace-nowrap rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700",
                   form: { data: { turbo_confirm: "Deactivate this staff member? Their access will be blocked." } } %>
               <% end %>
               <% if @current_staff_member.access_level == "senior_staff_admin" && staff_member.id != @current_staff_member.id %>
-                <details class="group mt-2">
+                <details class="group relative">
                   <summary class="inline-flex cursor-pointer list-none rounded-lg border border-medical-border px-3 py-2 text-xs font-semibold text-medical-navy hover:bg-medical-teal-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-medical-teal">
                     <span class="group-open:hidden">Edit access</span>
                     <span class="hidden group-open:inline">Cancel</span>
@@ -85,6 +86,7 @@
                   <% end %>
                 </details>
               <% end %>
+              </div>
             </div>
           </li>
         <% end %>

@@ -1,6 +1,8 @@
 module Staff
   class AvailabilityBlocksController < BaseController
     before_action :require_operational_access
+    before_action :require_own_availability, only: %i[edit update cancel]
+
     def index
       @availability_blocks = current_practice
       .availability_blocks
@@ -9,6 +11,7 @@ module Staff
         appointment_slots: [ :appointments, :appointment_holds ]
       )
       .where(ends_at: Time.current..)
+      .then { |blocks| current_staff_member.access_level == "staff_clinician" ? blocks.where(clinician_id: current_staff_member.id) : blocks }
       .order(:starts_at)
     end
 
@@ -22,10 +25,7 @@ module Staff
     end
 
     def create
-      clinician = current_practice
-        .staff_members
-        .where(staff_type: %w[doctor nurse], active: true)
-        .find(availability_block_params[:clinician_id])
+      clinician = permitted_clinicians.find(availability_block_params[:clinician_id])
 
       starts_at = local_time(
         availability_block_params[:date],
@@ -171,10 +171,20 @@ module Staff
 
     private
 
+    def require_own_availability
+      return unless current_staff_member.access_level == "staff_clinician"
+
+      block = current_practice.availability_blocks.find(params[:id])
+      head :forbidden unless block.clinician_id == current_staff_member.id
+    end
+
+    def permitted_clinicians
+      scope = current_practice.staff_members.where(staff_type: %w[doctor nurse], active: true)
+      current_staff_member.access_level == "staff_clinician" ? scope.where(id: current_staff_member.id) : scope
+    end
+
     def load_clinicians
-      @clinicians = current_practice
-        .staff_members
-        .where(staff_type: %w[doctor nurse], active: true)
+      @clinicians = permitted_clinicians
         .order(:last_name, :first_name)
     end
 

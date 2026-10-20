@@ -5,7 +5,7 @@ RSpec.describe "Practice patients", type: :request do
   let(:user) { create(:user) }
 
   before do
-    create(:staff_member, practice: practice, user: user, staff_type: "administrator")
+    create(:staff_member, practice: practice, user: user, staff_type: "administrator", access_level: "staff_admin")
   end
 
   describe "GET /practice/patients" do

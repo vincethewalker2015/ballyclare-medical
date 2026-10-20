@@ -1,5 +1,6 @@
 module Staff
   class AppointmentChargesController < BaseController
+    before_action :require_operational_access
     before_action :set_appointment
 
     def new

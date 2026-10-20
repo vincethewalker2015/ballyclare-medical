@@ -37,6 +37,24 @@ class StaffMember < ApplicationRecord
 
   validates :user_id, uniqueness: { scope: :practice_id }
 
+  # Operational access excludes basic staff. Clinical access will be used
+  # when consultation notes, tests and medical records gain staff routes.
+  def operational_access?
+    access_level.in?(%w[staff_admin staff_clinician senior_staff_admin])
+  end
+
+  def clinical_access?
+    access_level.in?(%w[staff_clinician senior_staff_admin])
+  end
+
+  def staff_administration_access?
+    access_level.in?(%w[staff_admin senior_staff_admin])
+  end
+
+  def senior_administration_access?
+    access_level == "senior_staff_admin"
+  end
+
   def clinician_access_requires_clinician_staff_type
     return unless access_level == "staff_clinician"
     return if staff_type.in?(%w[doctor nurse])

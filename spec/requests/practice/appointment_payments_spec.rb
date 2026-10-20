@@ -9,7 +9,8 @@ RSpec.describe "Practice appointment payments", type: :request do
       :staff_member,
       practice: appointment.practice,
       user: user,
-      staff_type: "administrator"
+      staff_type: "administrator",
+      access_level: "staff_admin"
     )
 
     sign_in user

@@ -24,12 +24,15 @@ administrative features are still under development.
 
 ## Appointment Diary
 
-The staff appointment diary lets staff view appointments and open an
-appointment to review its status, financial summary and activity history.
+All active staff can view the appointment diary and open appointment details.
+Basic Staff have read-only access: they cannot book appointments, change
+appointment statuses, manage patients or availability, or take payments.
+Staff Admins, Staff Clinicians and Senior Staff Admins can perform these
+operational tasks.
 
 ## Booking an Appointment
 
-Staff can book an available appointment for a patient, choose the clinician
+Authorised operational staff can book an available appointment for a patient, choose the clinician
 and appointment slot, and enter a consultation charge. The appointment page
 shows the recorded charge and any payments received.
 
@@ -117,6 +120,9 @@ from appointment records in this case.
 
 Clinician availability determines which appointment slots may be booked.
 Only available slots can be selected during staff appointment booking.
+Staff Clinicians can create, edit and cancel only their own availability.
+Staff Admins and Senior Staff Admins can manage availability across the practice.
+Basic Staff cannot manage availability.
 
 ## User and Staff Administration
 
@@ -152,12 +158,15 @@ A staff member's type (doctor, nurse or administrator) describes their
 responsibilities. Their *access level* separately determines administrative
 authority within that practice:
 
-- **Staff** — the default level for every new staff membership.
-- **Staff Clinician** — available to doctors and nurses. Additional access to
+- **Staff** — the default level for every new staff membership; can view the
+  appointment diary and staff directory, but cannot make operational changes.
+- **Staff Clinician** — available to doctors and nurses; can manage appointments,
+  patients and payments, but only their own availability. Additional access to
   medical records is planned but has not yet been enabled.
-- **Staff Admin** — can add ordinary staff members to the practice.
-- **Senior Staff Admin** — can change access levels
-  for staff in their own practice.
+- **Staff Admin** — can manage operational work and ordinary staff accounts,
+  but cannot change access levels or administer privileged staff accounts.
+- **Senior Staff Admin** — has full operational access and can change access
+  levels for staff in their own practice.
 
 Only Senior Staff Admins may change another staff member's access level.
 To do so, open **Staff**, select **Edit access** beside a colleague, choose

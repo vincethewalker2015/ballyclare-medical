@@ -1,5 +1,6 @@
 module Staff
   class PatientsController < BaseController
+    before_action :require_operational_access
     def index
       @patients = current_practice.patients.order(:last_name, :first_name)
     end

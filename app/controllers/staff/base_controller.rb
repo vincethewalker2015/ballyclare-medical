@@ -10,6 +10,10 @@ module Staff
 
     attr_reader :current_staff_member, :current_practice
 
+    def require_operational_access
+      head :forbidden unless current_staff_member.operational_access?
+    end
+
     def set_current_staff_member
       @current_staff_member = current_user.staff_members.first
 

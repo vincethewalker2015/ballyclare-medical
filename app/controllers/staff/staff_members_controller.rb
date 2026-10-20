@@ -48,12 +48,15 @@ module Staff
       return head :forbidden unless staff_administrator?
 
       @staff_member = current_practice.staff_members.find(params[:id])
+      head :forbidden unless can_manage_staff_member?(@staff_member)
     end
 
     def update
       return head :forbidden unless staff_administrator?
 
       @staff_member = current_practice.staff_members.find(params[:id])
+      return head :forbidden unless can_manage_staff_member?(@staff_member)
+
       attributes = staff_member_params
       if attributes[:staff_type].present? &&
          attributes[:staff_type] != @staff_member.staff_type &&
@@ -157,6 +160,11 @@ module Staff
     end
 
     private
+
+    def can_manage_staff_member?(staff_member)
+      current_staff_member.senior_administration_access? ||
+        !staff_member.access_level.in?(%w[staff_admin senior_staff_admin])
+    end
 
     def staff_administrator?
       current_staff_member.access_level.in?(%w[staff_admin senior_staff_admin])

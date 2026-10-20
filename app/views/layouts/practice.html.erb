@@ -77,24 +77,33 @@
             Appointments
           <% end %>
 
+          <% if @current_staff_member&.operational_access? %>
           <%= link_to practice_availability_blocks_path,
                       class: "flex items-center rounded-xl px-4 py-3 text-sm font-semibold #{availability_active ? 'bg-medical-teal-soft text-medical-navy' : 'text-medical-muted hover:bg-medical-teal-soft hover:text-medical-navy'}" do %>
             Availability
           <% end %>
 
+          <% end %>
+
           <%= link_to "User Manual", user_manual_path,
                       class: "flex items-center rounded-xl px-4 py-3 text-sm font-semibold #{controller_name == 'documentation' ? 'bg-medical-teal-soft text-medical-navy' : 'text-medical-muted hover:bg-medical-teal-soft hover:text-medical-navy'}" %>
 
+          <% if @current_staff_member&.operational_access? %>
           <%= link_to practice_patients_path,
                       class: "flex items-center rounded-xl px-4 py-3 text-sm font-semibold #{controller_name == 'patients' ? 'bg-medical-teal-soft text-medical-navy' : 'text-medical-muted hover:bg-medical-teal-soft hover:text-medical-navy'}" do %>
             Patients
+          <% end %>
+
           <% end %>
 
           <%= link_to "Staff", practice_staff_members_path,
                       class: "flex items-center rounded-xl px-4 py-3 text-sm font-semibold #{controller_name == 'staff_members' ? 'bg-medical-teal-soft text-medical-navy' : 'text-medical-muted hover:bg-medical-teal-soft hover:text-medical-navy'}",
                       aria: { current: (controller_name == "staff_members" ? "page" : nil) } %>
 
-          <% %w[Payments Clinical Administration].each do |item| %>
+          <% placeholder_items = ["Administration"] %>
+          <% placeholder_items << "Payments" if @current_staff_member&.operational_access? %>
+          <% placeholder_items << "Clinical" if @current_staff_member&.clinical_access? %>
+          <% placeholder_items.each do |item| %>
             <span class="flex cursor-not-allowed items-center rounded-xl px-4 py-3 text-sm font-medium text-medical-muted opacity-60">
               <%= item %>
             </span>

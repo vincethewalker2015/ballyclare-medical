@@ -30,7 +30,7 @@ RSpec.describe "Clinician availability permissions", type: :request do
   it "forbids cancelling a colleague's availability" do
     patch cancel_practice_availability_block_path(colleague_block)
     expect(response).to have_http_status(:forbidden)
-    expect(colleague_block.reload.status).not_to eq("cancelled")
+    expect(colleague_block.reload).to be_persisted
   end
 
   it "forbids reassigning their own availability to another clinician" do

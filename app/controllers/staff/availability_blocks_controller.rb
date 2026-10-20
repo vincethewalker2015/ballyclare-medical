@@ -1,5 +1,6 @@
 module Staff
   class AvailabilityBlocksController < BaseController
+    before_action :require_operational_access
     def index
       @availability_blocks = current_practice
       .availability_blocks

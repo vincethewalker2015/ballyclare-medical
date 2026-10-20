@@ -24,6 +24,7 @@ RSpec.describe "Practice appointment charges", type: :request do
         practice: practice,
       user: user,
       staff_type: "administrator",
+      access_level: "staff_admin",
     )
   end
 

@@ -1,0 +1,5 @@
+---
+# Explicit configuration avoids the default-config warning.
+linters:
+  ErbSafety:
+    enabled: true

@@ -6,7 +6,7 @@ module Users
       if resource.staff_members.exists?(active: false) &&
           !resource.staff_members.exists?(active: true) &&
           resource.patient.nil?
-        flash.now[:alert] = "Your staff account is inactive. Please contact your practice administrator."
+        @inactive_account_alert = "Your staff account is inactive. Please contact your practice administrator."
         resource.password = nil
         return render :new, status: :unprocessable_content
       end

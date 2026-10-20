@@ -180,15 +180,17 @@ then select Create staff member.*
 Staff Admins and Senior Staff Admins can add colleagues to their practice.
 Open the staff directory at `/practice/staff_members` and select
 **New staff member**. Enter the colleague's email address, name, staff type
-(doctor, nurse or administrator), and any applicable registration number
-and appointment duration. Then select **Create staff member**.
+(doctor, nurse or administrator), and any applicable registration number. First name and last name are required.
+The form highlights missing required fields. Then select **Create staff member**.
 
 New colleagues always start with **Staff** access. A Senior Staff Admin must
 approve any subsequent change to their access level.
 
 If the email address is new to Ballyclare Medical, the system creates an
-account and sends password-setting instructions to that address. The
-colleague follows the email link to choose a password before signing in.
+account and sends a **Welcome to Ballyclare Medical** email to that address.
+The colleague selects **Set your password**, enters and confirms a new
+password, and selects **Set my password**. After successful setup, the
+application signs them in and redirects to the home page.
 If an account already exists, it is linked to the practice without changing
 the person's existing password or sending another password-setting email.
 
@@ -201,10 +203,44 @@ Existing account holders continue using their current password.*
 If an error appears, correct the details and try again. An existing staff
 member cannot be added to the same practice twice.
 
+**Invitation links:** Password setup links expire and cannot be reused after
+successful password setup. If a link has expired, use the **Forgot password?**
+option on the sign-in page or contact your practice administrator for help.
+
 **Email availability:** Sending invitations requires the platform operator
 to configure the application's outgoing email service. If an expected
 message does not arrive, ask the platform operator to check email delivery;
 do not share passwords or create a duplicate account.
+
+### Editing staff details
+
+From the staff directory, select **Edit details** beside a colleague to
+change their first name, last name, registration number or staff type.
+The email address is displayed for reference but cannot be edited here.
+First and last names are required. Select **Save changes** to apply updates,
+or **Cancel** to return without saving. Access levels are managed separately
+through **Edit access** by a Senior Staff Admin.
+
+### Deactivating and reactivating staff
+
+Authorised administrators can select **Deactivate** beside an active staff
+member in the staff directory and confirm the action. The colleague remains
+listed with an **Inactive** badge and a **Reactivate** action. Deactivation
+blocks their access to protected practice pages without deleting their
+staff record or appointment history.
+
+If an inactive staff member tries to sign in with their correct email and
+password, the sign-in page displays **Your staff account is inactive** and
+asks them to contact their practice administrator. Incorrect credentials
+still receive the normal sign-in error; account status is not disclosed
+before password verification.
+
+If a staff member was already signed in when deactivated, opening a
+protected practice page displays an account-inactive message with a
+**Sign out** button rather than a blank page. Select **Sign out** to end
+the session. An administrator can select **Reactivate** in the staff
+directory to restore practice access. Reactivation does not require a
+new invitation or password.
 
 ### Setting up the first Senior Staff Admin
 
@@ -234,10 +270,21 @@ seed data**. Escalate to an authorised platform operator to verify the
 practice and account ownership before recovery. A dedicated, audited
 recovery workflow has not yet been implemented.
 
-Protection against losing the last active Senior Staff Admin during
-deactivation or removal is also planned before those actions are available.
+Do not deactivate the last active Senior Staff Admin. If senior access is
+lost, contact an authorised platform operator for recovery.
 
 ## Troubleshooting
+
+**Cannot sign in after deactivation:** If the account-inactive message
+appears after entering the correct password, contact your practice
+administrator. Resetting the password does not reactivate staff access.
+
+**Invitation email not received:** Check your inbox and junk folder. If
+email delivery is not configured, contact the platform operator.
+
+**Password setup link expired:** Use **Forgot password?** from the sign-in
+page to request a new password link.
+
 
 If an appointment's refund does not update immediately, check the
 current refund status and allow time for Stripe processing. Refresh the

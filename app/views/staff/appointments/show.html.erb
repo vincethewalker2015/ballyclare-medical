@@ -198,9 +198,11 @@
         </div>
       </dl>
 
+      <% if @current_staff_member.operational_access? %>
       <%= render "staff/appointments/lifecycle_controls",
                  appointment: @appointment,
                  allowed_status_transitions: @allowed_status_transitions %>
+      <% end %>
     </section>
 
     <%= render "financial_summary",

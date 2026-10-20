@@ -87,9 +87,8 @@ test:
 production:
   primary: &primary_production
     <<: *default
-    database: ballyclare_medical_production
-    username: ballyclare_medical
-    password: <%= ENV["BALLYCLARE_MEDICAL_DATABASE_PASSWORD"] %>
+    # Render provides the PostgreSQL host, database, and credentials.
+    url: <%= ENV.fetch("DATABASE_URL") %>
   cache:
     <<: *primary_production
     database: ballyclare_medical_production_cache

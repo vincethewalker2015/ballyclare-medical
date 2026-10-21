@@ -24,7 +24,7 @@
     <% end %>
   </header>
 
-  <section class="overflow-hidden rounded-2xl border border-medical-border bg-white shadow-sm">
+  <section class="overflow-hidden rounded-2xl border border-medical-border bg-white shadow-sm" data-controller="diary-date-picker">
       <div class="border-b border-medical-border px-6 py-5">
         <div class="grid grid-cols-1 items-end gap-5 sm:grid-cols-[minmax(0,1fr)_auto] 2xl:grid-cols-[minmax(0,1fr)_auto_auto]">
           <div class="min-w-0">
@@ -43,7 +43,6 @@
             <% [
               ["Today", "today"],
               ["Tomorrow", "tomorrow"],
-              ["Choose date", "date"],
               ["Upcoming", "upcoming"],
               ["Past", "past"],
               ["Payment due", "payment_due"]
@@ -64,6 +63,14 @@
                   current: (@diary_view == view ? "page" : nil)
                 } %>
             <% end %>
+            <button type="button"
+              data-action="click->diary-date-picker#open"
+              aria-haspopup="dialog"
+              aria-controls="diary-date-dialog"
+              class="<%= class_names("rounded-lg px-4 py-2 text-sm font-semibold transition", "bg-white text-medical-navy shadow-sm" => @diary_view == "date", "text-medical-muted hover:text-medical-navy" => @diary_view != "date") %>"
+              <%= 'aria-current="page"'.html_safe if @diary_view == "date" %>>
+              Choose date
+            </button>
           </nav>
           <%= form_with url: practice_appointments_path,
               method: :get,
@@ -103,8 +110,6 @@
           · <%= pluralize(@appointments.size, "appointment") %>
         </p>
         <div class="flex flex-wrap items-center gap-3">
-          <%= link_to "← Previous day", practice_appointments_path(view: "date", date: (@diary_date - 1.day).iso8601, clinician_id: @selected_clinician&.id, layout: @diary_layout), class: "text-sm font-semibold text-medical-teal" %>
-          <%= link_to "Next day →", practice_appointments_path(view: "date", date: (@diary_date + 1.day).iso8601, clinician_id: @selected_clinician&.id, layout: @diary_layout), class: "text-sm font-semibold text-medical-teal" %>
           <nav class="inline-flex rounded-lg bg-medical-cream p-1" aria-label="Diary layout">
           <% [["Visual diary", "board"], ["List", "list"]].each do |label, layout| %>
             <%= link_to label,
@@ -121,16 +126,24 @@
       </div>
     <% end %>
 
-    <% if @diary_view == "date" %>
-      <%= form_with url: practice_appointments_path, method: :get, class: "flex flex-wrap items-end gap-3 border-b border-medical-border px-6 py-4" do |form| %>
+    <dialog id="diary-date-dialog" data-diary-date-picker-target="dialog"
+      aria-labelledby="diary-date-title"
+      class="m-auto w-[calc(100%-2rem)] max-w-sm rounded-2xl border border-medical-border bg-white p-6 shadow-xl backdrop:bg-medical-navy/40">
+      <h3 id="diary-date-title" class="text-lg font-semibold text-medical-navy">Choose diary date</h3>
+      <%= form_with url: practice_appointments_path, method: :get, class: "mt-5 space-y-4" do |form| %>
         <%= form.hidden_field :view, value: "date" %>
         <%= form.hidden_field :layout, value: @diary_layout %>
         <%= form.hidden_field :clinician_id, value: @selected_clinician&.id %>
-        <%= form.label :date, "Diary date", class: "text-sm font-semibold text-medical-navy" %>
-        <%= form.date_field :date, value: @diary_date.iso8601, class: "rounded-lg border border-medical-border px-3 py-2" %>
-        <%= form.submit "Show diary", class: "rounded-lg bg-medical-navy px-4 py-2 text-sm font-semibold text-white" %>
+        <div class="space-y-2">
+          <%= form.label :date, "Diary date", class: "block text-sm font-semibold text-medical-navy" %>
+          <%= form.date_field :date, value: @diary_date.iso8601, required: true, class: "w-full rounded-lg border border-medical-border px-3 py-2" %>
+        </div>
+        <div class="flex justify-end gap-3">
+          <button type="button" data-action="click->diary-date-picker#close" class="rounded-lg border border-medical-border px-4 py-2 text-sm font-semibold text-medical-navy">Cancel</button>
+          <%= form.submit "Show diary", class: "cursor-pointer rounded-lg bg-medical-navy px-4 py-2 text-sm font-semibold text-white" %>
+        </div>
       <% end %>
-    <% end %>
+    </dialog>
 
     <%= turbo_frame_tag "appointment_diary_list" do %>
     <% if %w[today tomorrow date].include?(@diary_view) && @diary_layout == "board" %>

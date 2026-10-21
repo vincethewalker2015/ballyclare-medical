@@ -1,5 +1,13 @@
 <%# Today-only board: appointments grouped by clinician, ordered by start time. %>
 <% appointments_by_clinician = appointments.group_by(&:clinician_id) %>
+<% if appointments.empty? && @current_staff_member.operational_access? %>
+  <div class="border-b border-medical-border px-6 py-4">
+    <%= link_to "Book appointment",
+      new_practice_appointment_path,
+      data: { turbo_frame: "_top" },
+      class: "inline-flex items-center justify-center rounded-full bg-medical-navy px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-medical-navy-deep" %>
+  </div>
+<% end %>
 <% if clinicians.any? %>
   <div class="overflow-x-auto">
     <div class="grid min-w-[44rem] gap-px bg-medical-border" style="grid-template-columns: repeat(<%= clinicians.size %>, minmax(15rem, 1fr));">

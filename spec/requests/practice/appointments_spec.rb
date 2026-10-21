@@ -308,10 +308,29 @@ RSpec.describe "Practice appointments", type: :request do
         cards = diary.css("a[data-diary-appointment]")
         expect(cards.size).to eq(2)
         expect(cards.map { |card| card["data-start"] }).to eq(%w[09:00 11:00])
-        expect(cards.map { |card| card["style"] }).to all(include("height: 45.0px"))
-        expect(cards.first["style"]).to include("top: 90.0px")
-        expect(cards.last["style"]).to include("top: 270.0px")
+        expect(cards.map { |card| card["style"] }).to all(include("height: 105.0px"))
+        expect(cards.first["style"]).to include("top: 210.0px")
+        expect(cards.last["style"]).to include("top: 630.0px")
         expect(diary.text).to include("Morning timeline appointment", "Later timeline appointment")
+      end
+
+      it "provides readable card height for fifteen-minute appointments" do
+        appointment = nil
+        Time.use_zone(practice.timezone) do
+          appointment = create_diary_appointment(
+            starts_at: Time.zone.today.beginning_of_day + 9.hours,
+            reason: "Short consultation"
+          )
+        end
+        appointment.appointment_slot.update!(ends_at: appointment.appointment_slot.starts_at + 15.minutes)
+
+        get practice_appointments_path(view: "today", layout: "board")
+
+        expect(response).to have_http_status(:success)
+        card = response.parsed_body.at_css('a[data-diary-appointment]')
+        expect(card["style"]).to include("height: 52.5px")
+        expect(card.text).to include("Diary Patient", "Booked")
+        expect(card["title"]).to include("09:00–09:15", "Short consultation")
       end
 
       it "uses compact clinician columns with a visible time axis" do

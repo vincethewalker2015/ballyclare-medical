@@ -42,6 +42,8 @@
             aria-label="Appointment diary">
             <% [
               ["Today", "today"],
+              ["Tomorrow", "tomorrow"],
+              ["Choose date", "date"],
               ["Upcoming", "upcoming"],
               ["Past", "past"],
               ["Payment due", "payment_due"]
@@ -50,7 +52,8 @@
                 practice_appointments_path(
                   view: view,
                   clinician_id: @selected_clinician&.id,
-                  layout: @diary_layout
+                  layout: @diary_layout,
+                  date: (view == "date" ? @diary_date&.iso8601 : nil)
                 ),
                 class: class_names(
                   "rounded-lg px-4 py-2 text-sm font-semibold transition",
@@ -67,6 +70,7 @@
               class: "flex flex-wrap items-end gap-3 sm:col-start-2 sm:row-start-1 2xl:col-start-3" do |form| %>
             <%= form.hidden_field :view, value: @diary_view %>
             <%= form.hidden_field :layout, value: @diary_layout %>
+            <%= form.hidden_field :date, value: @diary_date.iso8601 if @diary_view == "date" %>
 
             <div class="space-y-1.5">
               <%= form.label :clinician_id,
@@ -92,16 +96,19 @@
         </div>
       </div>
 
-    <% if @diary_view == "today" %>
+    <% if %w[today tomorrow date].include?(@diary_view) %>
       <div class="flex flex-wrap items-center justify-between gap-3 border-b border-medical-border px-6 py-4">
         <p class="text-sm text-medical-muted">
-          <%= Time.use_zone(@practice.timezone) { Time.zone.today.strftime("%A, %d %B %Y") } %>
+          <%= @diary_date.strftime("%A, %d %B %Y") %>
           · <%= pluralize(@appointments.size, "appointment") %>
         </p>
-        <nav class="inline-flex rounded-lg bg-medical-cream p-1" aria-label="Diary layout">
+        <div class="flex flex-wrap items-center gap-3">
+          <%= link_to "← Previous day", practice_appointments_path(view: "date", date: (@diary_date - 1.day).iso8601, clinician_id: @selected_clinician&.id, layout: @diary_layout), class: "text-sm font-semibold text-medical-teal" %>
+          <%= link_to "Next day →", practice_appointments_path(view: "date", date: (@diary_date + 1.day).iso8601, clinician_id: @selected_clinician&.id, layout: @diary_layout), class: "text-sm font-semibold text-medical-teal" %>
+          <nav class="inline-flex rounded-lg bg-medical-cream p-1" aria-label="Diary layout">
           <% [["Visual diary", "board"], ["List", "list"]].each do |label, layout| %>
             <%= link_to label,
-              practice_appointments_path(view: "today", clinician_id: @selected_clinician&.id, layout: layout),
+              practice_appointments_path(view: @diary_view, date: (@diary_view == "date" ? @diary_date.iso8601 : nil), clinician_id: @selected_clinician&.id, layout: layout),
               class: class_names(
                 "rounded-md px-3 py-2 text-sm font-semibold",
                 "bg-white text-medical-navy shadow-sm" => @diary_layout == layout,
@@ -109,12 +116,24 @@
               ),
               aria: { current: (@diary_layout == layout ? "page" : nil) } %>
           <% end %>
-        </nav>
+          </nav>
+        </div>
       </div>
     <% end %>
 
+    <% if @diary_view == "date" %>
+      <%= form_with url: practice_appointments_path, method: :get, class: "flex flex-wrap items-end gap-3 border-b border-medical-border px-6 py-4" do |form| %>
+        <%= form.hidden_field :view, value: "date" %>
+        <%= form.hidden_field :layout, value: @diary_layout %>
+        <%= form.hidden_field :clinician_id, value: @selected_clinician&.id %>
+        <%= form.label :date, "Diary date", class: "text-sm font-semibold text-medical-navy" %>
+        <%= form.date_field :date, value: @diary_date.iso8601, class: "rounded-lg border border-medical-border px-3 py-2" %>
+        <%= form.submit "Show diary", class: "rounded-lg bg-medical-navy px-4 py-2 text-sm font-semibold text-white" %>
+      <% end %>
+    <% end %>
+
     <%= turbo_frame_tag "appointment_diary_list" do %>
-    <% if @diary_view == "today" && @diary_layout == "board" %>
+    <% if %w[today tomorrow date].include?(@diary_view) && @diary_layout == "board" %>
       <%= render "staff/appointments/diary_board",
         appointments: @appointments,
         clinicians: @selected_clinician ? [@selected_clinician] : @clinicians,

@@ -4,6 +4,7 @@ module Staff
     def index
       @practice = current_practice
       @diary_view = params[:view].presence_in(%w[today upcoming past payment_due]) || "today"
+      @diary_layout = params[:layout].presence_in(%w[board list]) || "board"
 
       @clinicians = current_practice
         .staff_members

@@ -219,7 +219,7 @@ module Staff
         @appointment_slots = @appointment_slots.limit(20)
       end
 
-      render turbo_stream: turbo_stream.replace;
+      render turbo_stream: turbo_stream.replace(
         "available_appointment_slots",
         partial: "staff/appointments/available_slots",
         locals: {

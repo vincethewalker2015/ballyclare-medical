@@ -317,6 +317,19 @@ RSpec.describe "Practice appointments", type: :request do
         expect(diary.text).to include("Morning timeline appointment", "Later timeline appointment")
       end
 
+      it "uses compact clinician columns with a visible time axis" do
+        clinician
+
+        get practice_appointments_path(view: "today", layout: "board")
+
+        expect(response).to have_http_status(:success)
+        diary = response.parsed_body.at_css("turbo-frame#appointment_diary_list")
+        expect(diary.at_css('[aria-label="Time of day"]')).to be_present
+        expect(diary.at_css(".sticky.left-0.w-16")).to be_present
+        expect(diary.at_css('section[aria-label="Alex Morgan appointments"].w-48')).to be_present
+        expect(diary.at_css('h3[title="Alex Morgan"].truncate')).to be_present
+      end
+
       it "retains the list layout when selected" do
         get practice_appointments_path(view: "today", layout: "list")
 

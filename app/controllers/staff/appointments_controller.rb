@@ -180,12 +180,23 @@ module Staff
         .where(staff_type: %w[doctor nurse], active: true)
         .find(params[:clinician_id])
 
+      selected_date = begin
+        Date.iso8601(params[:date].to_s)
+      rescue Date::Error
+        Time.use_zone(current_practice.timezone) { Time.zone.today }
+      end
+
+      day_start = Time.use_zone(current_practice.timezone) do
+        Time.zone.local(selected_date.year, selected_date.month, selected_date.day)
+      end
+      day_end = day_start + 1.day
+
       @appointment_slots = current_practice
         .appointment_slots
         .joins(:availability_block)
         .merge(AvailabilityBlock.active)
         .where(clinician: @clinician)
-        .where("appointment_slots.starts_at >= ?", now)
+        .where(appointment_slots: { starts_at: [now, day_start].max...day_end })
         .where.not(
           id: Appointment
             .where.not(status: "cancelled")
@@ -197,7 +208,6 @@ module Staff
             .select(:appointment_slot_id)
         )
         .order(:starts_at)
-        .limit(20)
 
       render turbo_stream: turbo_stream.replace(
         "available_appointment_slots",

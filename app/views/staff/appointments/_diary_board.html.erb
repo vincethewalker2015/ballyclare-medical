@@ -54,7 +54,7 @@
               <%= link_to practice_appointment_path(appointment),
                 class: "absolute inset-x-1 z-[1] overflow-hidden rounded-lg border border-medical-teal bg-medical-teal-soft px-2 py-1 text-xs text-medical-navy shadow-sm hover:z-10 hover:bg-white focus:z-10 focus:outline-none focus:ring-2 focus:ring-medical-teal",
                 style: "top: #{start_minutes * pixels_per_minute}px; height: #{duration_minutes * pixels_per_minute}px",
-                title: "#{starts_at.strftime('%H:%M')}–#{ends_at.strftime('%H:%M')} · #{"#{appointment.patient.first_name} #{appointment.patient.last_name}"} · #{appointment.status.humanize} · #{payment_label}",
+                title: [ "#{starts_at.strftime('%H:%M')}–#{ends_at.strftime('%H:%M')}", "#{appointment.patient.first_name} #{appointment.patient.last_name}", appointment.status.humanize, payment_label, appointment.reason.presence ].compact.join(" · "),
                 data: { turbo_frame: "_top", diary_appointment: true, start: starts_at.strftime("%H:%M"), end: ends_at.strftime("%H:%M") } do %>
                 <span class="block font-bold"><%= starts_at.strftime("%H:%M") %>–<%= ends_at.strftime("%H:%M") %></span>
                 <span class="block truncate font-semibold"><%= appointment.patient.first_name %> <%= appointment.patient.last_name %></span>

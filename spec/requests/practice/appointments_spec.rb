@@ -876,6 +876,17 @@ RSpec.describe "Practice appointments", type: :request do
       expect(response.body).not_to include(active_slot.id)
     end
 
+    it "provides a scrollable list of available appointment times" do
+      selected_date = Time.use_zone(practice.timezone) { Time.zone.today + 1.day }
+
+      get available_slots_practice_appointments_path,
+          params: { clinician_id: clinician.id, date: selected_date.iso8601 },
+          headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("overflow-y-auto", "Available appointment times")
+    end
+
     it "returns slots from active availability only" do
       get available_slots_practice_appointments_path,
           params: { clinician_id: clinician.id },

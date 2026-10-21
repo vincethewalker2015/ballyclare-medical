@@ -113,13 +113,14 @@
       </div>
     <% end %>
 
+    <%= turbo_frame_tag "appointment_diary_list" do %>
     <% if @diary_view == "today" && @diary_layout == "board" %>
       <%= render "staff/appointments/diary_board",
         appointments: @appointments,
         clinicians: @selected_clinician ? [@selected_clinician] : @clinicians,
+        appointment_balances: @appointment_balances,
         practice_timezone: @practice.timezone %>
     <% else %>
-    <%= turbo_frame_tag "appointment_diary_list" do %>
       <% if @appointments.any? %>
         <div class="divide-y divide-medical-border">
           <% @appointments.each do |appointment| %>
@@ -275,6 +276,7 @@
           </div>
         </div>
       <% end %>
+    <% end %>
     <% end %>
     <% end %>
   </section>

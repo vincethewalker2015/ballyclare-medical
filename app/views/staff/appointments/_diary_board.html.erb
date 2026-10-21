@@ -1,4 +1,4 @@
-<%# Today-only board: appointments grouped by clinician, ordered by start time. %>
+<%# Daily board: appointments grouped by clinician, ordered by start time. %>
 <% appointments_by_clinician = appointments.group_by(&:clinician_id) %>
 <% if clinicians.any? %>
   <%# Use one shared time scale for every clinician, including appointments outside normal hours. %>
@@ -9,7 +9,7 @@
   <% earliest_hour = [8, *local_slots.map { |start_time, _| start_time.hour }].min %>
   <% latest_hour = [18, *local_slots.map { |_, end_time| end_time.hour + (end_time.min.positive? || end_time.sec.positive? ? 1 : 0) }].max %>
   <% minutes_in_diary = (latest_hour - earliest_hour) * 60 %>
-  <% pixels_per_minute = 1.5 %>
+  <% pixels_per_minute = 3.5 %>
   <% diary_height = minutes_in_diary * pixels_per_minute %>
   <div class="overflow-x-auto">
     <div class="flex min-w-max bg-white">
@@ -59,7 +59,7 @@
                 <span class="block font-bold"><%= starts_at.strftime("%H:%M") %>–<%= ends_at.strftime("%H:%M") %></span>
                 <span class="block truncate font-semibold"><%= appointment.patient.first_name %> <%= appointment.patient.last_name %></span>
                 <span class="block truncate"><%= appointment.status.humanize %> · <%= payment_label %></span>
-                <% if appointment.reason.present? %>
+                <% if appointment.reason.present? && duration_minutes > 15 %>
                   <span class="block truncate"><%= appointment.reason %></span>
                 <% end %>
               <% end %>

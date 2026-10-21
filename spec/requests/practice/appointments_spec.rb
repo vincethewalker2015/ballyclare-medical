@@ -40,20 +40,17 @@ RSpec.describe "Practice appointments", type: :request do
         expect(response).to have_http_status(:success)
       end
 
-      it "navigates to booking outside the empty diary Turbo frame" do
+      it "shows a single booking link in the page header, outside the diary Turbo frame" do
         get practice_appointments_path
 
-        diary = Nokogiri::HTML(response.body)
-          .at_css("turbo-frame#appointment_diary_list")
-
+        page = response.parsed_body
+        diary = page.at_css("turbo-frame#appointment_diary_list")
         expect(diary).to be_present
 
-        booking_link = diary.css("a").find do |link|
-          link["href"] == new_practice_appointment_path
-        end
-
-        expect(booking_link).to be_present
-        expect(booking_link["data-turbo-frame"]).to eq("_top")
+        booking_links = page.css("a[href='#{new_practice_appointment_path}']")
+        expect(booking_links.size).to eq(1)
+        expect(booking_links.first.ancestors("header")).to be_present
+        expect(diary.css("a[href='#{new_practice_appointment_path}']")).to be_empty
       end
     end
 

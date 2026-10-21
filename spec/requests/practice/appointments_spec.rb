@@ -332,7 +332,7 @@ RSpec.describe "Practice appointments", type: :request do
 
         expect(response).to have_http_status(:success)
         expect(response.parsed_body.at_css("turbo-frame#appointment_diary_list")).to be_present
-        expect(response.body).to include("No appointments today")
+        expect(response.body).to include("No appointments on this date")
       end
 
       it "shows tomorrow's appointments on the visual diary" do

@@ -381,7 +381,7 @@ RSpec.describe "Practice appointments", type: :request do
         get practice_appointments_path(view: "date", date: selected_date.iso8601, layout: "list")
 
         expect(response).to have_http_status(:success)
-        expect(response.body).to include("No appointments today")
+        expect(response.body).to include("No appointments on this date")
         expect(response.body).to include(selected_date.strftime("%A, %d %B %Y"))
       end
 

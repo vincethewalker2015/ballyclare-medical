@@ -180,23 +180,12 @@ module Staff
         .where(staff_type: %w[doctor nurse], active: true)
         .find(params[:clinician_id])
 
-      selected_date = begin
-        Date.iso8601(params[:date].to_s)
-      rescue Date::Error
-        Time.use_zone(current_practice.timezone) { Time.zone.today }
-      end
-
-      day_start = Time.use_zone(current_practice.timezone) do
-        Time.zone.local(selected_date.year, selected_date.month, selected_date.day)
-      end
-      day_end = day_start + 1.day
-
       @appointment_slots = current_practice
         .appointment_slots
         .joins(:availability_block)
         .merge(AvailabilityBlock.active)
         .where(clinician: @clinician)
-        .where(appointment_slots: { starts_at: [now, day_start].max...day_end })
+        .where("appointment_slots.starts_at >= ?", now)
         .where.not(
           id: Appointment
             .where.not(status: "cancelled")
@@ -209,7 +198,28 @@ module Staff
         )
         .order(:starts_at)
 
-      render turbo_stream: turbo_stream.replace(
+      if params[:date].present?
+        selected_date = begin
+          Date.iso8601(params[:date])
+        rescue Date::Error
+          nil
+        end
+
+        if selected_date
+          day_start = Time.use_zone(current_practice.timezone) do
+            Time.zone.local(selected_date.year, selected_date.month, selected_date.day)
+          end
+          @appointment_slots = @appointment_slots.where(
+            appointment_slots: { starts_at: day_start...(day_start + 1.day) }
+          )
+        else
+          @appointment_slots = @appointment_slots.none
+        end
+      else
+        @appointment_slots = @appointment_slots.limit(20)
+      end
+
+      render turbo_stream: turbo_stream.replace;
         "available_appointment_slots",
         partial: "staff/appointments/available_slots",
         locals: {
@@ -299,6 +309,7 @@ module Staff
     private
 
     def load_booking_options
+      @booking_date = Time.use_zone(current_practice.timezone) { Time.zone.today }
       @patients = current_practice
         .patients
         .order(:last_name, :first_name)

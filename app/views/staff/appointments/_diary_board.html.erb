@@ -21,7 +21,7 @@
   <% diary_height = minutes_in_diary * pixels_per_minute %>
   <div class="overflow-x-auto">
     <div class="flex min-w-max bg-white">
-      <div class="w-16 shrink-0 border-r border-medical-border">
+      <div class="sticky left-0 z-20 w-16 shrink-0 border-r border-medical-border bg-white">
         <div class="h-[73px] border-b border-medical-border bg-medical-cream"></div>
         <div class="relative" style="height: <%= diary_height %>px" aria-label="Time of day">
           <% (earliest_hour..latest_hour).each do |hour| %>
@@ -33,9 +33,9 @@
       </div>
       <% clinicians.each do |clinician| %>
         <% clinician_appointments = (appointments_by_clinician[clinician.id] || []).sort_by { |appointment| appointment.appointment_slot.starts_at } %>
-        <section class="w-64 shrink-0 border-r border-medical-border" aria-label="<%= clinician.full_name %> appointments">
+        <section class="w-48 shrink-0 border-r border-medical-border" aria-label="<%= clinician.full_name %> appointments">
           <header class="sticky top-0 z-10 flex h-[73px] flex-col justify-center border-b border-medical-border bg-medical-cream px-4">
-            <h3 class="font-semibold text-medical-navy"><%= clinician.full_name %></h3>
+            <h3 class="truncate font-semibold text-medical-navy" title="<%= clinician.full_name %>"><%= clinician.full_name %></h3>
             <p class="mt-1 text-xs text-medical-muted"><%= pluralize(clinician_appointments.size, "appointment") %></p>
           </header>
           <div class="relative" style="height: <%= diary_height %>px">

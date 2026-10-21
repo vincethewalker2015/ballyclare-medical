@@ -335,6 +335,56 @@ RSpec.describe "Practice appointments", type: :request do
         expect(response.body).to include("No appointments today")
       end
 
+      it "shows tomorrow's appointments on the visual diary" do
+        Time.use_zone(practice.timezone) do
+          tomorrow = Time.zone.today + 1.day
+          create_diary_appointment(
+            starts_at: Time.zone.local(tomorrow.year, tomorrow.month, tomorrow.day, 14),
+            reason: "Tomorrow diary consultation"
+          )
+        end
+
+        get practice_appointments_path(view: "tomorrow")
+
+        expect(response).to have_http_status(:success)
+        diary = response.parsed_body.at_css("turbo-frame#appointment_diary_list")
+        expect(diary.text).to include("Tomorrow diary consultation")
+        expect(diary.at_css('a[data-diary-appointment][data-start="14:00"]')).to be_present
+      end
+
+      it "shows a selected future date without including other dates" do
+        selected_date = nil
+        Time.use_zone(practice.timezone) do
+          selected_date = Time.zone.today + 3.days
+          create_diary_appointment(
+            starts_at: Time.zone.local(selected_date.year, selected_date.month, selected_date.day, 11),
+            reason: "Selected date consultation"
+          )
+          next_date = selected_date + 1.day
+          create_diary_appointment(
+            starts_at: Time.zone.local(next_date.year, next_date.month, next_date.day, 11),
+            reason: "Different date consultation"
+          )
+        end
+
+        get practice_appointments_path(view: "date", date: selected_date.iso8601)
+
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include("Selected date consultation")
+        expect(response.body).not_to include("Different date consultation")
+        expect(response.parsed_body.at_css('input[type="date"]')["value"]).to eq(selected_date.iso8601)
+      end
+
+      it "preserves the selected date when switching to list layout" do
+        selected_date = Time.use_zone(practice.timezone) { Time.zone.today + 2.days }
+
+        get practice_appointments_path(view: "date", date: selected_date.iso8601, layout: "list")
+
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include("No appointments today")
+        expect(response.body).to include(selected_date.strftime("%A, %d %B %Y"))
+      end
+
       it "shows today's appointments by default" do
         Time.use_zone(practice.timezone) do
           today = Time.zone.now.beginning_of_day

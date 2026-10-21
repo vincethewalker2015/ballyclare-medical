@@ -2,26 +2,36 @@ import { Controller } from "@hotwired/stimulus";
 import { Turbo } from "@hotwired/turbo-rails";
 
 export default class extends Controller {
-  static targets = ["clinician"];
+  static targets = ["clinician", "date"];
 
   async loadSlots() {
     const clinicianId = this.clinicianTarget.value;
+    const date = this.dateTarget.value;
+    this.slotRequest?.abort();
 
-    if (!clinicianId) {
+    if (!clinicianId || !date) {
+      document.getElementById("available_appointment_slots").innerHTML =
+        '<p class="text-sm text-medical-muted">Select a clinician and date to view available appointments.</p>';
       return;
     }
 
+    const controller = new AbortController();
+    this.slotRequest = controller;
     const url = new URL(this.element.dataset.slotsUrl, window.location.origin);
     url.searchParams.set("clinician_id", clinicianId);
+    url.searchParams.set("date", date);
 
-    const response = await fetch(url, {
-      headers: {
-        Accept: "text/vnd.turbo-stream.html",
-      },
-    });
+    try {
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: { Accept: "text/vnd.turbo-stream.html" },
+      });
 
-    if (response.ok) {
-      Turbo.renderStreamMessage(await response.text());
+      if (response.ok && this.slotRequest === controller) {
+        Turbo.renderStreamMessage(await response.text());
+      }
+    } catch (error) {
+      if (error.name !== "AbortError") throw error;
     }
   }
 }

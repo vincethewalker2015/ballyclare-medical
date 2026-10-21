@@ -327,7 +327,7 @@ RSpec.describe "Practice appointments", type: :request do
         get practice_appointments_path(view: "today", layout: "board")
 
         expect(response).to have_http_status(:success)
-        card = response.parsed_body.at_css('a[data-diary-appointment]')
+        card = response.parsed_body.at_css("a[data-diary-appointment]")
         expect(card["style"]).to include("height: 52.5px")
         expect(card.text).to include("Diary Patient", "Booked")
         expect(card["title"]).to include("09:00–09:15", "Short consultation")
@@ -360,7 +360,7 @@ RSpec.describe "Practice appointments", type: :request do
         expect(response).to have_http_status(:success)
         page = response.parsed_body
         trigger = page.at_css('button[data-action="click->diary-date-picker#open"]')
-        dialog = page.at_css('dialog#diary-date-dialog')
+        dialog = page.at_css("dialog#diary-date-dialog")
         expect(trigger).to be_present
         expect(trigger["aria-controls"]).to eq("diary-date-dialog")
         expect(dialog).to be_present

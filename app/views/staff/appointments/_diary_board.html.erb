@@ -20,6 +20,18 @@
                 <p class="text-sm font-bold text-medical-navy"><%= starts_at.strftime("%H:%M") %>–<%= ends_at.strftime("%H:%M") %></p>
                 <p class="mt-2 font-semibold text-medical-navy"><%= appointment.patient.first_name %> <%= appointment.patient.last_name %></p>
                 <p class="mt-1 text-xs font-medium text-medical-teal-dark"><%= appointment.status.humanize %></p>
+                <% balance = appointment_balances.fetch(appointment.id) %>
+                <% if balance[:balance_cents].negative? %>
+                  <p class="mt-1 text-xs font-semibold text-amber-700">Credit</p>
+                <% elsif balance[:charged_cents].zero? %>
+                  <p class="mt-1 text-xs font-semibold text-medical-muted">No charge</p>
+                <% elsif balance[:balance_cents].zero? %>
+                  <p class="mt-1 text-xs font-semibold text-medical-teal-dark">Paid</p>
+                <% elsif balance[:paid_cents].positive? %>
+                  <p class="mt-1 text-xs font-semibold text-amber-700">Part paid</p>
+                <% else %>
+                  <p class="mt-1 text-xs font-semibold text-red-700">Unpaid</p>
+                <% end %>
                 <% if appointment.reason.present? %>
                   <p class="mt-2 line-clamp-2 text-sm text-medical-muted"><%= appointment.reason %></p>
                 <% end %>

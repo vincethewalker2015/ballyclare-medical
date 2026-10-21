@@ -18,3 +18,6 @@ application.register("stripe-payment", StripePaymentController)
 
 import FormValidationController from "./form_validation_controller"
 application.register("form-validation", FormValidationController)
+
+import DiaryDatePickerController from "./diary_date_picker_controller"
+application.register("diary-date-picker", DiaryDatePickerController)

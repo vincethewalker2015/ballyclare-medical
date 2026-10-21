@@ -1,0 +1,40 @@
+<%# Today-only board: appointments grouped by clinician, ordered by start time. %>
+<% appointments_by_clinician = appointments.group_by(&:clinician_id) %>
+<% if clinicians.any? %>
+  <div class="overflow-x-auto">
+    <div class="grid min-w-[44rem] gap-px bg-medical-border" style="grid-template-columns: repeat(<%= clinicians.size %>, minmax(15rem, 1fr));">
+      <% clinicians.each do |clinician| %>
+        <% clinician_appointments = (appointments_by_clinician[clinician.id] || []).sort_by { |appointment| appointment.appointment_slot.starts_at } %>
+        <section class="min-w-0 bg-white" aria-label="<%= clinician.full_name %> appointments">
+          <header class="sticky top-0 z-10 border-b border-medical-border bg-medical-cream px-4 py-4">
+            <h3 class="font-semibold text-medical-navy"><%= clinician.full_name %></h3>
+            <p class="mt-1 text-xs text-medical-muted"><%= pluralize(clinician_appointments.size, "appointment") %></p>
+          </header>
+          <div class="space-y-3 p-3">
+            <% clinician_appointments.each do |appointment| %>
+              <% starts_at = appointment.appointment_slot.starts_at.in_time_zone(practice_timezone) %>
+              <% ends_at = appointment.appointment_slot.ends_at.in_time_zone(practice_timezone) %>
+              <%= link_to practice_appointment_path(appointment),
+                class: "block rounded-xl border border-medical-border bg-white p-4 shadow-sm transition hover:border-medical-teal hover:bg-medical-teal-soft focus:outline-none focus:ring-2 focus:ring-medical-teal",
+                data: { turbo_frame: "_top" } do %>
+                <p class="text-sm font-bold text-medical-navy"><%= starts_at.strftime("%H:%M") %>–<%= ends_at.strftime("%H:%M") %></p>
+                <p class="mt-2 font-semibold text-medical-navy"><%= appointment.patient.first_name %> <%= appointment.patient.last_name %></p>
+                <p class="mt-1 text-xs font-medium text-medical-teal-dark"><%= appointment.status.humanize %></p>
+                <% if appointment.reason.present? %>
+                  <p class="mt-2 line-clamp-2 text-sm text-medical-muted"><%= appointment.reason %></p>
+                <% end %>
+              <% end %>
+            <% end %>
+            <% if clinician_appointments.empty? %>
+              <p class="rounded-xl border border-dashed border-medical-border px-4 py-8 text-center text-sm text-medical-muted">No appointments today</p>
+            <% end %>
+          </div>
+        </section>
+      <% end %>
+    </div>
+  </div>
+<% else %>
+  <div class="px-6 py-12 text-center text-sm text-medical-muted">
+    No active clinicians are available for the diary.
+  </div>
+<% end %>

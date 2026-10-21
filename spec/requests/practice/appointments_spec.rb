@@ -845,6 +845,37 @@ RSpec.describe "Practice appointments", type: :request do
       sign_in user
     end
 
+    it "lets staff select an appointment date on the booking form" do
+      get new_practice_appointment_path
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body.at_css('input[type="date"][name="date"]')).to be_present
+    end
+
+    it "returns slots on the selected date even when earlier dates have twenty slots" do
+      selected_date = Time.use_zone(practice.timezone) { Time.zone.today + 3.days }
+      selected_start = Time.use_zone(practice.timezone) do
+        Time.zone.local(selected_date.year, selected_date.month, selected_date.day, 9)
+      end
+      availability = AvailabilityBlock.create!(
+        practice: practice, clinician: clinician,
+        starts_at: selected_start, ends_at: selected_start + 30.minutes,
+        slot_duration_minutes: 30, bookable_online: true
+      )
+      selected_slot = AppointmentSlot.create!(
+        practice: practice, clinician: clinician, availability_block: availability,
+        starts_at: selected_start, ends_at: selected_start + 30.minutes
+      )
+
+      get available_slots_practice_appointments_path,
+          params: { clinician_id: clinician.id, date: selected_date.iso8601 },
+          headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include(selected_slot.id)
+      expect(response.body).not_to include(active_slot.id)
+    end
+
     it "returns slots from active availability only" do
       get available_slots_practice_appointments_path,
           params: { clinician_id: clinician.id },

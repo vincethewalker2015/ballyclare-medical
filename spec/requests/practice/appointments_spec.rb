@@ -290,6 +290,41 @@ RSpec.describe "Practice appointments", type: :request do
         expect(diary.text).not_to include("Fully paid completed consultation")
       end
 
+      it "aligns appointments on the visual diary using practice-local time" do
+        Time.use_zone(practice.timezone) do
+          today = Time.zone.now.beginning_of_day
+
+          create_diary_appointment(
+            starts_at: today + 9.hours,
+            reason: "Morning timeline appointment"
+          )
+          create_diary_appointment(
+            starts_at: today + 11.hours,
+            reason: "Later timeline appointment"
+          )
+        end
+
+        get practice_appointments_path(view: "today", layout: "board")
+
+        expect(response).to have_http_status(:success)
+        diary = response.parsed_body.at_css("turbo-frame#appointment_diary_list")
+        cards = diary.css("a[data-diary-appointment]")
+        expect(cards.size).to eq(2)
+        expect(cards.map { |card| card["data-start"] }).to eq(%w[09:00 11:00])
+        expect(cards.map { |card| card["style"] }).to all(include("height: 45.0px"))
+        expect(cards.first["style"]).to include("top: 90.0px")
+        expect(cards.last["style"]).to include("top: 270.0px")
+        expect(diary.text).to include("Morning timeline appointment", "Later timeline appointment")
+      end
+
+      it "retains the list layout when selected" do
+        get practice_appointments_path(view: "today", layout: "list")
+
+        expect(response).to have_http_status(:success)
+        expect(response.parsed_body.at_css("turbo-frame#appointment_diary_list")).to be_present
+        expect(response.body).to include("No appointments today")
+      end
+
       it "shows today's appointments by default" do
         Time.use_zone(practice.timezone) do
           today = Time.zone.now.beginning_of_day

@@ -70,7 +70,7 @@
           <%= form.label :date, "Appointment date", class: "mb-2 block text-sm font-semibold text-medical-navy" %>
           <%= form.date_field :date,
             value: @booking_date.iso8601,
-            min: Time.use_zone(current_practice.timezone) { Time.zone.today.iso8601 },
+            min: @booking_date.iso8601,
             data: { appointment_booking_target: "date", action: "change->appointment-booking#loadSlots" },
             class: "rounded-xl border border-medical-border bg-white px-4 py-3 text-base text-medical-ink" %>
         </div>

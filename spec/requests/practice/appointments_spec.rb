@@ -335,6 +335,22 @@ RSpec.describe "Practice appointments", type: :request do
         expect(response.body).to include("No appointments on this date")
       end
 
+      it "offers date selection in a dialog without previous and next day links" do
+        get practice_appointments_path
+
+        expect(response).to have_http_status(:success)
+        page = response.parsed_body
+        trigger = page.at_css('button[data-action="click->diary-date-picker#open"]')
+        dialog = page.at_css('dialog#diary-date-dialog')
+        expect(trigger).to be_present
+        expect(trigger["aria-controls"]).to eq("diary-date-dialog")
+        expect(dialog).to be_present
+        expect(dialog.at_css('input[type="date"][name="date"]')).to be_present
+        expect(dialog.at_css('input[type="hidden"][name="view"]')["value"]).to eq("date")
+        expect(dialog.at_css('input[type="submit"][value="Show diary"]')).to be_present
+        expect(response.body).not_to include("Previous day", "Next day")
+      end
+
       it "shows tomorrow's appointments on the visual diary" do
         Time.use_zone(practice.timezone) do
           tomorrow = Time.zone.today + 1.day

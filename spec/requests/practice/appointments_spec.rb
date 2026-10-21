@@ -40,20 +40,17 @@ RSpec.describe "Practice appointments", type: :request do
         expect(response).to have_http_status(:success)
       end
 
-      it "navigates to booking outside the empty diary Turbo frame" do
+      it "shows a single booking link in the page header, outside the diary Turbo frame" do
         get practice_appointments_path
 
-        diary = Nokogiri::HTML(response.body)
-          .at_css("turbo-frame#appointment_diary_list")
-
+        page = response.parsed_body
+        diary = page.at_css("turbo-frame#appointment_diary_list")
         expect(diary).to be_present
 
-        booking_link = diary.css("a").find do |link|
-          link["href"] == new_practice_appointment_path
-        end
-
-        expect(booking_link).to be_present
-        expect(booking_link["data-turbo-frame"]).to eq("_top")
+        booking_links = page.css("a[href='#{new_practice_appointment_path}']")
+        expect(booking_links.size).to eq(1)
+        expect(booking_links.first.ancestors("header")).to be_present
+        expect(diary.css("a[href='#{new_practice_appointment_path}']")).to be_empty
       end
     end
 
@@ -288,6 +285,139 @@ RSpec.describe "Practice appointments", type: :request do
         expect(diary.text).to include("No outstanding payments")
         expect(diary.text).not_to include("No appointments today")
         expect(diary.text).not_to include("Fully paid completed consultation")
+      end
+
+      it "aligns appointments on the visual diary using practice-local time" do
+        Time.use_zone(practice.timezone) do
+          today = Time.zone.now.beginning_of_day
+
+          create_diary_appointment(
+            starts_at: today + 9.hours,
+            reason: "Morning timeline appointment"
+          )
+          create_diary_appointment(
+            starts_at: today + 11.hours,
+            reason: "Later timeline appointment"
+          )
+        end
+
+        get practice_appointments_path(view: "today", layout: "board")
+
+        expect(response).to have_http_status(:success)
+        diary = response.parsed_body.at_css("turbo-frame#appointment_diary_list")
+        cards = diary.css("a[data-diary-appointment]")
+        expect(cards.size).to eq(2)
+        expect(cards.map { |card| card["data-start"] }).to eq(%w[09:00 11:00])
+        expect(cards.map { |card| card["style"] }).to all(include("height: 105.0px"))
+        expect(cards.first["style"]).to include("top: 210.0px")
+        expect(cards.last["style"]).to include("top: 630.0px")
+        expect(diary.text).to include("Morning timeline appointment", "Later timeline appointment")
+      end
+
+      it "provides readable card height for fifteen-minute appointments" do
+        appointment = nil
+        Time.use_zone(practice.timezone) do
+          appointment = create_diary_appointment(
+            starts_at: Time.zone.today.beginning_of_day + 9.hours,
+            reason: "Short consultation"
+          )
+        end
+        appointment.appointment_slot.update!(ends_at: appointment.appointment_slot.starts_at + 15.minutes)
+
+        get practice_appointments_path(view: "today", layout: "board")
+
+        expect(response).to have_http_status(:success)
+        card = response.parsed_body.at_css("a[data-diary-appointment]")
+        expect(card["style"]).to include("height: 52.5px")
+        expect(card.text).to include("Diary Patient", "Booked")
+        expect(card["title"]).to include("09:00–09:15", "Short consultation")
+      end
+
+      it "uses compact clinician columns with a visible time axis" do
+        clinician
+
+        get practice_appointments_path(view: "today", layout: "board")
+
+        expect(response).to have_http_status(:success)
+        diary = response.parsed_body.at_css("turbo-frame#appointment_diary_list")
+        expect(diary.at_css('[aria-label="Time of day"]')).to be_present
+        expect(diary.at_css(".sticky.left-0.w-16")).to be_present
+        expect(diary.at_css('section[aria-label="Alex Morgan appointments"].w-48')).to be_present
+        expect(diary.at_css('h3[title="Alex Morgan"].truncate')).to be_present
+      end
+
+      it "retains the list layout when selected" do
+        get practice_appointments_path(view: "today", layout: "list")
+
+        expect(response).to have_http_status(:success)
+        expect(response.parsed_body.at_css("turbo-frame#appointment_diary_list")).to be_present
+        expect(response.body).to include("No appointments on this date")
+      end
+
+      it "offers date selection in a dialog without previous and next day links" do
+        get practice_appointments_path
+
+        expect(response).to have_http_status(:success)
+        page = response.parsed_body
+        trigger = page.at_css('button[data-action="click->diary-date-picker#open"]')
+        dialog = page.at_css("dialog#diary-date-dialog")
+        expect(trigger).to be_present
+        expect(trigger["aria-controls"]).to eq("diary-date-dialog")
+        expect(dialog).to be_present
+        expect(dialog.at_css('input[type="date"][name="date"]')).to be_present
+        expect(dialog.at_css('input[type="hidden"][name="view"]')["value"]).to eq("date")
+        expect(dialog.at_css('input[type="submit"][value="Show diary"]')).to be_present
+        expect(response.body).not_to include("Previous day", "Next day")
+      end
+
+      it "shows tomorrow's appointments on the visual diary" do
+        Time.use_zone(practice.timezone) do
+          tomorrow = Time.zone.today + 1.day
+          create_diary_appointment(
+            starts_at: Time.zone.local(tomorrow.year, tomorrow.month, tomorrow.day, 14),
+            reason: "Tomorrow diary consultation"
+          )
+        end
+
+        get practice_appointments_path(view: "tomorrow")
+
+        expect(response).to have_http_status(:success)
+        diary = response.parsed_body.at_css("turbo-frame#appointment_diary_list")
+        expect(diary.text).to include("Tomorrow diary consultation")
+        expect(diary.at_css('a[data-diary-appointment][data-start="14:00"]')).to be_present
+      end
+
+      it "shows a selected future date without including other dates" do
+        selected_date = nil
+        Time.use_zone(practice.timezone) do
+          selected_date = Time.zone.today + 3.days
+          create_diary_appointment(
+            starts_at: Time.zone.local(selected_date.year, selected_date.month, selected_date.day, 11),
+            reason: "Selected date consultation"
+          )
+          next_date = selected_date + 1.day
+          create_diary_appointment(
+            starts_at: Time.zone.local(next_date.year, next_date.month, next_date.day, 11),
+            reason: "Different date consultation"
+          )
+        end
+
+        get practice_appointments_path(view: "date", date: selected_date.iso8601)
+
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include("Selected date consultation")
+        expect(response.body).not_to include("Different date consultation")
+        expect(response.parsed_body.at_css('input[type="date"]')["value"]).to eq(selected_date.iso8601)
+      end
+
+      it "preserves the selected date when switching to list layout" do
+        selected_date = Time.use_zone(practice.timezone) { Time.zone.today + 2.days }
+
+        get practice_appointments_path(view: "date", date: selected_date.iso8601, layout: "list")
+
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include("No appointments on this date")
+        expect(response.body).to include(selected_date.strftime("%A, %d %B %Y"))
       end
 
       it "shows today's appointments by default" do
@@ -732,6 +862,48 @@ RSpec.describe "Practice appointments", type: :request do
 
     before do
       sign_in user
+    end
+
+    it "lets staff select an appointment date on the booking form" do
+      get new_practice_appointment_path
+
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body.at_css('input[type="date"][name="date"]')).to be_present
+    end
+
+    it "returns slots on the selected date even when earlier dates have twenty slots" do
+      selected_date = Time.use_zone(practice.timezone) { Time.zone.today + 3.days }
+      selected_start = Time.use_zone(practice.timezone) do
+        Time.zone.local(selected_date.year, selected_date.month, selected_date.day, 9)
+      end
+      availability = AvailabilityBlock.create!(
+        practice: practice, clinician: clinician,
+        starts_at: selected_start, ends_at: selected_start + 30.minutes,
+        slot_duration_minutes: 30, bookable_online: true
+      )
+      selected_slot = AppointmentSlot.create!(
+        practice: practice, clinician: clinician, availability_block: availability,
+        starts_at: selected_start, ends_at: selected_start + 30.minutes
+      )
+
+      get available_slots_practice_appointments_path,
+          params: { clinician_id: clinician.id, date: selected_date.iso8601 },
+          headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include(selected_slot.id)
+      expect(response.body).not_to include(active_slot.id)
+    end
+
+    it "provides a scrollable list of available appointment times" do
+      selected_date = Time.use_zone(practice.timezone) { Time.zone.today + 1.day }
+
+      get available_slots_practice_appointments_path,
+          params: { clinician_id: clinician.id, date: selected_date.iso8601 },
+          headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("overflow-y-auto", "Available appointment times")
     end
 
     it "returns slots from active availability only" do

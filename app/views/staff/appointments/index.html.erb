@@ -24,7 +24,7 @@
     <% end %>
   </header>
 
-  <section class="overflow-hidden rounded-2xl border border-medical-border bg-white shadow-sm">
+  <section class="overflow-hidden rounded-2xl border border-medical-border bg-white shadow-sm" data-controller="diary-date-picker">
       <div class="border-b border-medical-border px-6 py-5">
         <div class="grid grid-cols-1 items-end gap-5 sm:grid-cols-[minmax(0,1fr)_auto] 2xl:grid-cols-[minmax(0,1fr)_auto_auto]">
           <div class="min-w-0">
@@ -42,6 +42,7 @@
             aria-label="Appointment diary">
             <% [
               ["Today", "today"],
+              ["Tomorrow", "tomorrow"],
               ["Upcoming", "upcoming"],
               ["Past", "past"],
               ["Payment due", "payment_due"]
@@ -49,7 +50,9 @@
               <%= link_to label,
                 practice_appointments_path(
                   view: view,
-                  clinician_id: @selected_clinician&.id
+                  clinician_id: @selected_clinician&.id,
+                  layout: @diary_layout,
+                  date: (view == "date" ? @diary_date&.iso8601 : nil)
                 ),
                 class: class_names(
                   "rounded-lg px-4 py-2 text-sm font-semibold transition",
@@ -60,11 +63,21 @@
                   current: (@diary_view == view ? "page" : nil)
                 } %>
             <% end %>
+            <button type="button"
+              data-action="click->diary-date-picker#open"
+              aria-haspopup="dialog"
+              aria-controls="diary-date-dialog"
+              class="<%= class_names("rounded-lg px-4 py-2 text-sm font-semibold transition", "bg-white text-medical-navy shadow-sm" => @diary_view == "date", "text-medical-muted hover:text-medical-navy" => @diary_view != "date") %>"
+              <%= 'aria-current="page"'.html_safe if @diary_view == "date" %>>
+              Choose date
+            </button>
           </nav>
           <%= form_with url: practice_appointments_path,
               method: :get,
               class: "flex flex-wrap items-end gap-3 sm:col-start-2 sm:row-start-1 2xl:col-start-3" do |form| %>
             <%= form.hidden_field :view, value: @diary_view %>
+            <%= form.hidden_field :layout, value: @diary_layout %>
+            <%= form.hidden_field :date, value: @diary_date.iso8601 if @diary_view == "date" %>
 
             <div class="space-y-1.5">
               <%= form.label :clinician_id,
@@ -90,7 +103,56 @@
         </div>
       </div>
 
+    <% if %w[today tomorrow date].include?(@diary_view) %>
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-medical-border px-6 py-4">
+        <p class="text-sm text-medical-muted">
+          <%= @diary_date.strftime("%A, %d %B %Y") %>
+          · <%= pluralize(@appointments.size, "appointment") %>
+        </p>
+        <div class="flex flex-wrap items-center gap-3">
+          <nav class="inline-flex rounded-lg bg-medical-cream p-1" aria-label="Diary layout">
+          <% [["Visual diary", "board"], ["List", "list"]].each do |label, layout| %>
+            <%= link_to label,
+              practice_appointments_path(view: @diary_view, date: (@diary_view == "date" ? @diary_date.iso8601 : nil), clinician_id: @selected_clinician&.id, layout: layout),
+              class: class_names(
+                "rounded-md px-3 py-2 text-sm font-semibold",
+                "bg-white text-medical-navy shadow-sm" => @diary_layout == layout,
+                "text-medical-muted hover:text-medical-navy" => @diary_layout != layout
+              ),
+              aria: { current: (@diary_layout == layout ? "page" : nil) } %>
+          <% end %>
+          </nav>
+        </div>
+      </div>
+    <% end %>
+
+    <dialog id="diary-date-dialog" data-diary-date-picker-target="dialog"
+      aria-labelledby="diary-date-title"
+      class="m-auto w-[calc(100%-2rem)] max-w-sm rounded-2xl border border-medical-border bg-white p-6 shadow-xl backdrop:bg-medical-navy/40">
+      <h3 id="diary-date-title" class="text-lg font-semibold text-medical-navy">Choose diary date</h3>
+      <%= form_with url: practice_appointments_path, method: :get, class: "mt-5 space-y-4" do |form| %>
+        <%= form.hidden_field :view, value: "date" %>
+        <%= form.hidden_field :layout, value: @diary_layout %>
+        <%= form.hidden_field :clinician_id, value: @selected_clinician&.id %>
+        <div class="space-y-2">
+          <%= form.label :date, "Diary date", class: "block text-sm font-semibold text-medical-navy" %>
+          <%= form.date_field :date, value: @diary_date.iso8601, required: true, class: "w-full rounded-lg border border-medical-border px-3 py-2" %>
+        </div>
+        <div class="flex justify-end gap-3">
+          <button type="button" data-action="click->diary-date-picker#close" class="rounded-lg border border-medical-border px-4 py-2 text-sm font-semibold text-medical-navy">Cancel</button>
+          <%= form.submit "Show diary", class: "cursor-pointer rounded-lg bg-medical-navy px-4 py-2 text-sm font-semibold text-white" %>
+        </div>
+      <% end %>
+    </dialog>
+
     <%= turbo_frame_tag "appointment_diary_list" do %>
+    <% if %w[today tomorrow date].include?(@diary_view) && @diary_layout == "board" %>
+      <%= render "staff/appointments/diary_board",
+        appointments: @appointments,
+        clinicians: @selected_clinician ? [@selected_clinician] : @clinicians,
+        appointment_balances: @appointment_balances,
+        practice_timezone: @practice.timezone %>
+    <% else %>
       <% if @appointments.any? %>
         <div class="divide-y divide-medical-border">
           <% @appointments.each do |appointment| %>
@@ -229,23 +291,19 @@
               </p>
             <% else %>
               <h3 class="text-base font-semibold text-medical-navy">
-                No appointments today
+                No appointments on this date
               </h3>
 
               <p class="mt-2 text-sm leading-6 text-medical-muted">
-                There are no appointments scheduled for today.
+                There are no appointments scheduled for this date.
               </p>
             <% end %>
 
-            <% if @current_staff_member.operational_access? %>
-            <%= link_to "Book appointment",
-              new_practice_appointment_path,
-              data: { turbo_frame: "_top" },
-              class: "mt-6 inline-flex items-center justify-center rounded-full bg-medical-navy px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-medical-navy-deep" %>
-            <% end %>
+
           </div>
         </div>
       <% end %>
+    <% end %>
     <% end %>
   </section>
 </div>

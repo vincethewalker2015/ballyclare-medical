@@ -1,6 +1,8 @@
 <%= turbo_frame_tag "available_appointment_slots" do %>
   <% if appointment_slots.any? %>
-    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <p class="mb-3 text-sm text-medical-muted"><%= pluralize(appointment_slots.size, "available time") %> · Scroll to see more</p>
+    <div class="max-h-80 overflow-y-auto overscroll-contain rounded-xl border border-medical-border p-2" tabindex="0" aria-label="Available appointment times">
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <% appointment_slots.each do |slot| %>
         <% local_starts_at = slot.starts_at.in_time_zone(practice_timezone) %>
 
@@ -22,6 +24,7 @@
             </span>
         </label>
         <% end %>
+      </div>
     </div>
   <% else %>
     <div class="rounded-xl border border-medical-border bg-medical-cream px-5 py-4">

@@ -88,7 +88,9 @@ production:
   primary: &primary_production
     <<: *default
     # Render provides the PostgreSQL host, database, and credentials.
-    url: <%= ENV.fetch("DATABASE_URL") %>
+    <% if ENV["DATABASE_URL"] %>
+    url: <%= ENV["DATABASE_URL"] %>
+    <% end %>
   cache:
     <<: *primary_production
     database: ballyclare_medical_production_cache

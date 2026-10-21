@@ -3,7 +3,7 @@ module Staff
     before_action :require_operational_access, except: %i[index show]
     def index
       @practice = current_practice
-      @diary_view = params[:view].presence_in(%w[today upcoming past payment_due]) || "today"
+      @diary_view = params[:view].presence_in(%w[today tomorrow date upcoming past payment_due]) || "today"
       @diary_layout = params[:layout].presence_in(%w[board list]) || "board"
 
       @clinicians = current_practice
@@ -22,6 +22,20 @@ module Staff
       Time.use_zone(current_practice.timezone) do
         today_start = Time.zone.now.beginning_of_day
         tomorrow_start = today_start + 1.day
+        @diary_date = case @diary_view
+        when "tomorrow"
+          Time.zone.today + 1.day
+        when "date"
+          begin
+            Date.iso8601(params[:date].to_s)
+          rescue Date::Error
+            Time.zone.today
+          end
+        else
+          Time.zone.today
+        end
+        selected_start = Time.zone.local(@diary_date.year, @diary_date.month, @diary_date.day)
+        selected_end = selected_start + 1.day
 
         appointments = current_practice
           .appointments
@@ -52,7 +66,7 @@ module Staff
             appointments
               .where(
                 appointment_slots: {
-                  starts_at: today_start...tomorrow_start
+                  starts_at: selected_start...selected_end
                 }
               )
               .order("appointment_slots.starts_at ASC")

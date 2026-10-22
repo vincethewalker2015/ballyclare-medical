@@ -54,6 +54,38 @@ RSpec.describe "Practice appointments", type: :request do
       end
     end
 
+    context "clinician diary access" do
+      let(:other_clinician) { create(:staff_member, practice: practice, staff_type: "doctor") }
+      let(:own_appointment) { create(:appointment, practice: practice, clinician: staff_member) }
+      let(:other_appointment) { create(:appointment, practice: practice, clinician: other_clinician) }
+
+      before do
+        staff_member.update!(staff_type: "doctor", access_level: "staff_clinician")
+        sign_in user
+        own_appointment
+        other_appointment
+      end
+
+      %w[today tomorrow date upcoming past payment_due].each do |view|
+        it "limits #{view} to the current clinician" do
+          get practice_appointments_path(view: view, clinician_id: other_clinician.id)
+          expect(response).to have_http_status(:success)
+          expect(response.body).not_to include("All clinicians")
+          expect(response.body).not_to include(other_clinician.full_name)
+        end
+      end
+
+      it "blocks another clinician appointment detail" do
+        get practice_appointment_path(other_appointment)
+        expect(response).to have_http_status(:forbidden)
+      end
+
+      it "allows own appointment detail" do
+        get practice_appointment_path(own_appointment)
+        expect(response).to have_http_status(:success)
+      end
+    end
+
     context "when the user is not signed in" do
       it "redirects to sign in" do
         get practice_appointments_path

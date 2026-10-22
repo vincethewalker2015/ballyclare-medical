@@ -81,10 +81,10 @@ production:
     url: <%= ENV.fetch("DATABASE_URL") %>
   cache:
     <<: *primary_production
-    migrations_paths: db/cache_migrate
+    database_tasks: false
   queue:
     <<: *primary_production
-    migrations_paths: db/queue_migrate
+    database_tasks: false
   cable:
     <<: *primary_production
-    migrations_paths: db/cable_migrate
+    database_tasks: false

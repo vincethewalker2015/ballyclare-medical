@@ -63,8 +63,9 @@ Make sure PostgreSQL is running, then execute:
 
 ```bash
 bin/rails db:prepare
-RAILS_ENV=test bin/rails db:prepare
 ```
+
+For this project, the standard preparation command also prepares the test database; there is no need to run a separate test-environment command during initial setup.
 
 `db:prepare` creates the database if needed and loads the schema or applies pending migrations. It is safe to rerun for ordinary development updates; **do not use `db:reset`** unless you deliberately want to discard local data.
 
@@ -89,15 +90,16 @@ This starts the Rails server and JavaScript/CSS watchers through Foreman (see `P
 In a separate terminal, from the project directory:
 
 ```bash
-RAILS_ENV=test bin/rails db:prepare
 bundle exec rspec
 ```
+
+If the test database needs repairing or preparing separately, run `RAILS_ENV=test bin/rails db:prepare` before retrying.
 
 To run one spec file, use `bundle exec rspec spec/path/to/file_spec.rb`.
 
 ### Subsequent development sessions
 
-Start PostgreSQL if it is not already running, then run `bin/dev`. After pulling changes that modify dependencies, rerun `bundle install` and `yarn install --immutable`. After pulling database migrations, run `bin/rails db:prepare` and `RAILS_ENV=test bin/rails db:prepare`.
+Start PostgreSQL if it is not already running, then run `bin/dev`. After pulling changes that modify dependencies, rerun `bundle install` and `yarn install --immutable`. After pulling database migrations, run `bin/rails db:prepare`. Use `RAILS_ENV=test bin/rails db:prepare` separately only if the test database needs attention.
 
 ### Common setup problems
 

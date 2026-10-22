@@ -32,11 +32,21 @@ module Booking
         end
       end
 
-      Turbo::StreamsChannel.broadcast_action_to(
-        [ appointment.practice, :appointments ],
-        action: :refresh,
-        target: "appointment_diary_list"
-      )
+      # The appointment and charge are committed above. A failure in the
+      # optional live diary refresh must not turn a successful booking into
+      # an HTTP 500 (which could prompt staff to book the slot again).
+      begin
+        Turbo::StreamsChannel.broadcast_action_to(
+          [ appointment.practice, :appointments ],
+          action: :refresh,
+          target: "appointment_diary_list"
+        )
+      rescue StandardError => error
+        Rails.logger.error(
+          "Appointment #{appointment.id} saved, but diary broadcast failed: " \
+          "#{error.class}: #{error.message}"
+        )
+      end
 
       appointment
     end

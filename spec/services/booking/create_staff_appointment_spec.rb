@@ -28,6 +28,18 @@ RSpec.describe Booking::CreateStaffAppointment do
       ).call
     end
 
+    it "returns a successful booking even if the live diary broadcast fails" do
+      allow(Turbo::StreamsChannel).to receive(:broadcast_action_to)
+        .and_raise(ArgumentError, "No unique index found for id")
+
+      expect { call_service }.to change(Appointment, :count).by(1)
+        .and change(AppointmentCharge, :count).by(1)
+
+      appointment = Appointment.last
+      expect(appointment.status).to eq("booked")
+      expect(appointment.appointment_charges.sole.amount_cents).to eq(5000)
+    end
+
     it "creates an appointment without requiring payment" do
       expect { call_service }
         .to change(Appointment, :count)

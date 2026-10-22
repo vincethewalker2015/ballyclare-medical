@@ -6,6 +6,26 @@ module Staff
     def status
       payment = @appointment.payments.find(params[:payment_id])
 
+      if payment.status == "processing" &&
+         payment.provider == "stripe" &&
+         payment.provider_payment_id.present? &&
+         payment.updated_at <= 5.seconds.ago
+        begin
+          intent = Stripe::PaymentIntent.retrieve(payment.provider_payment_id)
+
+          case intent.status
+          when "succeeded"
+            Payments::HandleSucceeded.new(payment_intent: intent).call
+          when "canceled"
+            Payments::ReconcileAppointmentPayment.new(payment: payment).call
+          end
+
+          payment.reload
+        rescue Stripe::StripeError => error
+          Rails.logger.warn("Payment status reconciliation unavailable: #{error.class}")
+        end
+      end
+
       if payment.status.in?(%w[pending processing])
         head :no_content
         return

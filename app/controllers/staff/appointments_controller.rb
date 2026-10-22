@@ -11,7 +11,8 @@ module Staff
         .where(staff_type: %w[doctor nurse], active: true)
         .order(:last_name, :first_name)
 
-      @selected_clinician_id = params[:clinician_id].presence
+      @clinician_only_diary = current_staff_member.access_level == "staff_clinician"
+      @selected_clinician_id = @clinician_only_diary ? current_staff_member.id : params[:clinician_id].presence
 
       if @selected_clinician_id.present?
         @selected_clinician = @clinicians.find(
@@ -96,6 +97,10 @@ module Staff
           appointment_status_changes: :changed_by
         )
         .find(params[:id])
+
+      if current_staff_member.access_level == "staff_clinician" && @appointment.clinician_id != current_staff_member.id
+        return head :forbidden
+      end
 
       @refunds_by_status = Refund
         .joins(:payment)

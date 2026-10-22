@@ -55,7 +55,7 @@ RSpec.describe "Practice appointments", type: :request do
     end
 
     context "clinician diary access" do
-      let(:other_clinician) { create(:staff_member, practice: practice, staff_type: "doctor") }
+      let(:other_clinician) { create(:staff_member, practice: practice, staff_type: "doctor", first_name: "Jamie", last_name: "Taylor") }
       let(:own_appointment) { create(:appointment, practice: practice, clinician: staff_member) }
       let(:other_appointment) { create(:appointment, practice: practice, clinician: other_clinician) }
 
@@ -70,8 +70,11 @@ RSpec.describe "Practice appointments", type: :request do
         it "limits #{view} to the current clinician" do
           get practice_appointments_path(view: view, clinician_id: other_clinician.id)
           expect(response).to have_http_status(:success)
+          diary = response.parsed_body.at_css("turbo-frame#appointment_diary_list")
+          expect(diary).to be_present
+          expect(response.parsed_body.at_css('select[name="clinician_id"]')).to be_nil
+          expect(diary.text).not_to include(other_clinician.full_name)
           expect(response.body).not_to include("All clinicians")
-          expect(response.body).not_to include(other_clinician.full_name)
         end
       end
 

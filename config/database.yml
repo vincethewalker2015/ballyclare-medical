@@ -72,34 +72,19 @@ test:
 # the values provided in this file. Alternatively, you can specify a connection
 # URL environment variable explicitly:
 #
-#   production:
-#     url: <%= ENV["MY_APP_DATABASE_URL"] %>
-#
-# Connection URLs for non-primary databases can also be configured using
-# environment variables. The variable name is formed by concatenating the
-# connection name with `_DATABASE_URL`. For example:
-#
-#   CACHE_DATABASE_URL="postgres://cacheuser:cachepass@localhost/cachedatabase"
-#
-# Read https://guides.rubyonrails.org/configuring.html#configuring-a-database
-# for a full overview on how database connection configuration can be specified.
-#
+#   # Render provides one PostgreSQL database through DATABASE_URL. Keep the
+# primary, Solid Cache, Solid Queue and Solid Cable tables in that database.
+# Rails uses separate schema migration paths for each logical database.
 production:
   primary: &primary_production
     <<: *default
-    # Render provides the PostgreSQL host, database, and credentials.
-    <% if ENV["DATABASE_URL"] %>
-    url: <%= ENV["DATABASE_URL"] %>
-    <% end %>
+    url: <%= ENV.fetch("DATABASE_URL") %>
   cache:
     <<: *primary_production
-    database: ballyclare_medical_production_cache
-    migrations_paths: db/cache_migrate
+    database_tasks: false
   queue:
     <<: *primary_production
-    database: ballyclare_medical_production_queue
-    migrations_paths: db/queue_migrate
+    database_tasks: false
   cable:
     <<: *primary_production
-    database: ballyclare_medical_production_cable
-    migrations_paths: db/cable_migrate
+    database_tasks: false

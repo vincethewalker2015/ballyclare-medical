@@ -25,7 +25,7 @@
       </div>
       <% clinicians.each do |clinician| %>
         <% clinician_appointments = (appointments_by_clinician[clinician.id] || []).sort_by { |appointment| appointment.appointment_slot.starts_at } %>
-        <section class="w-48 shrink-0 border-r border-medical-border" aria-label="<%= clinician.full_name %> appointments">
+        <section class="<%= clinician_only_diary ? "w-96" : "w-48" %> shrink-0 border-r border-medical-border" aria-label="<%= clinician.full_name %> appointments">
           <header class="sticky top-0 z-10 flex h-[73px] flex-col justify-center border-b border-medical-border bg-medical-cream px-4">
             <h3 class="truncate font-semibold text-medical-navy" title="<%= clinician.full_name %>"><%= clinician.full_name %></h3>
             <p class="mt-1 text-xs text-medical-muted"><%= pluralize(clinician_appointments.size, "appointment") %></p>

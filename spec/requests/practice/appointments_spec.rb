@@ -78,6 +78,16 @@ RSpec.describe "Practice appointments", type: :request do
         end
       end
 
+      it "uses a wider diary column for clinician access" do
+        get practice_appointments_path(view: "today", layout: "board")
+
+        expect(response).to have_http_status(:success)
+        column = response.parsed_body.at_css("section[aria-label='#{staff_member.full_name} appointments']")
+        expect(column).to be_present
+        expect(column["class"].split).to include("w-96")
+        expect(column["class"].split).not_to include("w-48")
+      end
+
       it "blocks another clinician appointment detail" do
         get practice_appointment_path(other_appointment)
         expect(response).to have_http_status(:forbidden)

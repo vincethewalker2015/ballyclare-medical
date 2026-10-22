@@ -54,6 +54,51 @@ RSpec.describe "Practice appointments", type: :request do
       end
     end
 
+    context "clinician diary access" do
+      let(:other_clinician) { create(:staff_member, practice: practice, staff_type: "doctor", first_name: "Jamie", last_name: "Taylor") }
+      let(:own_appointment) { create(:appointment, practice: practice, clinician: staff_member) }
+      let(:other_appointment) { create(:appointment, practice: practice, clinician: other_clinician) }
+
+      before do
+        staff_member.update!(staff_type: "doctor", access_level: "staff_clinician")
+        sign_in user
+        own_appointment
+        other_appointment
+      end
+
+      %w[today tomorrow date upcoming past payment_due].each do |view|
+        it "limits #{view} to the current clinician" do
+          get practice_appointments_path(view: view, clinician_id: other_clinician.id)
+          expect(response).to have_http_status(:success)
+          diary = response.parsed_body.at_css("turbo-frame#appointment_diary_list")
+          expect(diary).to be_present
+          expect(response.parsed_body.at_css('select[name="clinician_id"]')).to be_nil
+          expect(diary.text).not_to include(other_clinician.full_name)
+          expect(response.body).not_to include("All clinicians")
+        end
+      end
+
+      it "uses a wider diary column for clinician access" do
+        get practice_appointments_path(view: "today", layout: "board")
+
+        expect(response).to have_http_status(:success)
+        column = response.parsed_body.at_css("section[aria-label='#{staff_member.full_name} appointments']")
+        expect(column).to be_present
+        expect(column["class"].split).to include("w-96")
+        expect(column["class"].split).not_to include("w-48")
+      end
+
+      it "blocks another clinician appointment detail" do
+        get practice_appointment_path(other_appointment)
+        expect(response).to have_http_status(:forbidden)
+      end
+
+      it "allows own appointment detail" do
+        get practice_appointment_path(own_appointment)
+        expect(response).to have_http_status(:success)
+      end
+    end
+
     context "when the user is not signed in" do
       it "redirects to sign in" do
         get practice_appointments_path

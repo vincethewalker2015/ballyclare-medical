@@ -72,6 +72,7 @@
               Choose date
             </button>
           </nav>
+          <% unless @clinician_only_diary %>
           <%= form_with url: practice_appointments_path,
               method: :get,
               class: "flex flex-wrap items-end gap-3 sm:col-start-2 sm:row-start-1 2xl:col-start-3" do |form| %>
@@ -99,6 +100,7 @@
 
             <%= form.submit "Apply",
                             class: "cursor-pointer rounded-xl bg-medical-navy px-4 py-2 text-sm font-semibold text-white transition hover:bg-medical-navy-deep" %>
+          <% end %>
           <% end %>
         </div>
       </div>
@@ -151,7 +153,8 @@
         appointments: @appointments,
         clinicians: @selected_clinician ? [@selected_clinician] : @clinicians,
         appointment_balances: @appointment_balances,
-        practice_timezone: @practice.timezone %>
+        practice_timezone: @practice.timezone,
+        clinician_only_diary: @clinician_only_diary %>
     <% else %>
       <% if @appointments.any? %>
         <div class="divide-y divide-medical-border">

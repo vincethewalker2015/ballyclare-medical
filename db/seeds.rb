@@ -43,26 +43,26 @@ puts "Existing account passwords have not been changed."
 # Fictional demonstration records only. Patient numbers are stable so this
 # script can safely run again without creating duplicate patients.
 demo_patients = [
-  ["DEMO-P001", "Amelia", "Bennett", "1986-04-18", "Ms"],
-  ["DEMO-P002", "Oliver", "Clarke", "1974-11-09", "Mr"],
-  ["DEMO-P003", "Isla", "Campbell", "1995-06-22", "Ms"],
-  ["DEMO-P004", "Noah", "Hughes", "2002-01-15", "Mr"],
-  ["DEMO-P005", "Grace", "Mitchell", "1958-08-03", "Mrs"],
-  ["DEMO-P006", "Leo", "Anderson", "1989-12-27", "Mr"],
-  ["DEMO-P007", "Freya", "Roberts", "2011-02-14", "Miss"],
-  ["DEMO-P008", "Arthur", "Evans", "1949-09-05", "Mr"],
-  ["DEMO-P009", "Sophie", "Turner", "1992-05-30", "Ms"],
-  ["DEMO-P010", "Henry", "Cooper", "1967-03-12", "Mr"],
-  ["DEMO-P011", "Ella", "Morgan", "2007-10-21", "Miss"],
-  ["DEMO-P012", "Jack", "Stewart", "1981-07-08", "Mr"],
-  ["DEMO-P013", "Ruby", "Wilson", "1979-02-26", "Ms"],
-  ["DEMO-P014", "Oscar", "Patel", "1998-09-17", "Mr"],
-  ["DEMO-P015", "Mia", "Thompson", "1963-01-04", "Mrs"],
-  ["DEMO-P016", "George", "Walker", "1955-12-02", "Mr"],
-  ["DEMO-P017", "Ava", "Reid", "2017-05-11", "Miss"],
-  ["DEMO-P018", "Thomas", "Kelly", "1990-06-29", "Mr"],
-  ["DEMO-P019", "Emily", "Brown", "1983-03-06", "Ms"],
-  ["DEMO-P020", "Daniel", "Murphy", "1971-11-23", "Mr"]
+  [ "DEMO-P001", "Amelia", "Bennett", "1986-04-18", "Ms" ],
+  [ "DEMO-P002", "Oliver", "Clarke", "1974-11-09", "Mr" ],
+  [ "DEMO-P003", "Isla", "Campbell", "1995-06-22", "Ms" ],
+  [ "DEMO-P004", "Noah", "Hughes", "2002-01-15", "Mr" ],
+  [ "DEMO-P005", "Grace", "Mitchell", "1958-08-03", "Mrs" ],
+  [ "DEMO-P006", "Leo", "Anderson", "1989-12-27", "Mr" ],
+  [ "DEMO-P007", "Freya", "Roberts", "2011-02-14", "Miss" ],
+  [ "DEMO-P008", "Arthur", "Evans", "1949-09-05", "Mr" ],
+  [ "DEMO-P009", "Sophie", "Turner", "1992-05-30", "Ms" ],
+  [ "DEMO-P010", "Henry", "Cooper", "1967-03-12", "Mr" ],
+  [ "DEMO-P011", "Ella", "Morgan", "2007-10-21", "Miss" ],
+  [ "DEMO-P012", "Jack", "Stewart", "1981-07-08", "Mr" ],
+  [ "DEMO-P013", "Ruby", "Wilson", "1979-02-26", "Ms" ],
+  [ "DEMO-P014", "Oscar", "Patel", "1998-09-17", "Mr" ],
+  [ "DEMO-P015", "Mia", "Thompson", "1963-01-04", "Mrs" ],
+  [ "DEMO-P016", "George", "Walker", "1955-12-02", "Mr" ],
+  [ "DEMO-P017", "Ava", "Reid", "2017-05-11", "Miss" ],
+  [ "DEMO-P018", "Thomas", "Kelly", "1990-06-29", "Mr" ],
+  [ "DEMO-P019", "Emily", "Brown", "1983-03-06", "Ms" ],
+  [ "DEMO-P020", "Daniel", "Murphy", "1971-11-23", "Mr" ]
 ]
 
 demo_patients.each do |number, first_name, last_name, birth_date, title|

@@ -153,7 +153,8 @@
         appointments: @appointments,
         clinicians: @selected_clinician ? [@selected_clinician] : @clinicians,
         appointment_balances: @appointment_balances,
-        practice_timezone: @practice.timezone %>
+        practice_timezone: @practice.timezone,
+        clinician_only_diary: @clinician_only_diary %>
     <% else %>
       <% if @appointments.any? %>
         <div class="divide-y divide-medical-border">

@@ -9,6 +9,14 @@ RSpec.describe Billing::ConsultationPrice do
     expect(described_class.new(practice: practice, clinician: clinician).call).to eq(fee)
   end
 
+  it "uses the nurse fee rather than the doctor fee for a nurse" do
+    create(:consultation_fee, practice: practice, clinician_type: "doctor", amount_cents: 6500)
+    nurse_fee = create(:consultation_fee, practice: practice, clinician_type: "nurse", amount_cents: 4000)
+    nurse = create(:staff_member, practice: practice, staff_type: "nurse")
+
+    expect(described_class.new(practice: practice, clinician: nurse).call).to eq(nurse_fee)
+  end
+
   it "refuses to use another practice's fee" do
     create(:consultation_fee, practice: practice)
     clinician.update!(practice: create(:practice))

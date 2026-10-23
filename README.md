@@ -1,7 +1,135 @@
-# README
+# Ballyclare Medical
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+A Ruby on Rails medical practice application using PostgreSQL, Hotwire, and Stripe integration.
+
+## Local development: first-time setup
+
+These instructions are for a developer setting up a **local desktop or laptop**, especially macOS. They do not connect to the Render production database.
+
+### 1. Install prerequisites
+
+Install Git, PostgreSQL, Ruby **4.0.2** (see `.ruby-version`), and Node.js **22.22.3** (see `.node-version`). Use a Ruby version manager such as rbenv or mise and a Node version manager such as nvm or mise. Install Bundler if it is not already available.
+
+On macOS, Homebrew can install PostgreSQL (`brew install postgresql`; choose a supported version appropriate for your machine), Git and the version managers. **Start PostgreSQL** before preparing the database (for Homebrew installations, use `brew services start postgresql@VERSION` with your installed version). Confirm the commands below work:
+
+```bash
+ruby -v
+node -v
+bundle -v
+psql --version
+git --version
+```
+
+If your PostgreSQL user cannot create local databases, configure a local PostgreSQL role with `CREATEDB` privileges. The application's development and test database names are `ballyclare_medical_development` and `ballyclare_medical_test`, respectively.
+
+### 2. Clone the repository
+
+```bash
+git clone https://github.com/vincethewalker2015/ballyclare-medical.git
+cd ballyclare-medical
+```
+
+### 3. Install Ruby dependencies
+
+```bash
+bundle install
+```
+
+### 4. Install JavaScript dependencies (Yarn 4 via Corepack)
+
+**Yes, Corepack is required for this setup.** The `packageManager` field in `package.json` specifies **Yarn 4.16.0**, which is not compatible with a globally installed Yarn 1.x executable. Run these commands from the project directory:
+
+```bash
+corepack enable
+corepack prepare yarn@4.16.0 --activate
+yarn install --immutable
+```
+
+If `corepack` is not found, install or enable Corepack for your Node.js installation, then rerun these commands. Check with `yarn --version` (expected: `4.16.0`). The `--immutable` option ensures the lockfile is not silently changed.
+
+### 5. Configure local environment variables
+
+The repository does not currently include an `.env.example` file, so `cp .env.example .env.development` will fail on a fresh clone.
+
+Create a local environment file instead:
+
+```bash
+touch .env.development
+```
+
+Open `.env.development` in your editor and add only the values you need. **Stripe credentials are optional for initial setup:** you do not need `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, or `STRIPE_WEBHOOK_SECRET` just to prepare the database, start the application, or run the mocked automated tests.
+
+For optional Stripe sandbox testing, obtain your own test-mode keys from your Stripe account. To test local webhooks, start the Stripe CLI listener described in [Stripe development setup](#stripe-development-setup) and copy the `whsec_...` signing secret it prints into `STRIPE_WEBHOOK_SECRET` in `.env.development`. Restart Rails after changing the secret. Never copy credentials from Render or another developer's listener.
+
+Do **not** create an empty `.env.example` as part of routine setup; that file would only be useful if the project deliberately adds a tracked, credential-free template later.
+
+Never commit secrets or real patient information. **Do not set `DATABASE_URL` to the Render production database on your laptop.** The default local database settings in `config/database.yml` use PostgreSQL locally.
+
+### 6. Prepare the development and test databases
+
+Make sure PostgreSQL is running, then execute:
+
+```bash
+bin/rails db:prepare
+```
+
+For this project, the standard preparation command also prepares the test database; there is no need to run a separate test-environment command during initial setup.
+
+`db:prepare` creates the database if needed and loads the schema or applies pending migrations. It is safe to rerun for ordinary development updates; **do not use `db:reset`** unless you deliberately want to discard local data.
+
+For a **disposable local demonstration database only**, optionally create the four demo staff accounts and 20 fictional patients:
+
+```bash
+DEMO_SEEDS=true bin/rails db:seed
+```
+
+Demo accounts use the initial password `Password`; they must never be seeded into a database containing real patient data. This is not a production setup step.
+
+### 7. Build JavaScript and CSS assets
+
+On a fresh checkout, generate the assets that Rails and the test suite expect:
+
+```bash
+yarn build
+yarn build:css
+```
+
+The CSS command generates `app/assets/builds/application.css`. Without this file, request and view specs can fail with `Propshaft::MissingAssetError: The asset 'application.css' was not found in the load path`. `bin/dev` runs asset watchers during development, but build the assets explicitly before running the tests on a new machine.
+
+### 8. Start the application
+
+```bash
+bin/dev
+```
+
+This starts the Rails server and JavaScript/CSS watchers through Foreman (see `Procfile.dev`). Open [http://localhost:3000](http://localhost:3000). If Foreman is not installed, `bin/dev` attempts to install it; you may need to run `gem install foreman` manually if permissions prevent this.
+
+### 9. Run the tests
+
+In a separate terminal, from the project directory:
+
+```bash
+bundle exec rspec
+```
+
+If the test database needs repairing or preparing separately, run `RAILS_ENV=test bin/rails db:prepare` before retrying.
+
+To run one spec file, use `bundle exec rspec spec/path/to/file_spec.rb`.
+
+### Subsequent development sessions
+
+Start PostgreSQL if it is not already running, then run `bin/dev`. After pulling changes that modify dependencies, rerun `bundle install` and `yarn install --immutable`. After pulling changes to JavaScript or CSS dependencies or source files, rerun `yarn build` and `yarn build:css` as needed. After pulling database migrations, run `bin/rails db:prepare`. Use `RAILS_ENV=test bin/rails db:prepare` separately only if the test database needs attention.
+
+### Common setup problems
+
+- **`packageManager: yarn@4.16.0` but Yarn 1.x runs:** enable Corepack and rerun the three commands in step 4.
+- **`Propshaft::MissingAssetError` for `application.css`:** run `yarn build` and `yarn build:css` from the project directory, then rerun the specs.
+- **PostgreSQL connection refused:** start the local PostgreSQL service; verify your PostgreSQL user and connection settings.
+- **`Cannot load database configuration: key not found: DATABASE_URL`:** pull the latest `main` changes. Local tests should not require Render's `DATABASE_URL`.
+- **RSpec reports pending migrations or schema errors:** run `RAILS_ENV=test bin/rails db:prepare`.
+- **`bin/setup` uses an older Yarn install command:** prefer the explicit instructions above; do not use `bin/setup --reset` unless you intend to delete local database contents.
+
+---
 
 ## Payments
 
@@ -51,11 +179,11 @@ real Stripe requests.
 
 Development credentials are loaded using `dotenv-rails`.
 
-Copy the example environment configuration:
+Create a local environment file if you have not already done so (see [local development setup](#5-configure-local-environment-variables)):
 
-    cp .env.example .env.development
+    touch .env.development
 
-Add your Stripe test secret key:
+Add your Stripe test secret key when testing Stripe integration:
 
     STRIPE_SECRET_KEY=your_test_secret_key
 

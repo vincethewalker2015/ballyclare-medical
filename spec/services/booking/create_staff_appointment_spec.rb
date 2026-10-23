@@ -18,13 +18,14 @@ RSpec.describe Booking::CreateStaffAppointment do
     end
     let(:booked_by) { create(:user) }
 
+    before { create(:consultation_fee, practice: practice, amount_cents: 5000) }
+
     subject(:call_service) do
       described_class.new(
         appointment_slot: appointment_slot,
         patient: patient,
         booked_by: booked_by,
         reason: "Routine consultation",
-        amount_cents: 5000
       ).call
     end
 
@@ -153,7 +154,6 @@ RSpec.describe Booking::CreateStaffAppointment do
         patient: other_patient,
         booked_by: booked_by,
         reason: "Routine consultation",
-        amount_cents: 5000
       )
 
       expect { service.call }
@@ -183,13 +183,18 @@ RSpec.describe Booking::CreateStaffAppointment do
 
       expect(appointment.payments).to be_empty
     end
+    it "uses the configured clinician-type fee, not a caller amount" do
+      appointment = call_service
+      expect(appointment.appointment_charges.sole.amount_cents).to eq(5000)
+    end
+
     it "rolls back the appointment when the initial charge cannot be created" do
+      practice.consultation_fees.first.update_columns(amount_cents: 0)
       service = described_class.new(
         appointment_slot: appointment_slot,
         patient: patient,
         booked_by: booked_by,
-        reason: "Routine consultation",
-        amount_cents: 0
+        reason: "Routine consultation"
       )
 
       expect { service.call }
@@ -230,7 +235,6 @@ RSpec.describe Booking::CreateStaffAppointment do
             appointment_slot: appointment_slot,
             patient: patient,
             booked_by: booked_by,
-            amount_cents: 6_500
           ).call
         }.to raise_error(
           Booking::CreateStaffAppointment::SlotUnavailable,

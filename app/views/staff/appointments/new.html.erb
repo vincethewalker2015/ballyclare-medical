@@ -126,10 +126,17 @@
         </div>
 
         <div class="rounded-xl border border-medical-border bg-medical-cream px-5 py-4">
-          <p class="text-sm font-semibold text-medical-navy">Consultation fees</p>
-          <p class="mt-1 text-sm text-medical-muted">The configured fee for the selected clinician type is applied automatically when you book.</p>
-          <% @fees_by_type.each do |type, fee| %>
-            <p class="mt-2 text-sm text-medical-muted"><%= type.titleize %>: <%= number_to_currency(fee.amount_cents / 100.0, unit: fee.currency == "GBP" ? "£" : "#{fee.currency} ") %></p>
+          <p class="text-sm font-semibold text-medical-navy">Consultation fee</p>
+          <p class="mt-1 text-sm text-medical-muted">The fee for your selected clinician is applied automatically when you book.</p>
+          <p class="mt-2 text-sm font-semibold text-medical-navy"
+             data-appointment-booking-target="fee"
+             aria-live="polite">Select a clinician to see the consultation fee.</p>
+          <% @clinicians.each do |clinician| %>
+            <% fee = @fees_by_type[clinician.staff_type] %>
+            <span hidden
+                  data-appointment-booking-target="feeOption"
+                  data-clinician-id="<%= clinician.id %>"
+                  data-fee-label="<%= fee ? number_to_currency(fee.amount_cents / 100.0, unit: fee.currency == "GBP" ? "£" : "#{fee.currency} ") : "Consultation fee not configured" %>"></span>
           <% end %>
         </div>
 

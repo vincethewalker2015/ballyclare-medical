@@ -77,7 +77,18 @@ DEMO_SEEDS=true bin/rails db:seed
 
 Demo accounts use the initial password `Password`; they must never be seeded into a database containing real patient data. This is not a production setup step.
 
-### 7. Start the application
+### 7. Build JavaScript and CSS assets
+
+On a fresh checkout, generate the assets that Rails and the test suite expect:
+
+```bash
+yarn build
+yarn build:css
+```
+
+The CSS command generates `app/assets/builds/application.css`. Without this file, request and view specs can fail with `Propshaft::MissingAssetError: The asset 'application.css' was not found in the load path`. `bin/dev` runs asset watchers during development, but build the assets explicitly before running the tests on a new machine.
+
+### 8. Start the application
 
 ```bash
 bin/dev
@@ -85,7 +96,7 @@ bin/dev
 
 This starts the Rails server and JavaScript/CSS watchers through Foreman (see `Procfile.dev`). Open [http://localhost:3000](http://localhost:3000). If Foreman is not installed, `bin/dev` attempts to install it; you may need to run `gem install foreman` manually if permissions prevent this.
 
-### 8. Run the tests
+### 9. Run the tests
 
 In a separate terminal, from the project directory:
 
@@ -99,11 +110,12 @@ To run one spec file, use `bundle exec rspec spec/path/to/file_spec.rb`.
 
 ### Subsequent development sessions
 
-Start PostgreSQL if it is not already running, then run `bin/dev`. After pulling changes that modify dependencies, rerun `bundle install` and `yarn install --immutable`. After pulling database migrations, run `bin/rails db:prepare`. Use `RAILS_ENV=test bin/rails db:prepare` separately only if the test database needs attention.
+Start PostgreSQL if it is not already running, then run `bin/dev`. After pulling changes that modify dependencies, rerun `bundle install` and `yarn install --immutable`. After pulling changes to JavaScript or CSS dependencies or source files, rerun `yarn build` and `yarn build:css` as needed. After pulling database migrations, run `bin/rails db:prepare`. Use `RAILS_ENV=test bin/rails db:prepare` separately only if the test database needs attention.
 
 ### Common setup problems
 
 - **`packageManager: yarn@4.16.0` but Yarn 1.x runs:** enable Corepack and rerun the three commands in step 4.
+- **`Propshaft::MissingAssetError` for `application.css`:** run `yarn build` and `yarn build:css` from the project directory, then rerun the specs.
 - **PostgreSQL connection refused:** start the local PostgreSQL service; verify your PostgreSQL user and connection settings.
 - **`Cannot load database configuration: key not found: DATABASE_URL`:** pull the latest `main` changes. Local tests should not require Render's `DATABASE_URL`.
 - **RSpec reports pending migrations or schema errors:** run `RAILS_ENV=test bin/rails db:prepare`.

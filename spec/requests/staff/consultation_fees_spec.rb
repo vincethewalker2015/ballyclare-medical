@@ -18,7 +18,7 @@ RSpec.describe "Staff consultation fees", type: :request do
     }
 
     expect(response).to redirect_to(edit_practice_consultation_fees_path)
-    expect(practice.consultation_fees.order(:clinician_type).pluck(:amount_cents)).to eq([6500, 4000])
+    expect(practice.consultation_fees.order(:clinician_type).pluck(:amount_cents)).to eq([ 6500, 4000 ])
     expect(AuditEvent.where(action: "consultation_fee.updated").count).to eq(2)
   end
 

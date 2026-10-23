@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_23_110000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_23_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -162,6 +162,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_23_110000) do
     t.index ["encounter_id"], name: "index_clinical_notes_on_encounter_id"
     t.index ["patient_id", "created_at"], name: "index_clinical_notes_on_patient_id_and_created_at"
     t.index ["patient_id"], name: "index_clinical_notes_on_patient_id"
+  end
+
+  create_table "consultation_fees", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "practice_id", null: false
+    t.string "clinician_type", null: false
+    t.integer "amount_cents", null: false
+    t.string "currency", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["practice_id", "clinician_type"], name: "index_consultation_fees_on_practice_id_and_clinician_type", unique: true
+    t.index ["practice_id"], name: "index_consultation_fees_on_practice_id"
+    t.check_constraint "amount_cents > 0", name: "consultation_fees_positive_amount"
+    t.check_constraint "clinician_type::text = ANY (ARRAY['doctor'::character varying, 'nurse'::character varying]::text[])", name: "consultation_fees_clinician_type"
   end
 
   create_table "encounters", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -537,6 +550,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_23_110000) do
   add_foreign_key "clinical_notes", "encounters"
   add_foreign_key "clinical_notes", "patients"
   add_foreign_key "clinical_notes", "staff_members", column: "author_id"
+  add_foreign_key "consultation_fees", "practices"
   add_foreign_key "encounters", "appointments"
   add_foreign_key "encounters", "patients"
   add_foreign_key "encounters", "practices"

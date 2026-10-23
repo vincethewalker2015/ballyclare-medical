@@ -337,6 +337,5 @@ module Staff
 
       render :new, status: :unprocessable_content
     end
-
   end
 end

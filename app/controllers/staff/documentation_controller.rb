@@ -8,7 +8,8 @@ module Staff
 
       renderer = Redcarpet::Render::HTML.new(
         filter_html: true,
-        safe_links_only: true
+        safe_links_only: true,
+        with_toc_data: true
       )
 
       @manual_html = Redcarpet::Markdown.new(

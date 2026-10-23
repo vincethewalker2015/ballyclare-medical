@@ -18,6 +18,7 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
   scope "/practice", module: "staff", as: "practice" do
+  resource :consultation_fees, only: %i[edit update], controller: "consultation_fees"
   resources :patients, only: %i[index show new create edit update]
   resources :staff_members, only: %i[index new create edit update] do
     member do

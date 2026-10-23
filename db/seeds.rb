@@ -14,7 +14,7 @@ accounts = [
   { email: "senior.admin@example.com", first_name: "Alex", last_name: "Morgan", staff_type: "administrator", access_level: "senior_staff_admin" },
   { email: "staff.admin@example.com", first_name: "Sam", last_name: "Taylor", staff_type: "administrator", access_level: "staff_admin" },
   { email: "doctor@example.com", first_name: "Olivia", last_name: "Carter", staff_type: "doctor", access_level: "staff_clinician" },
-  { email: "nurse@example.com", first_name: "Sarah", last_name: "Wilson", staff_type: "doctor", access_level: "staff_clinician" },
+  { email: "nurse@example.com", first_name: "Sarah", last_name: "Wilson", staff_type: "nurse", access_level: "staff_clinician" },
   { email: "staff@example.com", first_name: "Ronelle", last_name: "Oosthuizen", staff_type: "administrator", access_level: "staff" }
 ]
 

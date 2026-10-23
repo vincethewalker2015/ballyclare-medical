@@ -1,0 +1,24 @@
+<% content_for :title, "Consultation fees | Ballyclare Medical" %>
+<div class="mx-auto max-w-3xl">
+  <div class="mb-8">
+    <p class="text-sm font-semibold uppercase tracking-[0.16em] text-medical-teal">Administration</p>
+    <h1 class="mt-2 text-3xl font-semibold text-medical-navy">Consultation fees</h1>
+    <p class="mt-2 text-sm text-medical-muted">Set your practice's standard consultation fees. Changes apply to new bookings only; existing charges are unchanged.</p>
+  </div>
+  <div class="rounded-2xl border border-medical-border bg-white p-8 shadow-sm">
+    <%= form_with url: practice_consultation_fees_path, method: :patch do |form| %>
+      <div class="space-y-6">
+        <% ConsultationFee::CLINICIAN_TYPES.each do |type| %>
+          <div>
+            <%= form.label "consultation_fees_#{type}", "#{type.titleize} consultation (#{@current_practice.currency})", class: "mb-2 block text-sm font-semibold text-medical-navy" %>
+            <%= number_field_tag "consultation_fees[#{type}]",
+              (params.fetch(:consultation_fees, {}).permit(:doctor, :nurse)[type] || (@fees[type] && format("%.2f", @fees[type].amount_cents / 100.0)) || (@current_practice.currency == "GBP" && (type == "doctor" ? "65.00" : "40.00"))),
+              id: "consultation_fees_#{type}", min: "0.01", step: "0.01", required: true,
+              class: "block w-full max-w-xs rounded-xl border border-medical-border bg-white px-4 py-3 text-base text-medical-ink" %>
+          </div>
+        <% end %>
+        <%= form.submit "Save consultation fees", class: "cursor-pointer rounded-xl bg-medical-navy px-6 py-3 text-sm font-semibold text-white" %>
+      </div>
+    <% end %>
+  </div>
+</div>

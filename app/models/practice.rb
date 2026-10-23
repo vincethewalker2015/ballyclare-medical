@@ -1,4 +1,5 @@
 class Practice < ApplicationRecord
+  has_many :consultation_fees, dependent: :restrict_with_error
   has_many :patients, dependent: :restrict_with_error
   has_many :staff_members, dependent: :restrict_with_error
   has_many :availability_blocks, dependent: :restrict_with_error

@@ -7,14 +7,12 @@ module Booking
       appointment_slot:,
       patient:,
       booked_by:,
-      reason: nil,
-      amount_cents:
+      reason: nil
     )
       @appointment_slot = appointment_slot
       @patient = patient
       @booked_by = booked_by
       @reason = reason
-      @amount_cents = amount_cents
     end
 
     def call
@@ -56,8 +54,7 @@ module Booking
     attr_reader :appointment_slot,
                 :patient,
                 :booked_by,
-                :reason,
-                :amount_cents
+                :reason
 
     def create_appointment!
       Appointment.create!(
@@ -76,7 +73,7 @@ module Booking
         appointment: appointment,
         description: reason.presence || "Appointment",
         charge_type: "appointment",
-        amount_cents: amount_cents,
+        amount_cents: Billing::ConsultationPrice.new(practice: appointment.practice, clinician: appointment.clinician).call.amount_cents,
         created_by: booked_by
       ).call
     end

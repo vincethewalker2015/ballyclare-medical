@@ -139,20 +139,6 @@ module Staff
         )
       end
 
-      if params[:charge_amount].blank?
-        return render_booking_error(
-          "Enter a consultation charge."
-        )
-      end
-
-      amount_cents = amount_to_cents(params[:charge_amount])
-
-      if amount_cents.nil?
-        return render_booking_error(
-          "Enter a valid consultation charge."
-        )
-      end
-
       patient = current_practice
         .patients
         .find(params[:patient_id])
@@ -165,12 +151,13 @@ module Staff
         appointment_slot: appointment_slot,
         patient: patient,
         booked_by: current_user,
-        amount_cents: amount_cents,
         reason: params[:reason].presence
       ).call
 
       redirect_to practice_appointment_path(appointment),
                   notice: "Appointment booked successfully."
+    rescue Billing::ConsultationPrice::Unavailable => error
+      render_booking_error(error.message)
     rescue Booking::CreateStaffAppointment::SlotUnavailable
       render_booking_error(
         "That appointment is no longer available. Please choose another time."
@@ -333,6 +320,7 @@ module Staff
     private
 
     def load_booking_options
+      @fees_by_type = current_practice.consultation_fees.index_by(&:clinician_type)
       @booking_date = Time.use_zone(current_practice.timezone) { Time.zone.today }
       @selected_patient = current_practice.patients.find_by(id: params[:patient_id]) if params[:patient_id].present?
 
@@ -348,16 +336,6 @@ module Staff
       flash.now[:alert] = message
 
       render :new, status: :unprocessable_content
-    end
-
-    def amount_to_cents(amount)
-      cents = (BigDecimal(amount.to_s) * 100).round.to_i
-
-      return nil if cents.negative?
-
-      cents
-    rescue ArgumentError
-      nil
     end
   end
 end

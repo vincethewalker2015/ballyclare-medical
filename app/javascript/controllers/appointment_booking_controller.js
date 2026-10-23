@@ -2,9 +2,30 @@ import { Controller } from "@hotwired/stimulus";
 import { Turbo } from "@hotwired/turbo-rails";
 
 export default class extends Controller {
-  static targets = ["clinician", "date"];
+  static targets = ["clinician", "date", "fee", "feeOption"];
+
+  connect() {
+    this.updateFee();
+    this.refreshFeeOnPageShow = () => this.updateFee();
+    window.addEventListener("pageshow", this.refreshFeeOnPageShow);
+  }
+
+  disconnect() {
+    window.removeEventListener("pageshow", this.refreshFeeOnPageShow);
+  }
+
+  updateFee() {
+    const selectedId = this.clinicianTarget.value;
+    const option = this.feeOptionTargets.find(
+      (element) => element.dataset.clinicianId === selectedId,
+    );
+    this.feeTarget.textContent = option
+      ? option.dataset.feeLabel
+      : "Select a clinician to see the consultation fee.";
+  }
 
   async loadSlots() {
+    this.updateFee();
     const clinicianId = this.clinicianTarget.value;
     const date = this.dateTarget.value;
     this.slotRequest?.abort();

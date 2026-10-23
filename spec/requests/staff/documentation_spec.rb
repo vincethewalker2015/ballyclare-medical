@@ -19,6 +19,21 @@ RSpec.describe "Staff user manual", type: :request do
     expect(response.body).to include("alt=")
   end
 
+  it "renders working contents anchors for manual sections" do
+    sign_in user
+
+    get user_manual_path
+
+    expect(response).to have_http_status(:success)
+    document = Nokogiri::HTML(response.body)
+    contents_link = document.at_css('a[href="#booking-an-appointment"]')
+
+    expect(contents_link).to be_present
+    expect(document.at_css("h2#booking-an-appointment")).to be_present
+    expect(document.at_css('a[href="#getting-started"]')).to be_present
+    expect(document.at_css("h2#getting-started")).to be_present
+  end
+
   it "serves a committed illustration to signed-in staff" do
     sign_in user
 

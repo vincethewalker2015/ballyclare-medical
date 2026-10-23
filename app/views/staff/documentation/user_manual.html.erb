@@ -19,7 +19,7 @@
     <%= sanitize(
           @manual_html,
           tags: %w[h1 h2 h3 h4 p ul ol li strong em a img code pre blockquote hr table thead tbody tr th td],
-          attributes: %w[href src alt title]
+          attributes: %w[href src alt title id]
         ) %>
   </article>
 </div>

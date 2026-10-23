@@ -5,22 +5,37 @@ Ballyclare Medical. It is being expanded as new features become available.
 
 ## Contents
 
-1. Getting Started
-2. Signing In
-3. Patients
-4. Appointment Diary
-5. Booking an Appointment
-6. Cancelling an Appointment
-7. Payments and Refunds
-8. Clinician Availability
-9. User and Staff Administration
-10. Troubleshooting
+- [Getting Started](#getting-started)
+- [Signing In](#signing-in)
+- [Patients](#patients)
+- [Appointment Diary](#appointment-diary)
+- [Booking an Appointment](#booking-an-appointment)
+- [Cancelling an Appointment](#cancelling-an-appointment)
+- [Payments and Refunds](#payments-and-refunds)
+- [Clinician Availability](#clinician-availability)
+- [User and Staff Administration](#user-and-staff-administration)
+- [Troubleshooting](#troubleshooting)
 
 ## Getting Started
 
 Ballyclare Medical supports day-to-day practice operations, including patients,
 clinician availability, appointments and payments. Some clinical and
 administrative features are still under development.
+
+## Signing In
+
+Sign in using your individual staff account and password. New staff
+members receive password-setting instructions when an administrator
+creates their account, provided outgoing email is configured. If you
+cannot remember your password, use **Forgot password?** on the sign-in
+page. Never share account credentials.
+
+## Patients
+
+Authorised operational staff can open **Patients** to search or browse
+records for their own practice, register a new patient, and view or edit
+existing patient details. See [Patient records](#patient-records) below
+for the registration fields and illustrated instructions.
 
 ## Appointment Diary
 
@@ -32,13 +47,37 @@ operational tasks.
 
 ## Booking an Appointment
 
-Authorised operational staff can book an available appointment for a patient, choose the clinician
-and appointment slot, and enter a consultation charge. The appointment page
-shows the recorded charge and any payments received.
+Staff Admins, Staff Clinicians and Senior Staff Admins can book appointments
+on behalf of patients. Basic Staff can view the diary but cannot book.
 
-For online bookings requiring payment, an appointment slot may be held
-temporarily while payment is completed. An expired hold does not permanently
-block the slot from being offered again.
+1. Open **Appointments** and select **Book appointment**.
+2. In the **Patient** field, start with **Select patient**. Click the field
+   to see up to five patients, or type a name or patient number to search.
+   Choose the correct matching patient from the results. Use the up/down
+   arrow keys and **Enter** to choose a result, or **Escape** to close the
+   suggestions. The search only returns patients in your practice.
+3. Select a **Clinician** (doctor or nurse).
+4. Choose the **Appointment date**. Available appointments for that
+   clinician and date appear below.
+5. Select an available appointment time.
+6. Optionally enter the **Reason for appointment**.
+7. Enter the **Consultation charge**. At present, staff enter the amount
+   when booking; centrally configured doctor/nurse consultation fees are
+   planned but are **not yet available**.
+8. Select **Book appointment**. The system creates the appointment and
+   its initial charge, then opens the appointment details.
+
+**Payment is optional for staff-assisted bookings.** The appointment can
+remain booked with an outstanding balance. Authorised staff may then take
+payment from the appointment page; a failed optional payment does not undo
+the already-created appointment.
+
+If the chosen time has become unavailable, choose another available slot.
+The server checks availability again when the booking is submitted.
+
+The existing backend also supports temporary appointment holds for
+payment-before-booking workflows. A patient-facing self-booking portal is
+**planned** and should not be confused with the current staff booking page.
 
 ## Cancelling an Appointment
 
@@ -283,6 +322,17 @@ Do not deactivate the last active Senior Staff Admin. If senior access is
 lost, contact an authorised platform operator for recovery.
 
 ## Troubleshooting
+
+**Cannot find a patient when booking:** Search by first name, surname or
+patient number. Only the first five matching results appear; type more of
+the name or number to narrow the list. If the patient has not yet been
+registered with your practice, an authorised staff member can add them
+through **Patients → New patient**.
+
+**Appointment time disappears or cannot be booked:** Another booking or
+temporary hold may have taken the slot. Choose another available time.
+Do not repeatedly submit the same appointment if a confirmation has
+already appeared; check the diary first.
 
 **Cannot sign in after deactivation:** If the account-inactive message
 appears after entering the correct password, contact your practice

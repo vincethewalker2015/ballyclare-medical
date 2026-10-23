@@ -25,7 +25,7 @@ RSpec.describe Booking::CreateStaffAppointment do
         appointment_slot: appointment_slot,
         patient: patient,
         booked_by: booked_by,
-        reason: "Routine consultation",
+        reason: "Routine consultation"
       ).call
     end
 
@@ -153,7 +153,7 @@ RSpec.describe Booking::CreateStaffAppointment do
         appointment_slot: appointment_slot,
         patient: other_patient,
         booked_by: booked_by,
-        reason: "Routine consultation",
+        reason: "Routine consultation"
       )
 
       expect { service.call }
@@ -234,7 +234,7 @@ RSpec.describe Booking::CreateStaffAppointment do
           described_class.new(
             appointment_slot: appointment_slot,
             patient: patient,
-            booked_by: booked_by,
+            booked_by: booked_by
           ).call
         }.to raise_error(
           Booking::CreateStaffAppointment::SlotUnavailable,

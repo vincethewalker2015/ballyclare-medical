@@ -21,3 +21,6 @@ application.register("form-validation", FormValidationController)
 
 import DiaryDatePickerController from "./diary_date_picker_controller"
 application.register("diary-date-picker", DiaryDatePickerController)
+
+import PatientPickerController from "./patient_picker_controller"
+application.register("patient-picker", PatientPickerController)

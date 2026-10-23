@@ -177,6 +177,25 @@ module Staff
       )
     end
 
+    def search_patients
+      term = params[:q].to_s.strip
+      patients = current_practice.patients.order(:last_name, :first_name, :id)
+      if term.present?
+        pattern = "%#{ActiveRecord::Base.sanitize_sql_like(term)}%"
+        patients = patients.where(
+          "first_name ILIKE :term OR last_name ILIKE :term OR patient_number ILIKE :term OR CONCAT(first_name, ' ', last_name) ILIKE :term OR CONCAT(last_name, ', ', first_name) ILIKE :term",
+          term: pattern
+        )
+      end
+
+      render json: patients.limit(5).map { |patient|
+        {
+          id: patient.id,
+          label: "#{patient.last_name}, #{patient.first_name} — #{patient.patient_number}"
+        }
+      }
+    end
+
     def available_slots
       now = Time.current
 
@@ -315,9 +334,7 @@ module Staff
 
     def load_booking_options
       @booking_date = Time.use_zone(current_practice.timezone) { Time.zone.today }
-      @patients = current_practice
-        .patients
-        .order(:last_name, :first_name)
+      @selected_patient = current_practice.patients.find_by(id: params[:patient_id]) if params[:patient_id].present?
 
       @clinicians = current_practice
         .staff_members

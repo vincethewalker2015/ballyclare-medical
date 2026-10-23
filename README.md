@@ -53,7 +53,11 @@ If `corepack` is not found, install or enable Corepack for your Node.js installa
 cp .env.example .env.development
 ```
 
-If `.env.example` is unavailable, create `.env.development` yourself. Add Stripe **test-mode** credentials only when you need to exercise payments or webhooks; see [Stripe development setup](#stripe-development-setup) below. Never commit secrets or real patient information.
+If `.env.example` is unavailable, create `.env.development` yourself. **Stripe credentials are optional for initial setup:** you do not need `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, or `STRIPE_WEBHOOK_SECRET` just to prepare the database, start the application, or run the mocked automated tests.
+
+To test real Stripe sandbox payment requests locally, configure the relevant Stripe **test-mode** API keys. To receive and verify **local Stripe webhooks**, also run the Stripe CLI listener described in [Stripe development setup](#stripe-development-setup) and copy the `whsec_...` signing secret it prints into `STRIPE_WEBHOOK_SECRET` in `.env.development`. Each developer should use the secret for their own active listener, not a secret copied from another laptop or Render. Restart Rails after changing the webhook secret.
+
+Never commit secrets or real patient information.
 
 **Do not set `DATABASE_URL` to the Render production database on your laptop.** The default local database settings in `config/database.yml` use PostgreSQL locally.
 

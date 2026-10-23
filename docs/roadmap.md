@@ -1192,6 +1192,57 @@ backups, restore processes and production operational controls are assessed.
 
 ------------------------------------------------------------------------
 
+## Future Platform Reuse and Industry Adaptation
+
+**Status: Long-term architectural consideration — not part of the current delivery scope**
+
+Ballyclare Medical remains a healthcare-focused application. A future
+beauty, wellness or other appointment-based business could reuse parts of
+its scheduling, availability, booking, pricing, payments and notification
+infrastructure, but changing `StaffMember::STAFF_TYPES` alone would not
+make the application suitable for another industry.
+
+Medical assumptions currently also appear in staff permissions, clinician
+filters, consultation-fee validation and resolution, patient terminology,
+encounters, clinical notes and other workflows. Those assumptions should
+not be removed merely to make the current application appear generic.
+
+### Preferred approach
+
+- **Initially favour dedicated industry applications with reusable
+  components and patterns** over one configurable multi-industry product.
+- Keep the medical application's patient, clinical, privacy and
+  authorisation boundaries explicit. Generic booking functionality must
+  not accidentally grant access to healthcare information.
+- As shared services evolve, avoid unnecessary healthcare-specific
+  assumptions in availability, locking, booking, financial records,
+  payment processing and provider adapters.
+- Separate **staff profession or job title** from **access permissions**:
+  being a doctor, nurse, beautician or nail specialist does not itself
+  determine administrative authority.
+- Separate **bookable services** from **staff types**. A salon may price
+  manicures, facials and other treatments by service and duration rather
+  than by the profession of the person delivering them. A future service
+  catalogue may also be useful within healthcare.
+- Preserve practice/organisation boundaries, historical charge snapshots,
+  server-side pricing, auditability and concurrency guarantees in any
+  extracted reusable functionality.
+
+### Revisit later
+
+After the patient portal and core medical workflows are established,
+evaluate whether a separate industry-specific application should reuse
+selected components, or whether genuine demand justifies a configurable
+multi-industry platform. Any such decision needs an explicit review of
+data models, terminology, service catalogues, roles and permissions,
+industry-specific records, compliance, migration strategy and ongoing
+maintenance cost.
+
+**No immediate refactor or change to the current doctor/nurse consultation
+fee policy is proposed.**
+
+------------------------------------------------------------------------
+
 # Decisions to Preserve
 
 These decisions should not be casually changed without revisiting the
@@ -1253,6 +1304,13 @@ architectural reasoning.
     ``` text
     Medical Knowledge Base → Intelligent Search/Retrieval → AI Assistant
     ```
+
+19. **Ballyclare Medical remains healthcare-focused for now.**
+    Reuse generic booking, availability, pricing and payment components
+    where practical, but prefer dedicated industry applications before
+    attempting a configurable multi-industry platform. Keep professions,
+    permissions and bookable services distinct; revisit this only after
+    the patient portal and core medical workflows mature.
 
 ------------------------------------------------------------------------
 

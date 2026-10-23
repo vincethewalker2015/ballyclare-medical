@@ -858,8 +858,8 @@ RSpec.describe "Practice appointments", type: :request do
       page = response.parsed_body
       expect(page.css('[data-appointment-booking-target="fee"]').size).to eq(1)
       expect(page.at_css('[data-appointment-booking-target="fee"]').text).to include("Select a clinician")
-      expect(page.at_css('[data-clinician-id="' + doctor.id + '"]')['data-fee-label']).to eq("£65.00")
-      expect(page.at_css('[data-clinician-id="' + nurse.id + '"]')['data-fee-label']).to eq("£40.00")
+      expect(page.at_css('[data-clinician-id="' + doctor.id + '"]')["data-fee-label"]).to eq("£65.00")
+      expect(page.at_css('[data-clinician-id="' + nurse.id + '"]')["data-fee-label"]).to eq("£40.00")
       expect(page.css('[data-appointment-booking-target="feeOption"]').all? { |node| node["hidden"] }).to be(true)
     end
   end

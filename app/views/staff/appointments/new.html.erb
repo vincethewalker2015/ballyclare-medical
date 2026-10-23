@@ -35,15 +35,30 @@
                          "Patient",
                          class: "mb-2 block text-sm font-semibold text-medical-navy" %>
 
-          <%= render "shared/select_field",
-                     form: form,
-                     field: :patient_id,
-                     collection: @patients,
-                     value_method: :id,
-                     text_method: ->(patient) {
-                       "#{patient.last_name}, #{patient.first_name} — #{patient.patient_number}"
-                     },
-                     options: { prompt: "Select a patient" } %>
+          <div data-controller="patient-picker"
+               data-patient-picker-url-value="<%= search_patients_practice_appointments_path %>"
+               class="relative">
+            <%= form.hidden_field :patient_id,
+                  value: @selected_patient&.id,
+                  data: { patient_picker_target: "value" } %>
+            <input type="text"
+                   id="patient_search"
+                   role="combobox"
+                   aria-label="Select patient"
+                   aria-autocomplete="list"
+                   aria-expanded="false"
+                   aria-controls="patient-search-results"
+                   autocomplete="off"
+                   placeholder="Select patient"
+                   value="<%= @selected_patient && "#{@selected_patient.last_name}, #{@selected_patient.first_name} — #{@selected_patient.patient_number}" %>"
+                   data-patient-picker-target="input"
+                   data-action="input->patient-picker#search focus->patient-picker#search keydown->patient-picker#keyDown blur->patient-picker#blur"
+                   class="block w-full rounded-xl border border-medical-border bg-white px-4 py-3 text-base text-medical-ink shadow-sm outline-none transition placeholder:text-medical-muted focus:border-medical-teal focus:ring-4 focus:ring-medical-teal/10">
+            <ul id="patient-search-results"
+                role="listbox"
+                data-patient-picker-target="results"
+                class="absolute z-20 mt-1 hidden max-h-72 w-full overflow-y-auto rounded-xl border border-medical-border bg-white shadow-lg"></ul>
+          </div>
         </div>
 
         <div>

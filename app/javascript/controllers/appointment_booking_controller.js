@@ -4,12 +4,23 @@ import { Turbo } from "@hotwired/turbo-rails";
 export default class extends Controller {
   static targets = ["clinician", "date", "fee", "feeOption"];
 
-  connect() {\n    this.updateFee();\n  }
+  connect() {
+    this.updateFee();
+  }
 
-  updateFee() {\n    const selectedId = this.clinicianTarget.value;\n    const option = this.feeOptionTargets.find(\n      (element) => element.dataset.clinicianId === selectedId,\n    );\n    this.feeTarget.textContent = option\n      ? option.dataset.feeLabel\n      : "Select a clinician to see the consultation fee.";\n  }
+  updateFee() {
+    const selectedId = this.clinicianTarget.value;
+    const option = this.feeOptionTargets.find(
+      (element) => element.dataset.clinicianId === selectedId,
+    );
+    this.feeTarget.textContent = option
+      ? option.dataset.feeLabel
+      : "Select a clinician to see the consultation fee.";
+  }
 
   async loadSlots() {
-    this.updateFee();\n    const clinicianId = this.clinicianTarget.value;
+    this.updateFee();
+    const clinicianId = this.clinicianTarget.value;
     const date = this.dateTarget.value;
     this.slotRequest?.abort();
 

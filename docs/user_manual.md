@@ -61,9 +61,8 @@ on behalf of patients. Basic Staff can view the diary but cannot book.
    clinician and date appear below.
 5. Select an available appointment time.
 6. Optionally enter the **Reason for appointment**.
-7. Enter the **Consultation charge**. At present, staff enter the amount
-   when booking; centrally configured doctor/nurse consultation fees are
-   planned but are **not yet available**.
+7. Review the **Consultation fee** on the booking form. Practice administrators
+   configure fees by clinician type; the relevant price is applied automatically.
 8. Select **Book appointment**. The system creates the appointment and
    its initial charge, then opens the appointment details.
 

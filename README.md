@@ -49,17 +49,21 @@ If `corepack` is not found, install or enable Corepack for your Node.js installa
 
 ### 5. Configure local environment variables
 
+The repository does not currently include an `.env.example` file, so `cp .env.example .env.development` will fail on a fresh clone.
+
+Create a local environment file instead:
+
 ```bash
-cp .env.example .env.development
+touch .env.development
 ```
 
-If `.env.example` is unavailable, create `.env.development` yourself. **Stripe credentials are optional for initial setup:** you do not need `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, or `STRIPE_WEBHOOK_SECRET` just to prepare the database, start the application, or run the mocked automated tests.
+Open `.env.development` in your editor and add only the values you need. **Stripe credentials are optional for initial setup:** you do not need `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, or `STRIPE_WEBHOOK_SECRET` just to prepare the database, start the application, or run the mocked automated tests.
 
-To test real Stripe sandbox payment requests locally, configure the relevant Stripe **test-mode** API keys. To receive and verify **local Stripe webhooks**, also run the Stripe CLI listener described in [Stripe development setup](#stripe-development-setup) and copy the `whsec_...` signing secret it prints into `STRIPE_WEBHOOK_SECRET` in `.env.development`. Each developer should use the secret for their own active listener, not a secret copied from another laptop or Render. Restart Rails after changing the webhook secret.
+For optional Stripe sandbox testing, obtain your own test-mode keys from your Stripe account. To test local webhooks, start the Stripe CLI listener described in [Stripe development setup](#stripe-development-setup) and copy the `whsec_...` signing secret it prints into `STRIPE_WEBHOOK_SECRET` in `.env.development`. Restart Rails after changing the secret. Never copy credentials from Render or another developer's listener.
 
-Never commit secrets or real patient information.
+Do **not** create an empty `.env.example` as part of routine setup; that file would only be useful if the project deliberately adds a tracked, credential-free template later.
 
-**Do not set `DATABASE_URL` to the Render production database on your laptop.** The default local database settings in `config/database.yml` use PostgreSQL locally.
+Never commit secrets or real patient information. **Do not set `DATABASE_URL` to the Render production database on your laptop.** The default local database settings in `config/database.yml` use PostgreSQL locally.
 
 ### 6. Prepare the development and test databases
 

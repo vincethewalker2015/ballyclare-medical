@@ -125,22 +125,12 @@
           </p>
         </div>
 
-        <div>
-          <%= form.label :charge_amount,
-                         "Consultation charge",
-                         class: "mb-2 block text-sm font-semibold text-medical-navy" %>
-
-          <div class="max-w-xs">
-            <%= form.number_field :charge_amount,
-                                  min: 0,
-                                  step: "0.01",
-                                  placeholder: "0.00",
-                                  class: "block w-full rounded-xl border border-medical-border bg-white px-4 py-3 text-base text-medical-ink shadow-sm outline-none transition placeholder:text-medical-muted focus:border-medical-teal focus:ring-4 focus:ring-medical-teal/10" %>
-          </div>
-
-          <p class="mt-2 text-sm text-medical-muted">
-            Enter the consultation charge for this appointment.
-          </p>
+        <div class="rounded-xl border border-medical-border bg-medical-cream px-5 py-4">
+          <p class="text-sm font-semibold text-medical-navy">Consultation fees</p>
+          <p class="mt-1 text-sm text-medical-muted">The configured fee for the selected clinician type is applied automatically when you book.</p>
+          <% @fees_by_type.each do |type, fee| %>
+            <p class="mt-2 text-sm text-medical-muted"><%= type.titleize %>: <%= number_to_currency(fee.amount_cents / 100.0, unit: fee.currency == "GBP" ? "£" : "#{fee.currency} ") %></p>
+          <% end %>
         </div>
 
         <div class="flex items-center justify-end border-t border-medical-border pt-6">

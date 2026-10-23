@@ -6,6 +6,12 @@ export default class extends Controller {
 
   connect() {
     this.updateFee();
+    this.refreshFeeOnPageShow = () => this.updateFee();
+    window.addEventListener("pageshow", this.refreshFeeOnPageShow);
+  }
+
+  disconnect() {
+    window.removeEventListener("pageshow", this.refreshFeeOnPageShow);
   }
 
   updateFee() {

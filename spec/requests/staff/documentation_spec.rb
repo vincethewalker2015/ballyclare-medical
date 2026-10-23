@@ -29,9 +29,9 @@ RSpec.describe "Staff user manual", type: :request do
     contents_link = document.at_css('a[href="#booking-an-appointment"]')
 
     expect(contents_link).to be_present
-    expect(document.at_css('h2#booking-an-appointment')).to be_present
+    expect(document.at_css("h2#booking-an-appointment")).to be_present
     expect(document.at_css('a[href="#getting-started"]')).to be_present
-    expect(document.at_css('h2#getting-started')).to be_present
+    expect(document.at_css("h2#getting-started")).to be_present
   end
 
   it "serves a committed illustration to signed-in staff" do

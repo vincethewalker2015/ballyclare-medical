@@ -360,10 +360,22 @@ no provider-side payment exists.
 
 ## Phase 4 --- Staff Practice Interface
 
-**Status: Next**
+**Status: Substantially implemented — refinement and verification ongoing**
 
-Build the first complete user-facing vertical slice on top of the
-existing backend.
+The `/practice` workspace and the first staff booking vertical slice are now
+implemented. The original requirements below are retained as a reference;
+remaining work concerns fee configuration, fuller clinical workflows,
+accessibility/system-test coverage, and continued production hardening.
+
+**Verified delivery:** appointment diary (board/list and date filters), staff
+booking, searchable practice-scoped patient picker (maximum five results),
+clinician/slot selection, appointment details and lifecycle actions, charges,
+balances, and optional payment. The patient picker and Solid Cache migration
+were tested locally and deployed successfully to Render in October 2026.
+
+**Not yet complete:** staff-managed consultation-fee defaults and any remaining
+practice-dashboard/clinical navigation or end-to-end coverage gaps should be
+reviewed rather than presumed delivered.
 
 ### Initial practice workspace
 
@@ -427,9 +439,49 @@ Provide a single staff appointment screen showing:
 
 ## Phase 5 --- Patient Portal
 
-**Status: Planned**
+**Status: Next — design agreed, implementation not started**
 
-Create the `/portal` experience.
+Create the `/portal` experience. At the October 2026 review, no `/portal`
+routes or controllers were present. Devise registration views and a
+`User`–`Patient` association exist, but they are **not** a complete patient
+onboarding or identity-linking flow.
+
+### Patient registration and secure record linking
+
+- Patients can create a login, verify their email and complete a patient
+  profile appropriate to the configured practice/country.
+- Preserve separate `User` and `Patient` concepts: patients may exist
+  without logins, and user accounts must not silently create duplicate records.
+- Resolve which practice a new patient is registering with; avoid assuming a
+  single practice or using an arbitrary staff-associated practice.
+- Existing patient records require a secure, auditable account-linking process.
+  Matching names, birthdays or email addresses alone must **not** authorise
+  access to an existing medical record. Provide staff-assisted exception handling.
+- Confirm verification, privacy, anti-enumeration and abuse protections before
+  enabling public registration in a live healthcare setting.
+
+### Shared booking architecture (DRY)
+
+Staff and patient booking share **domain rules and services** for availability,
+slot validity, practice membership, concurrency control and authoritative fee
+resolution. They do not need identical controllers or identical transaction
+ordering. Extract common invariants carefully from the existing
+`Booking::CreateStaffAppointment`, `Booking::CreateAppointment` and
+`Payments::CompleteBooking` services while preserving their existing locking,
+idempotency and webhook/reconciliation guarantees.
+
+- **Staff route:** select patient and slot, resolve/show consultation fee,
+  create appointment plus charge, then optionally take payment or leave an
+  outstanding balance. Authorised staff may follow an explicit adjustment
+  policy; an amount from the browser is never trusted unconditionally.
+- **Patient route:** select consultation type/clinician and slot, resolve fee
+  server-side, acquire a temporary hold, take mandatory online payment, then
+  confirm/create the appointment only after verified payment success.
+- Patient self-booking does **not** expose an unpaid-booking option. Failed or
+  ambiguous payment outcomes must be reconciled safely and must not produce
+  duplicate bookings or leave unhandled financial transactions.
+- Both experiences rely on a shared source of truth for consultation fees;
+  neither hardcodes the price into JavaScript, controllers or payment forms.
 
 ### Patient dashboard
 
@@ -479,7 +531,13 @@ Planned capabilities include:
 
 ## Phase 6 --- Appointment Lifecycle and Clinical Workflow
 
-**Status: Planned**
+**Status: Partially implemented**
+
+Appointment transitions and status history have a staff-facing foundation.
+`Encounter` and `ClinicalNote` models also exist, but clinical consultation
+routes, documentation workflows, stricter clinical permissions and amendment/
+audit review remain future work. Do not equate existing models with a completed
+clinical-record feature.
 
 Formalise operational appointment transitions.
 
@@ -549,7 +607,30 @@ Future work should include:
 
 ## Phase 7 --- Charges, Services, and Practice Fee Catalogue
 
-**Status: Planned**
+**Status: Planned — initial consultation-fee configuration pulled forward**
+
+**Confirmed product decision (October 2026):** configure fees **per clinician
+type**, not per individual clinician. The initial Ballyclare Medical settings
+are **£65.00 for a doctor consultation** and **£40.00 for a nurse consultation**.
+These are *editable starting values*, not global platform defaults or constants.
+Only authorised practice staff may change them. Per-clinician overrides are out
+of scope for the initial implementation.
+
+Implement the consultation-fee settings **before** patient self-booking:
+
+- Store prices per practice and clinician type as integer minor currency units,
+  associated with the practice's configured currency.
+- Use a single server-side price resolution service for both staff and patient
+  flows; validate an active clinician's type and practice membership.
+- Show the current fee before patient payment and revalidate it at checkout;
+  define an explicit policy for price changes during a temporary hold.
+- Snapshot the amount, currency and meaningful description in the booking's
+  financial records so later fee edits never rewrite historical charges.
+- Enforce staff-only permissions, input validation, change auditing and tests
+  for the settings and pricing behaviour.
+
+The broader service catalogue and optional additional-charge catalogue remain
+planned for a subsequent part of Phase 7.
 
 The existing `AppointmentCharge` remains the historical financial
 record.
@@ -1031,35 +1112,36 @@ patterns emerge.
 
 # Recommended Delivery Order
 
-The current recommended sequence is:
+The recommended **next** sequence, following the October 2026 progress review,
+is:
 
 ``` text
-1. Staff Practice UI
+1. Verify/update roadmap and Phase 4 completion gaps
         ↓
-2. Staff booking vertical slice
+2. Staff-managed consultation fees by clinician type
         ↓
-3. Appointment management + lifecycle
+3. Secure patient registration and account linking
         ↓
-4. Patient Portal
+4. Patient portal dashboard
         ↓
-5. Patient self-booking UI
+5. Patient self-booking with mandatory payment
         ↓
-6. Clinical encounter workflow
+6. Patient appointment history / management
         ↓
-7. Charges / service catalogue
+7. Complete clinical encounter workflows
         ↓
-8. Communications
+8. Expanded services and fee catalogue
         ↓
-9. Medical Knowledge Base
+9. Communications
         ↓
-10. Intelligent Search / Retrieval
+10. Medical Knowledge Base → Intelligent Retrieval → AI Assistant
         ↓
-11. AI Assistant
-        ↓
-12. Reporting / expanded administration
-        ↓
-13. Production hardening and jurisdiction-specific compliance
+11. Reporting / expanded administration
 ```
+
+Security, privacy, payment resilience, accessibility, auditability, backup and
+restore verification, and jurisdiction-specific compliance remain **continuous
+requirements throughout**, not work deferred to the end.
 
 This order is intentionally flexible. New requirements may move
 individual phases, but architectural dependencies should be respected.
@@ -1081,37 +1163,32 @@ information.
 
 # Near-Term Development Plan
 
-The next implementation branch should begin the **staff practice
-interface**.
+The staff-booking vertical slice described by the original roadmap is now in
+place. The next work should proceed in deliberately small, reviewed branches.
 
-Suggested first vertical slice:
+1. **Consultation fee configuration:** authorised staff edit per-practice
+   doctor/nurse prices, initially £65/£40 at Ballyclare Medical. Establish a
+   reusable pricing service and financial snapshot rules before changing
+   booking forms or payment initiation.
+2. **Patient registration:** map sign-up, practice selection, profile creation,
+   email verification and secure links to pre-existing patient records. Review
+   Devise configuration and prevent access to clinical records before verified
+   linking.
+3. **Portal foundation:** introduce patient-specific routes, layout,
+   authentication/authorisation and a dashboard showing only that patient's
+   appointments and balances.
+4. **Patient-paid booking:** reuse shared availability, locking, pricing and
+   domain rules. Acquire a hold, require payment and complete the appointment
+   only on verified success, accounting for asynchronous and ambiguous provider
+   outcomes.
+5. **Patient management:** extend to history, receipts, later payments and
+   permitted cancellations/rescheduling, with audit and clear refund policies.
 
-``` text
-/practice/appointments
-        ↓
-Staff appointment diary
-        ↓
-"Book appointment"
-        ↓
-Patient selection
-        ↓
-Available slot selection
-        ↓
-Appointment + initial charge
-        ↓
-Appointment created
-        ↓
-Optional "Take payment now"
-        ↓
-Appointment detail / balance
-```
-
-This deliberately exercises the backend services already built before
-expanding into additional backend abstractions.
-
-Any missing backend operation discovered while implementing this slice
-should be added behind a tested domain service rather than implemented
-directly in the controller.
+For each step, include domain/service tests, request tests, appropriate system
+tests, practice isolation, useful failures and responsive accessible UI.
+For now, production deployments are for verified demonstration workflows;
+**do not use real clinical/patient data** until security, privacy, compliance,
+backups, restore processes and production operational controls are assessed.
 
 ------------------------------------------------------------------------
 
@@ -1160,7 +1237,18 @@ architectural reasoning.
 14. **AI augments trusted application data and workflows; it does not
     become the source of truth.**
 
-15. **Medical information follows the architecture:**
+15. **Consultation fees are configured per practice and clinician type.**
+    Ballyclare Medical begins at £65 doctor / £40 nurse; staff can edit these
+    settings. No initial per-clinician overrides. Historical charges keep
+    their originally agreed values.
+
+16. **Self-booking requires verified payment before appointment creation.**
+    Staff-assisted booking may instead leave a balance due.
+
+17. **Existing patient records are never linked to new logins by demographic
+    matching alone.** Identity proof and authorisation precede access.
+
+18. **Medical information follows the architecture:**
 
     ``` text
     Medical Knowledge Base → Intelligent Search/Retrieval → AI Assistant

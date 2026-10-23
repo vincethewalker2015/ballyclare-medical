@@ -16,7 +16,7 @@ RSpec.describe "Appointment patient search", type: :request do
     expect(response).to have_http_status(:success)
     page = response.parsed_body
     expect(page.at_css('input[name="patient_id"][type="hidden"]')["value"]).to be_blank
-    expect(page.at_css('input#patient_search')["placeholder"]).to eq("Select patient")
+    expect(page.at_css("input#patient_search")["placeholder"]).to eq("Select patient")
     expect(page.at_css('select[name="patient_id"]')).to be_nil
   end
 

@@ -846,6 +846,22 @@ RSpec.describe "Practice appointments", type: :request do
 
       expect(response).to have_http_status(:success)
     end
+
+    it "renders a single selected-clinician fee display with per-clinician price data" do
+      doctor = create(:staff_member, practice: practice, staff_type: "doctor")
+      nurse = create(:staff_member, practice: practice, staff_type: "nurse")
+      create(:consultation_fee, practice: practice, clinician_type: "doctor", amount_cents: 6500)
+      create(:consultation_fee, practice: practice, clinician_type: "nurse", amount_cents: 4000)
+
+      get new_practice_appointment_path
+
+      page = response.parsed_body
+      expect(page.css('[data-appointment-booking-target="fee"]').size).to eq(1)
+      expect(page.at_css('[data-appointment-booking-target="fee"]').text).to include("Select a clinician")
+      expect(page.at_css('[data-clinician-id="' + doctor.id + '"]')['data-fee-label']).to eq("£65.00")
+      expect(page.at_css('[data-clinician-id="' + nurse.id + '"]')['data-fee-label']).to eq("£40.00")
+      expect(page.css('[data-appointment-booking-target="feeOption"]').all? { |node| node["hidden"] }).to be(true)
+    end
   end
 
   describe "GET /practice/appointments/available_slots" do

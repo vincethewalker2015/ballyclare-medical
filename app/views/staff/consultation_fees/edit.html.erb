@@ -12,7 +12,7 @@
           <div>
             <%= form.label "consultation_fees_#{type}", "#{type.titleize} consultation (#{@current_practice.currency})", class: "mb-2 block text-sm font-semibold text-medical-navy" %>
             <%= number_field_tag "consultation_fees[#{type}]",
-              (params.dig(:consultation_fees, type) || (@fees[type] && format("%.2f", @fees[type].amount_cents / 100.0))),
+              (params.fetch(:consultation_fees, {}).permit(:doctor, :nurse)[type] || (@fees[type] && format("%.2f", @fees[type].amount_cents / 100.0))),
               id: "consultation_fees_#{type}", min: "0.01", step: "0.01", required: true,
               class: "block w-full max-w-xs rounded-xl border border-medical-border bg-white px-4 py-3 text-base text-medical-ink" %>
           </div>

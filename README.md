@@ -179,11 +179,11 @@ real Stripe requests.
 
 Development credentials are loaded using `dotenv-rails`.
 
-Copy the example environment configuration:
+Create a local environment file if you have not already done so (see [local development setup](#5-configure-local-environment-variables)):
 
-    cp .env.example .env.development
+    touch .env.development
 
-Add your Stripe test secret key:
+Add your Stripe test secret key when testing Stripe integration:
 
     STRIPE_SECRET_KEY=your_test_secret_key
 

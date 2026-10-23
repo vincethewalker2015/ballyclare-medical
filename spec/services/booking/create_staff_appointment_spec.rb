@@ -189,7 +189,8 @@ RSpec.describe Booking::CreateStaffAppointment do
     end
 
     it "rolls back the appointment when the initial charge cannot be created" do
-      practice.consultation_fees.first.update_columns(amount_cents: 0)
+      allow_any_instance_of(Billing::CreateCharge).to receive(:call)
+        .and_raise(ActiveRecord::RecordInvalid.new(AppointmentCharge.new))
       service = described_class.new(
         appointment_slot: appointment_slot,
         patient: patient,

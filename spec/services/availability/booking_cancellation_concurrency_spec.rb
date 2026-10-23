@@ -40,6 +40,7 @@ RSpec.describe "Booking and availability cancellation concurrency",
     )
 
     clinician = create(:staff_member, practice: practice)
+    create(:consultation_fee, practice: practice, clinician_type: clinician.staff_type, amount_cents: 5000)
     patient = create(:patient, practice: practice)
     booked_by = create(:user)
 
@@ -63,8 +64,7 @@ RSpec.describe "Booking and availability cancellation concurrency",
       appointment_slot: AppointmentSlot.find(records[:slot_id]),
       patient: Patient.find(records[:patient_id]),
       booked_by: User.find(records[:booked_by_id]),
-      reason: "Concurrency test",
-      amount_cents: 5000
+      reason: "Concurrency test"
     ).call
   end
 

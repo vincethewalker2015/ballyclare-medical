@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_22_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_23_110000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -36,9 +36,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_120000) do
     t.index ["practice_id", "charged_at"], name: "index_appointment_charges_on_practice_id_and_charged_at"
     t.index ["practice_id"], name: "index_appointment_charges_on_practice_id"
     t.check_constraint "amount_cents > 0", name: "appointment_charges_amount_must_be_positive"
-    t.check_constraint "charge_type::text = ANY (ARRAY['appointment'::character varying, 'additional'::character varying]::text[])", name: "appointment_charges_type_must_be_valid"
+    t.check_constraint "charge_type::text = ANY (ARRAY['appointment'::character varying::text, 'additional'::character varying::text])", name: "appointment_charges_type_must_be_valid"
     t.check_constraint "currency::text <> ''::text", name: "appointment_charges_currency_must_not_be_empty"
-    t.check_constraint "status::text = ANY (ARRAY['active'::character varying, 'voided'::character varying]::text[])", name: "appointment_charges_status_must_be_valid"
+    t.check_constraint "status::text = ANY (ARRAY['active'::character varying::text, 'voided'::character varying::text])", name: "appointment_charges_status_must_be_valid"
   end
 
   create_table "appointment_holds", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -311,6 +311,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_120000) do
     t.index ["created_at"], name: "index_solid_cable_messages_on_created_at"
   end
 
+  create_table "solid_cache_entries", force: :cascade do |t|
+    t.binary "key", null: false
+    t.binary "value", null: false
+    t.datetime "created_at", null: false
+    t.bigint "key_hash", null: false
+    t.integer "byte_size", null: false
+    t.index ["byte_size"], name: "index_solid_cache_entries_on_byte_size"
+    t.index ["key_hash", "byte_size"], name: "index_solid_cache_entries_on_key_hash_and_byte_size"
+    t.index ["key_hash"], name: "index_solid_cache_entries_on_key_hash", unique: true
+  end
+
   create_table "solid_queue_batch_executions", force: :cascade do |t|
     t.bigint "job_id", null: false
     t.bigint "batch_id", null: false
@@ -477,8 +488,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_120000) do
     t.index ["practice_id", "user_id"], name: "index_staff_members_on_practice_id_and_user_id", unique: true
     t.index ["practice_id"], name: "index_staff_members_on_practice_id"
     t.index ["user_id"], name: "index_staff_members_on_user_id"
-    t.check_constraint "access_level::text = ANY (ARRAY['staff'::character varying, 'staff_clinician'::character varying, 'staff_admin'::character varying, 'senior_staff_admin'::character varying]::text[])", name: "staff_members_access_level_allowed"
-    t.check_constraint "staff_type::text = ANY (ARRAY['doctor'::character varying, 'nurse'::character varying, 'administrator'::character varying]::text[])", name: "staff_members_appointment_duration_must_be_positive"
+    t.check_constraint "access_level::text = ANY (ARRAY['staff'::character varying::text, 'staff_clinician'::character varying::text, 'staff_admin'::character varying::text, 'senior_staff_admin'::character varying::text])", name: "staff_members_access_level_allowed"
+    t.check_constraint "staff_type::text = ANY (ARRAY['doctor'::character varying::text, 'nurse'::character varying::text, 'administrator'::character varying::text])", name: "staff_members_appointment_duration_must_be_positive"
   end
 
   create_table "user_roles", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|

@@ -1,0 +1,35 @@
+<% content_for :title, "Find an appointment | Ballyclare Medical" %>
+<main class="mx-auto max-w-4xl px-6 py-12">
+  <%= link_to "Back to patient portal", patient_portal_path, class: "text-medical-navy underline" %>
+  <h1 class="mt-6 text-3xl font-semibold text-medical-navy">Find an appointment</h1>
+  <p class="mt-2 text-medical-muted">Browse online appointment availability at your practice. Booking and payment are not available yet.</p>
+
+  <%= form_with url: patient_portal_appointments_path, method: :get, class: "mt-8 flex flex-wrap items-end gap-4" do |form| %>
+    <div>
+      <%= form.label :clinician_id, "Clinician", class: "block font-semibold text-medical-navy" %>
+      <%= form.select :clinician_id, @discovery.clinicians.map { |clinician| [clinician.full_name, clinician.id] }, { include_blank: "Select a clinician", selected: @discovery.clinician&.id }, class: "mt-2 rounded border border-slate-300 p-2" %>
+    </div>
+    <div>
+      <%= form.label :date, "Date (optional)", class: "block font-semibold text-medical-navy" %>
+      <%= form.date_field :date, value: params[:date], class: "mt-2 rounded border border-slate-300 p-2" %>
+    </div>
+    <%= form.submit "Find times", class: "rounded-full bg-medical-navy px-6 py-3 font-semibold text-white" %>
+  <% end %>
+
+  <% if @discovery.clinicians.empty? %>
+    <p class="mt-8 text-medical-muted">There are no clinicians with online availability at the moment.</p>
+  <% elsif @discovery.clinician %>
+    <h2 class="mt-8 text-xl font-semibold text-medical-navy">Available times for <%= @discovery.clinician.full_name %></h2>
+    <% if @discovery.slots.any? %>
+      <ul class="mt-4 space-y-3">
+        <% @discovery.slots.each do |slot| %>
+          <li class="rounded-xl border border-slate-200 p-4"><%= slot.starts_at.in_time_zone(@discovery.practice.timezone).strftime("%A %-d %B %Y at %-I:%M %p") %></li>
+        <% end %>
+      </ul>
+    <% else %>
+      <p class="mt-4 text-medical-muted">No available times match your selection.</p>
+    <% end %>
+  <% else %>
+    <p class="mt-8 text-medical-muted">Choose a clinician to view available times.</p>
+  <% end %>
+</main>

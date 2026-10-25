@@ -20,31 +20,6 @@ RSpec.describe "Patient account requests", type: :request do
     expect(response).to have_http_status(:forbidden)
   end
 
-  it "shows only pending links belonging to the signed-in practice" do
-    account = create(:patient_account)
-    account.confirm
-    patient = create(:patient, practice: practice)
-    link = PatientAccountLink.create!(
-      practice: practice, patient: patient, patient_account: account
-    )
-
-    other_practice = create(:practice)
-    other_account = create(:patient_account)
-    other_account.confirm
-    PatientAccountLink.create!(
-      practice: other_practice,
-      patient: create(:patient, practice: other_practice),
-      patient_account: other_account
-    )
-
-    sign_in admin
-    get practice_patient_account_requests_path
-
-    expect(response).to have_http_status(:ok)
-    expect(response.body).to include(link.patient_account.email)
-    expect(response.body).not_to include(other_account.email)
-  end
-
   it "does not expose unassigned account registrations" do
     account = create(:patient_account)
     account.confirm

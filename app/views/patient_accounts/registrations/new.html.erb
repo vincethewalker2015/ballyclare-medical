@@ -7,6 +7,16 @@
     <%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { class: "space-y-5" }) do |f| %>
       <%= render "devise/shared/error_messages", resource: resource %>
       <div>
+        <%= label_tag "patient_account_practice_id", "Your practice", class: "block font-semibold text-medical-navy" %>
+        <%= select_tag "patient_account[practice_id]",
+          options_from_collection_for_select(Practice.order(:name), :id, :name, params.dig(:patient_account, :practice_id)),
+          prompt: "Select your practice",
+          required: true,
+          id: "patient_account_practice_id",
+          class: "mt-2 w-full rounded-xl border border-medical-border px-4 py-3" %>
+        <p class="mt-2 text-sm text-medical-muted">Your choice sends a request to the practice for review. It does not link your medical record.</p>
+      </div>
+      <div>
         <%= f.label :email, class: "block font-semibold text-medical-navy" %>
         <%= f.email_field :email, required: true, autofocus: true, autocomplete: "email", class: "mt-2 w-full rounded-xl border border-medical-border px-4 py-3" %>
       </div>

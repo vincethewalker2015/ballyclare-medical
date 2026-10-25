@@ -39,40 +39,48 @@ module Staff
         .where.not(patient_accounts: { confirmed_at: nil })
         .find(params[:id])
 
-      patient = current_practice.patients.find(params.require(:patient_id))
       method = params.require(:verification_method)
+      route = params.require(:patient_route)
       unless PatientAccountLink::VERIFICATION_METHODS.include?(method) &&
+          PatientRegistrationRequest::PATIENT_ROUTES.include?(route) &&
           params[:identity_checked] == "1"
         return redirect_to practice_patient_account_request_path(request_record),
-          alert: "Confirm the identity check and select a valid verification method."
+          alert: "Choose a patient route and confirm the approved identity check."
       end
 
-      ActiveRecord::Base.transaction do
-        link = PatientAccountLink.create!(
-          practice: current_practice,
-          patient_account: request_record.patient_account,
-          patient: patient,
-          status: "pending",
-          verification_method: method,
-          verified_at: Time.current,
-          verified_by: current_staff_member
-        )
+      patient = if route == "existing_patient"
+        current_practice.patients.find(params.require(:patient_id))
+      end
+      if route == "new_patient" &&
+          [ request_record.first_name, request_record.last_name, request_record.date_of_birth ].any?(&:blank?)
+        return redirect_to practice_patient_account_request_path(request_record),
+          alert: "Registration details are incomplete. Create and verify a clinical record manually."
+      end
 
+      request_record.with_lock do
+        return redirect_to practice_patient_account_request_path(request_record),
+          alert: "This registration has already been reviewed." unless request_record.review_status == "awaiting_review"
+
+        request_record.update!(
+          review_status: "verified",
+          patient_route: route,
+          selected_patient: patient,
+          verification_method: method,
+          identity_verified_at: Time.current,
+          reviewed_by: current_staff_member
+        )
         AuditEvent.create!(
           practice: current_practice,
           user: current_user,
-          auditable: link,
+          auditable: request_record,
           action: "patient_account.identity_verified",
-          metadata: { patient_id: patient.id, verification_method: method,
+          metadata: { patient_route: route, patient_id: patient&.id,
                       staff_member_id: current_staff_member.id }
         )
       end
 
       redirect_to practice_patient_account_request_path(request_record),
-        notice: "Identity verification recorded. Senior Staff Admin approval is still required."
-    rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique
-      redirect_to practice_patient_account_request_path(params[:id]),
-        alert: "This account or patient is already connected, or the verification could not be recorded."
+        notice: "Identity verification recorded. Senior Staff Admin approval is required."
     end
 
     def approve

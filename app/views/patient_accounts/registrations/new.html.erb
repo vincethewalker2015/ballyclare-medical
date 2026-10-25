@@ -27,7 +27,7 @@
       </div>
       <div>
         <%= label_tag "patient_account_date_of_birth", "Date of birth", class: "block font-semibold text-medical-navy" %>
-        <%= date_field_tag "patient_account[date_of_birth]", params.dig(:patient_account, :date_of_birth), required: true, max: Date.current.iso8601, id: "patient_account_date_of_birth", class: "mt-2 w-full rounded-xl border border-medical-border px-4 py-3" %>
+        <%= date_field_tag "patient_account[date_of_birth]", params.dig(:patient_account, :date_of_birth), required: true, max: Date.current.iso8601, autocomplete: "bday", id: "patient_account_date_of_birth", class: "mt-2 w-full rounded-xl border border-medical-border px-4 py-3" %>
       </div>
       <div>
         <%= f.label :email, class: "block font-semibold text-medical-navy" %>

@@ -2,6 +2,7 @@ require "rails_helper"
 
 RSpec.describe "Patient account authentication", type: :request do
   let(:password) { "SecurePassword123!" }
+  let(:practice) { create(:practice) }
 
   it "shows a separate patient registration page" do
     get new_patient_account_registration_path
@@ -14,6 +15,7 @@ RSpec.describe "Patient account authentication", type: :request do
     expect {
       post patient_account_registration_path, params: {
         patient_account: {
+          practice_id: practice.id,
           email: "newpatient@example.com",
           password: password,
           password_confirmation: password
@@ -22,6 +24,7 @@ RSpec.describe "Patient account authentication", type: :request do
     }.to change(PatientAccount, :count).by(1).and change(Patient, :count).by(0)
 
     expect(PatientAccount.last).not_to be_confirmed
+    expect(PatientAccount.last.patient_registration_request.practice).to eq(practice)
     expect(response).to have_http_status(:redirect)
     follow_redirect!
     expect(response.body).to include("confirmation link")
@@ -30,6 +33,7 @@ RSpec.describe "Patient account authentication", type: :request do
   it "rejects invalid registration details" do
     post patient_account_registration_path, params: {
       patient_account: {
+        practice_id: practice.id,
         email: "invalid",
         password: password,
         password_confirmation: "different"

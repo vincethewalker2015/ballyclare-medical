@@ -90,13 +90,23 @@ module Staff
         .joins(:patient_account)
         .where.not(patient_accounts: { confirmed_at: nil })
         .find(params[:id])
-      return redirect_to practice_patient_account_request_path(request_record),
-        alert: "Identity verification is required before approval." unless request_record.review_status == "verified"
-
+      approved = false
       request_record.with_lock do
-        request_record.update!(review_status: "approved", approved_by: current_staff_member,
-          approved_at: Time.current)
+        if request_record.review_status == "verified" &&
+            request_record.reviewed_by.present? &&
+            request_record.identity_verified_at.present? &&
+            PatientAccountLink::VERIFICATION_METHODS.include?(request_record.verification_method) &&
+            PatientRegistrationRequest::PATIENT_ROUTES.include?(request_record.patient_route) &&
+            (request_record.patient_route == "new_patient" ||
+             request_record.selected_patient_id.present?)
+          request_record.update!(review_status: "approved", approved_by: current_staff_member,
+            approved_at: Time.current)
+          approved = true
+        end
       end
+      return redirect_to practice_patient_account_request_path(request_record),
+        alert: "A verified, complete request is required before approval." unless approved
+
       CompletePatientRegistrationJob.perform_later(request_record.id)
       redirect_to practice_patient_account_request_path(request_record),
         notice: "Registration approved. Clinical record processing has been queued."

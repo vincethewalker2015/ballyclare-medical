@@ -6,6 +6,14 @@
 
   <h1 class="mt-6 text-3xl font-semibold text-medical-navy">Review patient registration</h1>
   <div class="mt-8 rounded-2xl border border-medical-border bg-white p-8">
+    <p class="text-sm font-semibold text-medical-muted">Applicant-supplied details — not verified</p>
+    <% if @registration_request.first_name.present? && @registration_request.last_name.present? %>
+      <p class="mt-2 text-lg text-medical-navy"><%= @registration_request.first_name %> <%= @registration_request.last_name %></p>
+      <p class="mt-2 text-medical-muted">Date of birth: <%= l(@registration_request.date_of_birth) if @registration_request.date_of_birth %></p>
+    <% else %>
+      <p class="mt-2 text-medical-muted">Not collected for this earlier registration. Contact the applicant and verify their identity using the approved procedure.</p>
+    <% end %>
+    <p class="mt-5 text-sm text-medical-muted">Do not link a clinical record solely because these details match.</p>
     <p class="text-sm font-semibold text-medical-muted">Confirmed account email</p>
     <p class="mt-2 text-lg text-medical-navy"><%= @registration_request.patient_account.email %></p>
     <p class="mt-5 text-sm font-semibold text-medical-muted">Email confirmed</p>

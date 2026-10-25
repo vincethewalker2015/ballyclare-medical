@@ -2,7 +2,20 @@ module Staff
   class PatientsController < BaseController
     before_action :require_operational_access
     def index
-      @patients = current_practice.patients.order(:last_name, :first_name)
+      @patient_search = params[:patient_search].to_s.strip.first(100)
+      @patients = current_practice.patients
+
+      if @patient_search.present?
+        term = "%#{ActiveRecord::Base.sanitize_sql_like(@patient_search)}%"
+        @patients = @patients.where(
+          "first_name ILIKE :term OR last_name ILIKE :term OR " \
+          "patient_number ILIKE :term OR " \
+          "CONCAT_WS(' ', first_name, last_name) ILIKE :term",
+          term: term
+        )
+      end
+
+      @patients = @patients.order(:last_name, :first_name).limit(100)
     end
 
     def new

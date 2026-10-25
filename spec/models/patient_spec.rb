@@ -18,7 +18,7 @@ RSpec.describe Patient do
     it "generates a patient number when one is not supplied" do
       record = create(:patient, practice: practice, patient_number: nil)
 
-      expect(record.patient_number).to match(/\\AP[0-9A-F]{12}\\z/)
+      expect(record.patient_number).to match(/\AP[0-9A-F]{12}\z/)
     end
 
     it "generates different numbers for separate patient records" do

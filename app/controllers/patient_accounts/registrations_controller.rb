@@ -15,11 +15,22 @@ module PatientAccounts
         return render :new, status: :unprocessable_content
       end
 
+      details = params.fetch(:patient_account, {}).permit(:first_name, :last_name, :date_of_birth)
+      unless details[:first_name].present? && details[:last_name].present? &&
+          details[:date_of_birth].present? && valid_date_of_birth?(details[:date_of_birth])
+        build_resource(sign_up_params)
+        resource.errors.add(:base, "Enter your first name, surname and a valid date of birth")
+        clean_up_passwords resource
+        return render :new, status: :unprocessable_content
+      end
+
       ActiveRecord::Base.transaction do
         build_resource(sign_up_params)
         resource.save!
         PatientRegistrationRequest.create!(
-          practice: selected_practice, patient_account: resource
+          practice: selected_practice, patient_account: resource,
+          first_name: details[:first_name].strip, last_name: details[:last_name].strip,
+          date_of_birth: Date.iso8601(details[:date_of_birth])
         )
       end
 
@@ -39,6 +50,15 @@ module PatientAccounts
       clean_up_passwords resource
       set_minimum_password_length
       render :new, status: :unprocessable_content
+    end
+
+    private
+
+    def valid_date_of_birth?(value)
+      date = Date.iso8601(value)
+      date <= Date.current && date >= 120.years.ago.to_date
+    rescue Date::Error
+      false
     end
 
     protected

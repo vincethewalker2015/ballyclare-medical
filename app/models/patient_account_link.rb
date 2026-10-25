@@ -1,5 +1,6 @@
 class PatientAccountLink < ApplicationRecord
   STATUSES = %w[pending approved revoked].freeze
+  VERIFICATION_METHODS = %w[in_person approved_remote].freeze
 
   belongs_to :practice
   belongs_to :patient
@@ -8,7 +9,8 @@ class PatientAccountLink < ApplicationRecord
 
   validates :status, inclusion: { in: STATUSES }
   validates :patient_id, uniqueness: true
-  validates :patient_account_id, uniqueness: { scope: :practice_id }
+  validates :patient_account_id, uniqueness: true
+  validates :verification_method, inclusion: { in: VERIFICATION_METHODS }, allow_nil: true
   validates :verification_method, :verified_at, :verified_by, :approved_at,
     presence: true, if: :approved?
   validate :patient_belongs_to_practice

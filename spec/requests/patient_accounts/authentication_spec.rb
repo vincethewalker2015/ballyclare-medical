@@ -39,7 +39,7 @@ RSpec.describe "Patient account authentication", type: :request do
   end
 
   it "does not allow an unconfirmed patient account to sign in" do
-    account = create(:patient_account, password: password)
+    account = create(:patient_account, password: password, password_confirmation: password)
 
     post patient_account_session_path, params: {
       patient_account: { email: account.email, password: password }
@@ -49,7 +49,7 @@ RSpec.describe "Patient account authentication", type: :request do
   end
 
   it "allows a confirmed patient account to access only its unlinked landing page" do
-    account = create(:patient_account, password: password)
+    account = create(:patient_account, password: password, password_confirmation: password)
     account.confirm
 
     post patient_account_session_path, params: {
@@ -71,7 +71,7 @@ RSpec.describe "Patient account authentication", type: :request do
   end
 
   it "keeps staff login separate from patient login" do
-    user = create(:user, password: password)
+    user = create(:user, password: password, password_confirmation: password)
     create(:staff_member, user: user, active: true)
 
     post patient_account_session_path, params: {

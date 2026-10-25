@@ -4,7 +4,7 @@ RSpec.describe "Patient portal dashboard", type: :request do
   let(:account) { create(:patient_account, confirmed_at: Time.current) }
 
   def approved_link(account:, patient:)
-    administrator = create(:staff_member, practice: patient.practice, staff_type: "admin")
+    administrator = create(:staff_member, practice: patient.practice, staff_type: "administrator", access_level: "staff_admin")
     # Persist an approved, verified link through its normal model validations.
     PatientAccountLink.create!(
       patient_account: account, patient: patient, practice: patient.practice,

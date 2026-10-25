@@ -20,7 +20,17 @@ module Staff
         .includes(:patient_account)
         .find(params[:id])
 
-      head :not_found unless @registration_request.patient_account.confirmed?
+      return head :not_found unless @registration_request.patient_account.confirmed?
+
+      @patient_search = params[:patient_search].to_s.strip.first(100)
+      @matching_patients = []
+      if @patient_search.present?
+        term = "%#{ActiveRecord::Base.sanitize_sql_like(@patient_search)}%"
+        @matching_patients = current_practice.patients
+          .where("first_name ILIKE :term OR last_name ILIKE :term OR patient_number ILIKE :term",
+            term: term)
+          .order(:last_name, :first_name).limit(20).to_a
+      end
     end
 
     def verify

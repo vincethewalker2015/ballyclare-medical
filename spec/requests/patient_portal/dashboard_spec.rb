@@ -52,12 +52,12 @@ RSpec.describe "Patient portal dashboard", type: :request do
 
     sign_in account, scope: :patient_account
     get patient_portal_path
-    expect(response.body).to include("GBP65.00")
+    expect(response.body).to include("GBP 65.00")
 
     link.update!(status: "revoked")
     get patient_portal_path
     expect(response.body).to include("Account verification pending")
-    expect(response.body).not_to include("GBP65.00")
+    expect(response.body).not_to include("GBP 65.00")
     expect(response.body).not_to include("Upcoming appointments")
   end
 
@@ -92,8 +92,8 @@ RSpec.describe "Patient portal dashboard", type: :request do
     get patient_portal_path
 
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("GBP35.00")
-    expect(response.body).not_to include("GBP25.00")
+    expect(response.body).to include("GBP 35.00")
+    expect(response.body).not_to include("GBP 25.00")
   end
 
   it "does not display another practice's appointments or balances" do
@@ -108,7 +108,7 @@ RSpec.describe "Patient portal dashboard", type: :request do
     get patient_portal_path
 
     expect(response).to have_http_status(:ok)
-    expect(response.body).not_to include("GBP98.76")
+    expect(response.body).not_to include("GBP 98.76")
     expect(response.body).not_to include(other_appointment.appointment_slot.starts_at.in_time_zone(other_patient.practice.timezone).strftime("%-d %B %Y"))
   end
 

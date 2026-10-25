@@ -22,14 +22,33 @@
       <p class="mt-4 font-semibold text-medical-navy">Identity verified — awaiting Senior Staff Admin approval</p>
       <p class="mt-2 text-medical-muted">Verified by <%= link.verified_by.full_name %> on <%= l(link.verified_at, format: :long) %>.</p>
     <% else %>
+      <%= form_with url: practice_patient_account_request_path(@registration_request), method: :get, class: "mt-6 flex flex-wrap gap-3" do |search_form| %>
+        <%= search_form.search_field :patient_search, value: @patient_search, placeholder: "Search name or patient number", aria: { label: "Search clinical patient records" }, class: "min-w-0 flex-1 rounded-xl border border-medical-border px-4 py-3" %>
+        <%= search_form.submit "Find patient", class: "cursor-pointer rounded-full bg-medical-teal px-5 py-3 font-semibold text-white" %>
+      <% end %>
+      <% if @patient_search.present? && @matching_patients.empty? %>
+        <p class="mt-3 text-sm text-medical-muted">No matching patient records in this practice.</p>
+      <% end %>
       <%= form_with url: verify_practice_patient_account_request_path(@registration_request), method: :post, class: "mt-6 space-y-5" do |form| %>
         <div>
-          <%= form.label :patient_id, "Clinical patient record", class: "block font-semibold text-medical-navy" %>
-          <%= form.select :patient_id,
-            options_from_collection_for_select(@registration_request.practice.patients.order(:last_name, :first_name), :id, :patient_number),
-            { prompt: "Select patient by patient number" },
-            { required: true, class: "mt-2 w-full rounded-xl border border-medical-border px-4 py-3" } %>
-          <p class="mt-2 text-sm text-medical-muted">Check the patient's name, date of birth and record details separately before selecting their patient number. Never rely on matching email alone.</p>
+          <p class="font-semibold text-medical-navy">Clinical patient record</p>
+          <% if @matching_patients.any? %>
+            <fieldset class="mt-3 space-y-3">
+              <legend class="text-sm text-medical-muted">Select the record only after independently checking the patient's identity.</legend>
+              <% @matching_patients.each do |patient| %>
+                <label class="flex items-start gap-3 rounded-xl border border-medical-border p-4">
+                  <%= form.radio_button :patient_id, patient.id, required: true, class: "mt-1" %>
+                  <span>
+                    <strong class="block text-medical-navy"><%= patient.first_name %> <%= patient.last_name %></strong>
+                    <span class="block text-sm text-medical-muted">DOB: <%= l(patient.date_of_birth) %> · Patient number: <%= patient.patient_number %></span>
+                  </span>
+                </label>
+              <% end %>
+            </fieldset>
+          <% else %>
+            <p class="mt-2 text-sm text-medical-muted">Search for a patient below before recording verification. Do not select a record using email alone.</p>
+          <% end %>
+          <p class="mt-3 text-sm text-medical-muted">No existing record? <%= link_to "Register a new patient", new_practice_patient_path, class: "font-semibold text-medical-teal-dark" %>, then return here and search using the generated patient number.</p>
         </div>
         <div>
           <%= form.label :verification_method, "Verification method", class: "block font-semibold text-medical-navy" %>

@@ -15,15 +15,24 @@ RSpec.describe Patient do
       expect(patient.errors[:practice]).to be_present
     end
 
-    it "is not valid without a patient number" do
-      patient.practice = practice
-      expect(patient).not_to be_valid
+    it "generates a patient number when one is not supplied" do
+      record = create(:patient, practice: practice, patient_number: nil)
+
+      expect(record.patient_number).to match(/\\AP[0-9A-F]{12}\\z/)
     end
 
-    it "has an error on patient_number" do
-      patient.practice = practice
-      patient.valid?
-      expect(patient.errors[:patient_number]).to be_present
+    it "generates different numbers for separate patient records" do
+      first = create(:patient, practice: practice, patient_number: nil)
+      second = create(:patient, practice: practice, patient_number: nil)
+
+      expect(second.patient_number).not_to eq(first.patient_number)
+    end
+
+    it "does not allow an existing patient number to change" do
+      record = create(:patient, practice: practice)
+
+      expect(record.update(patient_number: "PCHANGED")).to be(false)
+      expect(record.errors[:patient_number]).to include("cannot be changed")
     end
 
     it "is not valid without a first name" do

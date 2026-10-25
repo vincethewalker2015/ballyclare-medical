@@ -6,7 +6,7 @@ module PatientPortal
         clinician_id: params[:clinician_id],
         date: params[:date]
       ).call
-      return head :forbidden unless @discovery.patient
+      head :forbidden unless @discovery.patient
     end
   end
 end

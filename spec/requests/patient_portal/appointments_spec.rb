@@ -56,7 +56,7 @@ RSpec.describe "Patient portal appointment discovery", type: :request do
 
     expect(response).to have_http_status(:ok)
     expect(response.body).to include(available.starts_at.in_time_zone(patient.practice.timezone).strftime("%A %-d %B %Y"))
-    [offline, held, booked, foreign].each do |slot|
+    [ offline, held, booked, foreign ].each do |slot|
       expect(response.body).not_to include(slot.starts_at.in_time_zone(slot.practice.timezone).strftime("%A %-d %B %Y"))
     end
     expect(AppointmentHold.where(appointment_slot: available)).to be_empty

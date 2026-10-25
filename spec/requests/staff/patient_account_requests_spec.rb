@@ -215,7 +215,6 @@ RSpec.describe "Patient account requests", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include(PatientAccountLink.last.patient.patient_number)
     expect(response.body).to include(practice_patient_path(PatientAccountLink.last.patient))
-
   end
 
   it "does not provide a route for creating an assignment" do

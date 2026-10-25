@@ -15,6 +15,14 @@ module Staff
         .order(:created_at)
     end
 
+    def show
+      @registration_request = current_practice.patient_registration_requests
+        .includes(:patient_account)
+        .find(params[:id])
+
+      head :not_found unless @registration_request.patient_account.confirmed?
+    end
+
     private
 
     def require_staff_administrator

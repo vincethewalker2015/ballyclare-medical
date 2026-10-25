@@ -5,6 +5,17 @@ Rails.application.routes.draw do
 
   devise_for :users, controllers: { sessions: "users/sessions" }
 
+  devise_for :patient_accounts,
+    path: "patients",
+    path_names: { sign_in: "sign_in", sign_out: "sign_out", sign_up: "sign_up" },
+    controllers: {
+      registrations: "patient_accounts/registrations",
+      sessions: "patient_accounts/sessions",
+      confirmations: "patient_accounts/confirmations"
+    }
+
+  get "/patient-portal", to: "patient_portal/dashboard#show", as: :patient_portal
+
   get "/staff/invitation/accept", to: "staff/invitations#edit", as: :edit_staff_invitation
   patch "/staff/invitation/accept", to: "staff/invitations#update", as: :staff_invitation
 
@@ -20,6 +31,12 @@ Rails.application.routes.draw do
   scope "/practice", module: "staff", as: "practice" do
   resource :consultation_fees, only: %i[edit update], controller: "consultation_fees"
   resources :patients, only: %i[index show new create edit update]
+  resources :patient_account_requests, only: %i[index show] do
+    member do
+      post :verify
+      post :approve
+    end
+  end
   resources :staff_members, only: %i[index new create edit update] do
     member do
       patch :access_level

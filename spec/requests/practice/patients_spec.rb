@@ -81,7 +81,9 @@ RSpec.describe "Practice patients", type: :request do
         }
       }.to change(practice.patients, :count).by(1)
 
-      patient = practice.patients.find_by!(patient_number: "NEW-001")
+      patient = practice.patients.find_by!(first_name: "Alice", last_name: "Jones")
+      expect(patient.patient_number).to match(/\AP[0-9A-F]{12}\z/)
+      expect(patient.patient_number).not_to eq("NEW-001")
       expect(patient).to have_attributes(
         first_name: "Alice",
         last_name: "Jones",
@@ -108,8 +110,8 @@ RSpec.describe "Practice patients", type: :request do
       expect(response.body).to include("First name")
     end
 
-    it "rejects duplicate patient numbers within the same practice" do
-      create(:patient, practice: practice, patient_number: "EXISTING-001")
+    it "ignores a submitted patient number and generates a unique number" do
+      existing = create(:patient, practice: practice, patient_number: "EXISTING-001")
       sign_in user
 
       expect {
@@ -121,10 +123,12 @@ RSpec.describe "Practice patients", type: :request do
             date_of_birth: "1992-04-17"
           }
         }
-      }.not_to change(Patient, :count)
+      }.to change(Patient, :count).by(1)
 
-      expect(response).to have_http_status(:unprocessable_content)
-      expect(response.body).to include("Patient number has already been taken")
+      created = practice.patients.find_by!(first_name: "Alice", last_name: "Jones")
+      expect(created.patient_number).not_to eq(existing.patient_number)
+      expect(created.patient_number).to match(/\AP[0-9A-F]{12}\z/)
+      expect(response).to redirect_to(practice_patients_path)
     end
 
     it "ignores a submitted practice id and assigns the current practice" do
@@ -143,7 +147,8 @@ RSpec.describe "Practice patients", type: :request do
         }
       }.to change(practice.patients, :count).by(1)
 
-      expect(other_practice.patients.where(patient_number: "SECURE-001")).to be_empty
+      expect(other_practice.patients).to be_empty
+      expect(practice.patients.find_by!(first_name: "Alice").patient_number).not_to eq("SECURE-001")
     end
   end
   describe "GET /practice/patients/:id" do

@@ -1,0 +1,48 @@
+<% content_for :title, "Create a patient account | Ballyclare Medical" %>
+
+<main class="mx-auto max-w-lg px-6 py-16">
+  <h1 class="text-3xl font-semibold text-medical-navy">Create your patient account</h1>
+  <p class="mt-3 text-medical-muted">We'll email you a confirmation link. Confirming your email does not automatically link your medical record.</p>
+  <div class="mt-8 rounded-2xl border border-medical-border bg-white p-8 shadow-sm">
+    <%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { class: "space-y-5" }) do |f| %>
+      <%= render "devise/shared/error_messages", resource: resource %>
+      <div>
+        <%= label_tag "patient_account_practice_id", "Your practice", class: "block font-semibold text-medical-navy" %>
+        <%= select_tag "patient_account[practice_id]",
+          options_from_collection_for_select(Practice.order(:name), :id, :name, params.dig(:patient_account, :practice_id)),
+          prompt: "Select your practice",
+          required: true,
+          id: "patient_account_practice_id",
+          class: "mt-2 w-full rounded-xl border border-medical-border px-4 py-3" %>
+        <p class="mt-2 text-sm text-medical-muted">Your choice sends a request to the practice for review. It does not link your medical record.</p>
+      </div>
+      <p class="text-sm text-medical-muted">These details help the practice locate your record. They are not proof of identity.</p>
+      <div>
+        <%= label_tag "patient_account_first_name", "First name", class: "block font-semibold text-medical-navy" %>
+        <%= text_field_tag "patient_account[first_name]", params.dig(:patient_account, :first_name), required: true, autocomplete: "given-name", id: "patient_account_first_name", class: "mt-2 w-full rounded-xl border border-medical-border px-4 py-3" %>
+      </div>
+      <div>
+        <%= label_tag "patient_account_last_name", "Surname", class: "block font-semibold text-medical-navy" %>
+        <%= text_field_tag "patient_account[last_name]", params.dig(:patient_account, :last_name), required: true, autocomplete: "family-name", id: "patient_account_last_name", class: "mt-2 w-full rounded-xl border border-medical-border px-4 py-3" %>
+      </div>
+      <div>
+        <%= label_tag "patient_account_date_of_birth", "Date of birth", class: "block font-semibold text-medical-navy" %>
+        <%= date_field_tag "patient_account[date_of_birth]", params.dig(:patient_account, :date_of_birth), required: true, max: Date.current.iso8601, autocomplete: "bday", id: "patient_account_date_of_birth", class: "mt-2 w-full rounded-xl border border-medical-border px-4 py-3" %>
+      </div>
+      <div>
+        <%= f.label :email, class: "block font-semibold text-medical-navy" %>
+        <%= f.email_field :email, required: true, autofocus: true, autocomplete: "email", class: "mt-2 w-full rounded-xl border border-medical-border px-4 py-3" %>
+      </div>
+      <div>
+        <%= f.label :password, class: "block font-semibold text-medical-navy" %>
+        <%= f.password_field :password, required: true, autocomplete: "new-password", class: "mt-2 w-full rounded-xl border border-medical-border px-4 py-3" %>
+      </div>
+      <div>
+        <%= f.label :password_confirmation, class: "block font-semibold text-medical-navy" %>
+        <%= f.password_field :password_confirmation, required: true, autocomplete: "new-password", class: "mt-2 w-full rounded-xl border border-medical-border px-4 py-3" %>
+      </div>
+      <%= f.submit "Create account", class: "w-full cursor-pointer rounded-full bg-medical-navy px-6 py-3 font-semibold text-white" %>
+    <% end %>
+  </div>
+  <p class="mt-6 text-center"><%= link_to "Already registered? Sign in", new_patient_account_session_path, class: "font-semibold text-medical-teal-dark" %></p>
+</main>

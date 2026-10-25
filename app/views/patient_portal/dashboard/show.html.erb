@@ -1,0 +1,9 @@
+<% content_for :title, "Patient portal | Ballyclare Medical" %>
+
+<main class="mx-auto max-w-2xl px-6 py-16">
+  <h1 class="text-3xl font-semibold text-medical-navy">Welcome to your patient account</h1>
+  <p class="mt-4 text-medical-muted">Your email address has been confirmed and your account is ready.</p>
+  <p class="mt-3 text-medical-muted">Before you can use all the features of your patient account, please contact Ballyclare Medical. Our team will help you complete a quick security check to make sure your account is connected to the correct patient details.</p>
+  <p class="mt-3 text-medical-muted">This helps us keep your personal and medical information safe.</p>
+  <%= button_to "Sign out", destroy_patient_account_session_path, method: :delete, class: "mt-8 rounded-full bg-medical-navy px-6 py-3 font-semibold text-white" %>
+</main>

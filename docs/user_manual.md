@@ -37,6 +37,26 @@ records for their own practice, register a new patient, and view or edit
 existing patient details. See [Patient records](#patient-records) below
 for the registration fields and illustrated instructions.
 
+## Online patient registration: current process
+
+This feature is still being developed. The current steps are:
+
+1. A person creates an online patient account using an email address and password.
+2. The application sends an email confirmation link. In development this can be viewed in Letter Opener.
+3. After clicking the link, the person can sign in to the patient portal welcome page.
+
+**Email confirmation only establishes access to the email inbox. It does not verify identity or connect the account to a clinical patient record.** No medical information is available to the account holder yet.
+
+### What staff should do now
+
+There is not yet a staff approval screen or account-linking process. Do not attempt to link accounts by matching email addresses or manually changing database records. Continue to use the existing authorised patient and appointment workflows. If a patient asks about access to their records online, explain that the feature is not yet available.
+
+### Planned next steps (not implemented)
+
+The practice will identify the correct patient record, verify the person's identity, explicitly approve the account connection and notify the patient when their access is ready. The system will need to record the approving staff member and verification details. These steps must be implemented and tested before clinical records can be exposed in the portal.
+
+Patients, including one-off patients, can have clinical records and staff-booked appointments without an online account. Guest online booking is a separate planned feature.
+
 ## Appointment Diary
 
 All active staff can view the appointment diary and open appointment details.

@@ -14,16 +14,17 @@ Turbo.config.forms.confirm = (message, element) => {
 
   const cancelButton = dialog.querySelector('button[value="cancel"]');
   const confirmButton = dialog.querySelector('button[value="confirm"]');
-  const action = element?.dataset.confirmAction || "availability";
+  const action = element?.dataset.confirmAction || element?.closest("form")?.dataset.confirmAction || "generic";
   const labels = {
     availability: ["Keep availability", "Cancel availability"],
     reactivate: ["Keep inactive", "Reactivate staff member"],
-    deactivate: ["Keep active", "Deactivate staff member"]
+    deactivate: ["Keep active", "Deactivate staff member"],
+    patient_registration: ["Go back", "Approve registration"]
   };
   const [cancelLabel, confirmLabel] = labels[action] || ["Cancel", "Confirm"];
   cancelButton.textContent = cancelLabel;
   confirmButton.textContent = confirmLabel;
-  const destructive = action !== "reactivate";
+  const destructive = ["availability", "deactivate"].includes(action);
   confirmButton.classList.toggle("bg-red-600", destructive);
   confirmButton.classList.toggle("hover:bg-red-700", destructive);
   confirmButton.classList.toggle("focus:ring-red-600", destructive);

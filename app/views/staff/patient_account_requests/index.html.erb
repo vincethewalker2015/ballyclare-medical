@@ -15,7 +15,7 @@
             <tr class="border-t border-medical-border">
               <td class="px-5 py-4"><%= request.patient_account.email %></td>
               <td class="px-5 py-4"><%= l(request.patient_account.confirmed_at, format: :long) %></td>
-              <td class="px-5 py-4">Identity check required</td>
+              <td class="px-5 py-4"><%= request.review_status.humanize %></td>
               <td class="px-5 py-4"><%= link_to "Review request", practice_patient_account_request_path(request), class: "font-semibold text-medical-teal-dark" %></td>
             </tr>
           <% end %>
@@ -25,5 +25,5 @@
       <p class="px-5 py-8 text-medical-muted">No confirmed registration requests for this practice.</p>
     <% end %>
   </div>
-  <p class="mt-5 text-sm text-medical-muted">Staff matching, identity verification and account approval are not yet enabled. Do not link accounts by email address alone.</p>
+  <p class="mt-5 text-sm text-medical-muted">Identity verification is required before Senior Staff Admin approval. No accounts are linked by email address alone.</p>
 </div>

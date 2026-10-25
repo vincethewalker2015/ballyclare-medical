@@ -121,51 +121,96 @@ RSpec.describe "Patient account requests", type: :request do
     expect(response.body).not_to include(patient.patient_number)
   end
 
-  it "records verification without approving a patient link" do
+  it "records new-patient verification without creating a clinical record" do
     account = create(:patient_account)
     account.confirm
-    request_record = PatientRegistrationRequest.create!(practice: practice, patient_account: account)
-    patient = create(:patient, practice: practice)
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account,
+      first_name: "Vincent", last_name: "Walker", date_of_birth: Date.new(1980, 1, 1)
+    )
     sign_in admin
 
     expect {
       post verify_practice_patient_account_request_path(request_record),
-        params: { patient_id: patient.id, verification_method: "in_person", identity_checked: "1" }
-    }.to change(PatientAccountLink, :count).by(1)
-      .and change(AuditEvent, :count).by(1)
+        params: { patient_route: "new_patient", verification_method: "in_person",
+                  identity_checked: "1" }
+    }.to change(AuditEvent, :count).by(1)
 
-    link = PatientAccountLink.last
-    expect(link.status).to eq("pending")
-    expect(link.approved_at).to be_nil
-    expect(link.verified_by).to eq(membership)
+    expect(request_record.reload.review_status).to eq("verified")
+    expect(PatientAccountLink.count).to eq(0)
+    expect(Patient.count).to eq(0)
   end
 
-  it "rejects a patient from another practice" do
+  it "rejects an existing patient from another practice" do
     account = create(:patient_account)
     account.confirm
     request_record = PatientRegistrationRequest.create!(practice: practice, patient_account: account)
     sign_in admin
 
-    expect {
-      post verify_practice_patient_account_request_path(request_record),
-        params: { patient_id: create(:patient).id, verification_method: "in_person",
-                  identity_checked: "1" }
-    }.not_to change(PatientAccountLink, :count)
+    post verify_practice_patient_account_request_path(request_record),
+      params: { patient_route: "existing_patient", patient_id: create(:patient).id,
+                verification_method: "in_person", identity_checked: "1" }
 
     expect(response).to have_http_status(:not_found)
+    expect(request_record.reload.review_status).to eq("awaiting_review")
   end
 
-  it "rejects verification without explicit identity attestation" do
+  it "rejects verification without identity attestation" do
     account = create(:patient_account)
     account.confirm
     request_record = PatientRegistrationRequest.create!(practice: practice, patient_account: account)
     sign_in admin
 
+    post verify_practice_patient_account_request_path(request_record),
+      params: { patient_route: "existing_patient",
+                patient_id: create(:patient, practice: practice).id,
+                verification_method: "in_person" }
+
+    expect(request_record.reload.review_status).to eq("awaiting_review")
+  end
+
+  it "prevents staff admins from approving verified requests" do
+    account = create(:patient_account)
+    account.confirm
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account, review_status: "verified",
+      patient_route: "new_patient", first_name: "Vincent", last_name: "Walker",
+      date_of_birth: Date.new(1980, 1, 1), reviewed_by: membership,
+      identity_verified_at: Time.current, verification_method: "in_person"
+    )
+    sign_in admin
+
+    post approve_practice_patient_account_request_path(request_record)
+
+    expect(response).to have_http_status(:forbidden)
+    expect(request_record.reload.review_status).to eq("verified")
+  end
+
+  it "queues senior approval and completes the registration exactly once" do
+    membership.update!(access_level: "senior_staff_admin")
+    account = create(:patient_account)
+    account.confirm
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account,
+      first_name: "Vincent", last_name: "Walker", date_of_birth: Date.new(1980, 1, 1)
+    )
+    sign_in admin
+    post verify_practice_patient_account_request_path(request_record),
+      params: { patient_route: "new_patient", verification_method: "in_person",
+                identity_checked: "1" }
+
     expect {
-      post verify_practice_patient_account_request_path(request_record),
-        params: { patient_id: create(:patient, practice: practice).id,
-                  verification_method: "in_person" }
-    }.not_to change(PatientAccountLink, :count)
+      post approve_practice_patient_account_request_path(request_record)
+    }.to have_enqueued_job(CompletePatientRegistrationJob).with(request_record.id)
+
+    expect(request_record.reload.review_status).to eq("approved")
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.to change(Patient, :count).by(1).and change(PatientAccountLink, :count).by(1)
+
+    expect(request_record.reload.review_status).to eq("completed")
+    expect(PatientAccountLink.last.status).to eq("approved")
   end
 
   it "does not provide a route for creating an assignment" do

@@ -27,7 +27,7 @@ module Staff
       if @patient_search.present?
         term = "%#{ActiveRecord::Base.sanitize_sql_like(@patient_search)}%"
         @matching_patients = current_practice.patients
-          .where("first_name ILIKE :term OR last_name ILIKE :term OR patient_number ILIKE :term",
+          .where("first_name ILIKE :term OR last_name ILIKE :term OR patient_number ILIKE :term OR (first_name || ' ' || last_name) ILIKE :term",
             term: term)
           .order(:last_name, :first_name).limit(20).to_a
       end

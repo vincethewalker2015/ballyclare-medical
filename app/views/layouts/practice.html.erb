@@ -96,6 +96,12 @@
 
           <% end %>
 
+          <% if @current_staff_member&.staff_administration_access? %>
+            <%= link_to "Patient account requests", practice_patient_account_requests_path,
+                        class: "flex items-center rounded-xl px-4 py-3 text-sm font-semibold #{controller_name == 'patient_account_requests' ? 'bg-medical-teal-soft text-medical-navy' : 'text-medical-muted hover:bg-medical-teal-soft hover:text-medical-navy'}",
+                        aria: { current: (controller_name == "patient_account_requests" ? "page" : nil) } %>
+          <% end %>
+
           <%= link_to "Staff", practice_staff_members_path,
                       class: "flex items-center rounded-xl px-4 py-3 text-sm font-semibold #{controller_name == 'staff_members' ? 'bg-medical-teal-soft text-medical-navy' : 'text-medical-muted hover:bg-medical-teal-soft hover:text-medical-navy'}",
                       aria: { current: (controller_name == "staff_members" ? "page" : nil) } %>

@@ -50,7 +50,7 @@
             <% balance = @dashboard.balances.fetch(appointment.id) %>
             <li class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 p-4">
               <span class="text-medical-muted">Appointment on <%= appointment.appointment_slot.starts_at.in_time_zone(@dashboard.practice.timezone).strftime("%-d %B %Y") %></span>
-              <strong class="text-medical-navy"><%= number_to_currency(balance[:balance_cents] / 100.0, unit: Money::Currency.find(balance[:currency])&.symbol || "#{balance[:currency]} ", format: "%u%n") %></strong>
+              <strong class="text-medical-navy"><%= number_to_currency(balance[:balance_cents] / 100.0, unit: balance[:currency].to_s + " ", format: "%u%n") %></strong>
             </li>
           <% end %>
         </ul>

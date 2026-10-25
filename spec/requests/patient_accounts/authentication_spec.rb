@@ -60,7 +60,7 @@ RSpec.describe "Patient account authentication", type: :request do
 
     expect(response).to redirect_to(patient_portal_path)
     follow_redirect!
-    expect(response.body).to include("not yet linked to a medical record")
+    expect(response.body).to include("complete a quick security check")
 
     get practice_patients_path
     expect(response).not_to have_http_status(:ok)

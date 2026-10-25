@@ -3,86 +3,21 @@ module Staff
     before_action :require_operational_access, except: %i[index show]
     def index
       @practice = current_practice
-      @diary_view = params[:view].presence_in(%w[today tomorrow date upcoming past payment_due]) || "today"
-      @diary_layout = params[:layout].presence_in(%w[board list]) || "board"
-
-      @clinicians = current_practice
-        .staff_members
-        .where(staff_type: %w[doctor nurse], active: true)
-        .order(:last_name, :first_name)
-
-      @clinician_only_diary = current_staff_member.access_level == "staff_clinician"
-      @selected_clinician_id = @clinician_only_diary ? current_staff_member.id : params[:clinician_id].presence
-
-      if @selected_clinician_id.present?
-        @selected_clinician = @clinicians.find(
-          @selected_clinician_id
-        )
-      end
-
-      Time.use_zone(current_practice.timezone) do
-        today_start = Time.zone.now.beginning_of_day
-        tomorrow_start = today_start + 1.day
-        @diary_date = case @diary_view
-        when "tomorrow"
-          Time.zone.today + 1.day
-        when "date"
-          begin
-            Date.iso8601(params[:date].to_s)
-          rescue Date::Error
-            Time.zone.today
-          end
-        else
-          Time.zone.today
-        end
-        selected_start = Time.zone.local(@diary_date.year, @diary_date.month, @diary_date.day)
-        selected_end = selected_start + 1.day
-
-        appointments = current_practice
-          .appointments
-          .includes(:patient, :clinician, :appointment_slot)
-          .joins(:appointment_slot)
-
-        if @selected_clinician.present?
-          appointments = appointments.where(
-            clinician: @selected_clinician
-          )
-        end
-
-        @appointments =
-          case @diary_view
-          when "upcoming"
-            appointments
-              .where("appointment_slots.starts_at >= ?", tomorrow_start)
-              .order("appointment_slots.starts_at ASC")
-          when "payment_due"
-            appointments
-              .where(status: "completed")
-              .order("appointment_slots.starts_at DESC")
-          when "past"
-            appointments
-              .where("appointment_slots.starts_at < ?", today_start)
-              .order("appointment_slots.starts_at DESC")
-          else
-            appointments
-              .where(
-                appointment_slots: {
-                  starts_at: selected_start...selected_end
-                }
-              )
-              .order("appointment_slots.starts_at ASC")
-          end
-      end
-
-      @appointment_balances = Billing::AppointmentBalances.new(
-        appointments: @appointments
+      diary = Appointments::StaffDiary.new(
+        practice: current_practice, staff_member: current_staff_member,
+        view: params[:view], layout: params[:layout],
+        clinician_id: params[:clinician_id], date: params[:date]
       ).call
 
-      if @diary_view == "payment_due"
-        @appointments = @appointments.select do |appointment|
-          @appointment_balances.fetch(appointment.id)[:balance_cents].positive?
-        end
-      end
+      @diary_view = diary.view
+      @diary_layout = diary.layout
+      @clinicians = diary.clinicians
+      @clinician_only_diary = diary.clinician_only_diary
+      @selected_clinician_id = diary.selected_clinician_id
+      @selected_clinician = diary.selected_clinician
+      @diary_date = diary.date
+      @appointments = diary.appointments
+      @appointment_balances = diary.balances
     end
 
     def show
@@ -102,29 +37,14 @@ module Staff
         return head :forbidden
       end
 
-      @refunds_by_status = Refund
-        .joins(:payment)
-        .where(payments: { appointment_id: @appointment.id })
-        .order(:created_at)
-        .to_a
-        .group_by(&:status)
-
-      @balance = Billing::AppointmentBalance.new(
-        appointment: @appointment
+      details = Appointments::StaffDetails.new(
+        appointment: @appointment, payment_return: params[:payment_return]
       ).call
-
-      @allowed_status_transitions =
-        Appointments::ChangeStatus.allowed_transitions(
-          @appointment.status
-        )
-
-      @status_changes =
-        @appointment.appointment_status_changes.order(created_at: :desc)
-
-      @returned_payment =
-        @appointment.payments.find_by(
-          id: params[:payment_return]
-        ) if params[:payment_return].present?
+      @refunds_by_status = details.refunds_by_status
+      @balance = details.balance
+      @allowed_status_transitions = details.allowed_status_transitions
+      @status_changes = details.status_changes
+      @returned_payment = details.returned_payment
     end
 
     def new
@@ -165,70 +85,20 @@ module Staff
     end
 
     def search_patients
-      term = params[:q].to_s.strip
-      patients = current_practice.patients.order(:last_name, :first_name, :id)
-      if term.present?
-        pattern = "%#{ActiveRecord::Base.sanitize_sql_like(term)}%"
-        patients = patients.where(
-          "first_name ILIKE :term OR last_name ILIKE :term OR patient_number ILIKE :term OR CONCAT(first_name, ' ', last_name) ILIKE :term OR CONCAT(last_name, ', ', first_name) ILIKE :term",
-          term: pattern
-        )
-      end
-
-      render json: patients.limit(5).map { |patient|
-        {
-          id: patient.id,
-          label: "#{patient.last_name}, #{patient.first_name} — #{patient.patient_number}"
-        }
-      }
+      render json: Appointments::SearchStaffPatients.new(
+        practice: current_practice, term: params[:q]
+      ).call
     end
 
     def available_slots
-      now = Time.current
-
       @clinician = current_practice
         .staff_members
         .where(staff_type: %w[doctor nurse], active: true)
         .find(params[:clinician_id])
 
-      @appointment_slots = current_practice
-        .appointment_slots
-        .joins(:availability_block)
-        .merge(AvailabilityBlock.active)
-        .where(clinician: @clinician)
-        .where("appointment_slots.starts_at >= ?", now)
-        .where.not(
-          id: Appointment
-            .where.not(status: "cancelled")
-            .select(:appointment_slot_id)
-        )
-        .where.not(
-          id: AppointmentHold
-            .where("expires_at > ?", now)
-            .select(:appointment_slot_id)
-        )
-        .order(:starts_at)
-
-      if params[:date].present?
-        selected_date = begin
-          Date.iso8601(params[:date])
-        rescue Date::Error
-          nil
-        end
-
-        if selected_date
-          day_start = Time.use_zone(current_practice.timezone) do
-            Time.zone.local(selected_date.year, selected_date.month, selected_date.day)
-          end
-          @appointment_slots = @appointment_slots.where(
-            appointment_slots: { starts_at: day_start...(day_start + 1.day) }
-          )
-        else
-          @appointment_slots = @appointment_slots.none
-        end
-      else
-        @appointment_slots = @appointment_slots.limit(20)
-      end
+      @appointment_slots = Appointments::AvailableStaffSlots.new(
+        practice: current_practice, clinician: @clinician, date: params[:date]
+      ).call
 
       render turbo_stream: turbo_stream.replace(
         "available_appointment_slots",
@@ -249,18 +119,11 @@ module Staff
         changed_by: current_user
       ).call
 
-      allowed_status_transitions =
-        Appointments::ChangeStatus.allowed_transitions(
-          appointment.status
-        )
-
-      status_changes =
-        appointment.appointment_status_changes
-          .includes(:changed_by)
-          .order(created_at: :desc)
-      balance = Billing::AppointmentBalance.new(
-        appointment: appointment
-      ).call
+      details = Appointments::StaffDetails.new(appointment: appointment).call
+      allowed_status_transitions = details.allowed_status_transitions
+      status_changes = appointment.appointment_status_changes
+        .includes(:changed_by).order(created_at: :desc)
+      balance = details.balance
 
       respond_to do |format|
         format.turbo_stream do
@@ -320,14 +183,13 @@ module Staff
     private
 
     def load_booking_options
-      @fees_by_type = current_practice.consultation_fees.index_by(&:clinician_type)
-      @booking_date = Time.use_zone(current_practice.timezone) { Time.zone.today }
-      @selected_patient = current_practice.patients.find_by(id: params[:patient_id]) if params[:patient_id].present?
-
-      @clinicians = current_practice
-        .staff_members
-        .where(staff_type: %w[doctor nurse])
-        .order(:last_name, :first_name)
+      options = Booking::StaffBookingOptions.new(
+        practice: current_practice, patient_id: params[:patient_id]
+      ).call
+      @fees_by_type = options.fees_by_type
+      @booking_date = options.booking_date
+      @selected_patient = options.selected_patient
+      @clinicians = options.clinicians
     end
 
     def render_booking_error(message)

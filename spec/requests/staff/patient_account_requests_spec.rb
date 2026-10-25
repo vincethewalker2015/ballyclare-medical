@@ -52,6 +52,46 @@ RSpec.describe "Patient account requests", type: :request do
     expect(response.body).not_to include(unconfirmed_account.email)
   end
 
+  it "lets a practice administrator review a confirmed request without granting access" do
+    account = create(:patient_account)
+    account.confirm
+    request = PatientRegistrationRequest.create!(practice: practice, patient_account: account)
+
+    sign_in admin
+    get practice_patient_account_request_path(request)
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include(account.email)
+    expect(response.body).to include("Identity verification")
+    expect(PatientAccountLink.count).to eq(0)
+  end
+
+  it "prevents viewing another practice's registration request" do
+    account = create(:patient_account)
+    account.confirm
+    request = PatientRegistrationRequest.create!(
+      practice: create(:practice), patient_account: account
+    )
+
+    sign_in admin
+    get practice_patient_account_request_path(request)
+
+    expect(response).to have_http_status(:not_found)
+    expect(response.body).not_to include(account.email)
+  end
+
+  it "prevents basic staff from viewing registration details" do
+    account = create(:patient_account)
+    account.confirm
+    request = PatientRegistrationRequest.create!(practice: practice, patient_account: account)
+
+    membership.update!(access_level: "staff")
+    sign_in admin
+    get practice_patient_account_request_path(request)
+
+    expect(response).to have_http_status(:forbidden)
+  end
+
   it "does not provide a route for creating an assignment" do
     sign_in admin
     expect {

@@ -31,7 +31,7 @@ Rails.application.routes.draw do
   scope "/practice", module: "staff", as: "practice" do
   resource :consultation_fees, only: %i[edit update], controller: "consultation_fees"
   resources :patients, only: %i[index show new create edit update]
-  resources :patient_account_requests, only: %i[index]
+  resources :patient_account_requests, only: %i[index show]
   resources :staff_members, only: %i[index new create edit update] do
     member do
       patch :access_level

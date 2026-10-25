@@ -37,29 +37,14 @@ module Staff
         return head :forbidden
       end
 
-      @refunds_by_status = Refund
-        .joins(:payment)
-        .where(payments: { appointment_id: @appointment.id })
-        .order(:created_at)
-        .to_a
-        .group_by(&:status)
-
-      @balance = Billing::AppointmentBalance.new(
-        appointment: @appointment
+      details = Appointments::StaffDetails.new(
+        appointment: @appointment, payment_return: params[:payment_return]
       ).call
-
-      @allowed_status_transitions =
-        Appointments::ChangeStatus.allowed_transitions(
-          @appointment.status
-        )
-
-      @status_changes =
-        @appointment.appointment_status_changes.order(created_at: :desc)
-
-      @returned_payment =
-        @appointment.payments.find_by(
-          id: params[:payment_return]
-        ) if params[:payment_return].present?
+      @refunds_by_status = details.refunds_by_status
+      @balance = details.balance
+      @allowed_status_transitions = details.allowed_status_transitions
+      @status_changes = details.status_changes
+      @returned_payment = details.returned_payment
     end
 
     def new
@@ -134,18 +119,11 @@ module Staff
         changed_by: current_user
       ).call
 
-      allowed_status_transitions =
-        Appointments::ChangeStatus.allowed_transitions(
-          appointment.status
-        )
-
-      status_changes =
-        appointment.appointment_status_changes
-          .includes(:changed_by)
-          .order(created_at: :desc)
-      balance = Billing::AppointmentBalance.new(
-        appointment: appointment
-      ).call
+      details = Appointments::StaffDetails.new(appointment: appointment).call
+      allowed_status_transitions = details.allowed_status_transitions
+      status_changes = appointment.appointment_status_changes
+        .includes(:changed_by).order(created_at: :desc)
+      balance = details.balance
 
       respond_to do |format|
         format.turbo_stream do
@@ -205,14 +183,13 @@ module Staff
     private
 
     def load_booking_options
-      @fees_by_type = current_practice.consultation_fees.index_by(&:clinician_type)
-      @booking_date = Time.use_zone(current_practice.timezone) { Time.zone.today }
-      @selected_patient = current_practice.patients.find_by(id: params[:patient_id]) if params[:patient_id].present?
-
-      @clinicians = current_practice
-        .staff_members
-        .where(staff_type: %w[doctor nurse])
-        .order(:last_name, :first_name)
+      options = Booking::StaffBookingOptions.new(
+        practice: current_practice, patient_id: params[:patient_id]
+      ).call
+      @fees_by_type = options.fees_by_type
+      @booking_date = options.booking_date
+      @selected_patient = options.selected_patient
+      @clinicians = options.clinicians
     end
 
     def render_booking_error(message)

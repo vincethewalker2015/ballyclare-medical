@@ -1,0 +1,26 @@
+<% content_for :title, "Review patient registration | Ballyclare Medical" %>
+
+<div class="mx-auto max-w-3xl">
+  <%= link_to "Back to patient account requests", practice_patient_account_requests_path,
+    class: "font-semibold text-medical-teal-dark" %>
+
+  <h1 class="mt-6 text-3xl font-semibold text-medical-navy">Review patient registration</h1>
+  <div class="mt-8 rounded-2xl border border-medical-border bg-white p-8">
+    <p class="text-sm font-semibold text-medical-muted">Confirmed account email</p>
+    <p class="mt-2 text-lg text-medical-navy"><%= @registration_request.patient_account.email %></p>
+    <p class="mt-5 text-sm font-semibold text-medical-muted">Email confirmed</p>
+    <p class="mt-2"><%= l(@registration_request.patient_account.confirmed_at, format: :long) %></p>
+    <p class="mt-5 text-sm font-semibold text-medical-muted">Status</p>
+    <p class="mt-2">Identity check required</p>
+  </div>
+
+  <div class="mt-8 rounded-2xl border border-medical-border bg-white p-8">
+    <h2 class="text-xl font-semibold text-medical-navy">Identity verification</h2>
+    <p class="mt-3 text-medical-muted">The practice must establish the patient's identity using its approved procedure before selecting and connecting a clinical record. Email confirmation alone is not sufficient.</p>
+    <% if current_staff_member.senior_administration_access? %>
+      <p class="mt-4 text-medical-muted">As a Senior Staff Admin, you will be able to give final approval once identity verification has been recorded. Approval is not yet enabled.</p>
+    <% else %>
+      <p class="mt-4 text-medical-muted">Staff Admins can review requests. Final account approval will be restricted to Senior Staff Admins.</p>
+    <% end %>
+  </div>
+</div>

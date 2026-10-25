@@ -67,7 +67,7 @@ RSpec.describe "Patient portal dashboard", type: :request do
     booked = create(:appointment, patient: patient, practice: patient.practice, status: "booked")
     cancelled = create(:appointment, patient: patient, practice: patient.practice, status: "cancelled")
     completed = create(:appointment, patient: patient, practice: patient.practice, status: "completed")
-    [booked, cancelled, completed].each_with_index do |appointment, index|
+    [ booked, cancelled, completed ].each_with_index do |appointment, index|
       starts_at = (index + 2).days.from_now
       appointment.appointment_slot.update!(starts_at: starts_at, ends_at: starts_at + 30.minutes)
     end
@@ -75,7 +75,7 @@ RSpec.describe "Patient portal dashboard", type: :request do
     sign_in account, scope: :patient_account
     get patient_portal_path
     expect(response.body).to include(booked.appointment_slot.starts_at.in_time_zone(patient.practice.timezone).strftime("%-d %B %Y"))
-    [cancelled, completed].each do |appointment|
+    [ cancelled, completed ].each do |appointment|
       expect(response.body).not_to include(appointment.appointment_slot.starts_at.in_time_zone(patient.practice.timezone).strftime("%-d %B %Y"))
     end
   end
@@ -111,5 +111,4 @@ RSpec.describe "Patient portal dashboard", type: :request do
     expect(response.body).not_to include("GBP 98.76")
     expect(response.body).not_to include(other_appointment.appointment_slot.starts_at.in_time_zone(other_patient.practice.timezone).strftime("%-d %B %Y"))
   end
-
 end

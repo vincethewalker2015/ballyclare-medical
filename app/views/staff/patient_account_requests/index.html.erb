@@ -8,7 +8,7 @@
     <% if @registration_requests.any? %>
       <table class="w-full text-left text-sm">
         <thead class="bg-medical-teal-soft text-medical-navy">
-          <tr><th class="px-5 py-4">Email address</th><th class="px-5 py-4">Email confirmed</th><th class="px-5 py-4">Status</th></tr>
+          <tr><th class="px-5 py-4">Email address</th><th class="px-5 py-4">Email confirmed</th><th class="px-5 py-4">Status</th><th class="px-5 py-4">Review</th></tr>
         </thead>
         <tbody>
           <% @registration_requests.each do |request| %>
@@ -16,6 +16,7 @@
               <td class="px-5 py-4"><%= request.patient_account.email %></td>
               <td class="px-5 py-4"><%= l(request.patient_account.confirmed_at, format: :long) %></td>
               <td class="px-5 py-4">Identity check required</td>
+              <td class="px-5 py-4"><%= link_to "Review request", practice_patient_account_request_path(request), class: "font-semibold text-medical-teal-dark" %></td>
             </tr>
           <% end %>
         </tbody>

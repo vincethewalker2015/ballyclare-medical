@@ -16,6 +16,19 @@
           class: "mt-2 w-full rounded-xl border border-medical-border px-4 py-3" %>
         <p class="mt-2 text-sm text-medical-muted">Your choice sends a request to the practice for review. It does not link your medical record.</p>
       </div>
+      <p class="text-sm text-medical-muted">These details help the practice locate your record. They are not proof of identity.</p>
+      <div>
+        <%= label_tag "patient_account_first_name", "First name", class: "block font-semibold text-medical-navy" %>
+        <%= text_field_tag "patient_account[first_name]", params.dig(:patient_account, :first_name), required: true, autocomplete: "given-name", id: "patient_account_first_name", class: "mt-2 w-full rounded-xl border border-medical-border px-4 py-3" %>
+      </div>
+      <div>
+        <%= label_tag "patient_account_last_name", "Surname", class: "block font-semibold text-medical-navy" %>
+        <%= text_field_tag "patient_account[last_name]", params.dig(:patient_account, :last_name), required: true, autocomplete: "family-name", id: "patient_account_last_name", class: "mt-2 w-full rounded-xl border border-medical-border px-4 py-3" %>
+      </div>
+      <div>
+        <%= label_tag "patient_account_date_of_birth", "Date of birth", class: "block font-semibold text-medical-navy" %>
+        <%= date_field_tag "patient_account[date_of_birth]", params.dig(:patient_account, :date_of_birth), required: true, max: Date.current.iso8601, id: "patient_account_date_of_birth", class: "mt-2 w-full rounded-xl border border-medical-border px-4 py-3" %>
+      </div>
       <div>
         <%= f.label :email, class: "block font-semibold text-medical-navy" %>
         <%= f.email_field :email, required: true, autofocus: true, autocomplete: "email", class: "mt-2 w-full rounded-xl border border-medical-border px-4 py-3" %>

@@ -25,6 +25,19 @@
   <div class="mt-8 rounded-2xl border border-medical-border bg-white p-8">
     <h2 class="text-xl font-semibold text-medical-navy">Identity verification</h2>
     <p class="mt-3 text-medical-muted">The practice must establish the patient's identity using its approved procedure before selecting and connecting a clinical record. Email confirmation alone is not sufficient.</p>
+    <% if @registration_request.review_status == "completed" %>
+      <% approved_link = @registration_request.patient_account.patient_account_links
+        .where(practice: @registration_request.practice, status: "approved")
+        .includes(:patient).first %>
+      <% if approved_link %>
+        <div class="mt-5 rounded-xl border border-medical-border bg-medical-teal-soft p-4">
+          <p class="font-semibold text-medical-navy">Clinical patient record created or connected</p>
+          <p class="mt-2 text-sm text-medical-ink">Patient number: <strong><%= approved_link.patient.patient_number %></strong></p>
+          <%= link_to "View clinical patient record", practice_patient_path(approved_link.patient),
+            class: "mt-3 inline-block text-sm font-semibold text-medical-teal-dark underline" %>
+        </div>
+      <% end %>
+    <% end %>
     <% if @registration_request.review_status == "awaiting_review" %>
       <%= form_with url: practice_patient_account_request_path(@registration_request), method: :get, class: "mt-6 flex flex-wrap gap-3" do |search_form| %>
         <%= search_form.search_field :patient_search, value: @patient_search, placeholder: "Search existing patient name or number", class: "min-w-0 flex-1 rounded-xl border border-medical-border bg-white px-4 py-3 text-sm text-medical-ink focus:border-medical-teal focus:ring-medical-teal" %>

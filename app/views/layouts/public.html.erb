@@ -12,6 +12,16 @@
     <%= javascript_include_tag "application", "data-turbo-track": "reload", type: "module" %>
   </head>
   <body class="bg-medical-cream text-medical-ink antialiased">
+    <% if flash[:notice].present? %>
+      <div role="status" class="mx-auto mt-6 max-w-3xl rounded-xl border border-medical-teal bg-white px-5 py-4 text-medical-navy">
+        <%= flash[:notice] %>
+      </div>
+    <% end %>
+    <% if flash[:alert].present? %>
+      <div role="alert" class="mx-auto mt-6 max-w-3xl rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-red-800">
+        <%= flash[:alert] %>
+      </div>
+    <% end %>
     <%= yield %>
   </body>
 </html>

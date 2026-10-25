@@ -75,6 +75,25 @@ module Staff
         alert: "This account or patient is already connected, or the verification could not be recorded."
     end
 
+    def approve
+      return head :forbidden unless current_staff_member.senior_administration_access?
+
+      request_record = current_practice.patient_registration_requests
+        .joins(:patient_account)
+        .where.not(patient_accounts: { confirmed_at: nil })
+        .find(params[:id])
+      return redirect_to practice_patient_account_request_path(request_record),
+        alert: "Identity verification is required before approval." unless request_record.review_status == "verified"
+
+      request_record.with_lock do
+        request_record.update!(review_status: "approved", approved_by: current_staff_member,
+          approved_at: Time.current)
+      end
+      CompletePatientRegistrationJob.perform_later(request_record.id)
+      redirect_to practice_patient_account_request_path(request_record),
+        notice: "Registration approved. Clinical record processing has been queued."
+    end
+
     private
 
     def require_staff_administrator

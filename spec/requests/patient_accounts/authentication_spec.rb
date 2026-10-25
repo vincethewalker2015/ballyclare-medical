@@ -23,6 +23,8 @@ RSpec.describe "Patient account authentication", type: :request do
 
     expect(PatientAccount.last).not_to be_confirmed
     expect(response).to have_http_status(:redirect)
+    follow_redirect!
+    expect(response.body).to include("confirmation link")
   end
 
   it "rejects invalid registration details" do

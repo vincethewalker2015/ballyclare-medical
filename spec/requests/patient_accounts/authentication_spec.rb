@@ -16,6 +16,9 @@ RSpec.describe "Patient account authentication", type: :request do
       post patient_account_registration_path, params: {
         patient_account: {
           practice_id: practice.id,
+          first_name: "Jane",
+          last_name: "Example",
+          date_of_birth: "1988-03-14",
           email: "newpatient@example.com",
           password: password,
           password_confirmation: password
@@ -25,6 +28,8 @@ RSpec.describe "Patient account authentication", type: :request do
 
     expect(PatientAccount.last).not_to be_confirmed
     expect(PatientAccount.last.patient_registration_request.practice).to eq(practice)
+    expect(PatientAccount.last.patient_registration_request.first_name).to eq("Jane")
+    expect(PatientAccount.last.patient_registration_request.date_of_birth).to eq(Date.new(1988, 3, 14))
     expect(response).to have_http_status(:redirect)
     follow_redirect!
     expect(response.body).to include("confirmation link")
@@ -34,6 +39,9 @@ RSpec.describe "Patient account authentication", type: :request do
     post patient_account_registration_path, params: {
       patient_account: {
         practice_id: practice.id,
+          first_name: "Jane",
+          last_name: "Example",
+          date_of_birth: "1988-03-14",
         email: "invalid",
         password: password,
         password_confirmation: "different"
@@ -42,6 +50,21 @@ RSpec.describe "Patient account authentication", type: :request do
 
     expect(response).to have_http_status(:unprocessable_content)
     expect(PatientAccount.count).to eq(0)
+  end
+
+  it "rejects missing applicant identity details without creating an account" do
+    post patient_account_registration_path, params: {
+      patient_account: {
+        practice_id: practice.id,
+        email: "missingdetails@example.com",
+        password: password,
+        password_confirmation: password
+      }
+    }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(PatientAccount.count).to eq(0)
+    expect(PatientRegistrationRequest.count).to eq(0)
   end
 
   it "does not allow an unconfirmed patient account to sign in" do

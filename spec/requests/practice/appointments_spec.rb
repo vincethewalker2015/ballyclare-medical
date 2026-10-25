@@ -337,11 +337,11 @@ RSpec.describe "Practice appointments", type: :request do
           today = Time.zone.now.beginning_of_day
 
           create_diary_appointment(
-            starts_at: today + 9.hours,
+            starts_at: Time.zone.local(today.year, today.month, today.day, 9),
             reason: "Morning timeline appointment"
           )
           create_diary_appointment(
-            starts_at: today + 11.hours,
+            starts_at: Time.zone.local(today.year, today.month, today.day, 11),
             reason: "Later timeline appointment"
           )
         end
@@ -363,7 +363,7 @@ RSpec.describe "Practice appointments", type: :request do
         appointment = nil
         Time.use_zone(practice.timezone) do
           appointment = create_diary_appointment(
-            starts_at: Time.zone.today.beginning_of_day + 9.hours,
+            starts_at: Time.zone.local(Time.zone.today.year, Time.zone.today.month, Time.zone.today.day, 9),
             reason: "Short consultation"
           )
         end

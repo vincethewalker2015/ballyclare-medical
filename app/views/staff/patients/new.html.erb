@@ -3,7 +3,7 @@
 <div class="mx-auto max-w-2xl space-y-6">
   <header>
     <h1 class="text-4xl font-semibold text-medical-navy">New patient</h1>
-    <p class="mt-2 text-medical-muted">Register a patient with your practice.</p>
+    <p class="mt-2 text-medical-muted">Register a patient with your practice. A unique patient number will be assigned automatically.</p>
   </header>
 
   <section class="rounded-2xl border border-medical-border bg-white p-6">
@@ -20,7 +20,6 @@
       <% end %>
 
       <% [
-        [ :patient_number, "Patient number" ],
         [ :first_name, "First name" ],
         [ :last_name, "Last name" ]
       ].each do |field, label| %>

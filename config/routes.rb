@@ -32,7 +32,10 @@ Rails.application.routes.draw do
   resource :consultation_fees, only: %i[edit update], controller: "consultation_fees"
   resources :patients, only: %i[index show new create edit update]
   resources :patient_account_requests, only: %i[index show] do
-    member { post :verify }
+    member do
+      post :verify
+      post :approve
+    end
   end
   resources :staff_members, only: %i[index new create edit update] do
     member do

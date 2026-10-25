@@ -3,6 +3,12 @@ module Staff
     before_action :require_staff_administrator
 
     def index
+      @registration_requests = current_practice.patient_registration_requests
+        .joins(:patient_account)
+        .where.not(patient_accounts: { confirmed_at: nil })
+        .includes(:patient_account)
+        .order(:created_at)
+
       @links = current_practice.patient_account_links
         .includes(:patient_account, :patient)
         .where(status: "pending")

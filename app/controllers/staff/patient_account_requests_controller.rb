@@ -3,9 +3,11 @@ module Staff
     before_action :require_staff_administrator
 
     def index
-      @accounts = PatientAccount.where.not(confirmed_at: nil)
-        .where.not(id: PatientAccountLink.where(practice_id: current_practice.id)
-          .select(:patient_account_id))
+      # Only show records explicitly associated with this practice.
+      # Unassigned accounts cannot safely appear in a practice-wide queue.
+      @links = current_practice.patient_account_links
+        .includes(:patient_account)
+        .where(status: "pending")
         .order(:created_at)
     end
 

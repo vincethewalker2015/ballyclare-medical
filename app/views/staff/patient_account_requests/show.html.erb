@@ -26,56 +26,52 @@
     <h2 class="text-xl font-semibold text-medical-navy">Identity verification</h2>
     <p class="mt-3 text-medical-muted">The practice must establish the patient's identity using its approved procedure before selecting and connecting a clinical record. Email confirmation alone is not sufficient.</p>
     <% link = @registration_request.patient_account.patient_account_links.find_by(practice: @registration_request.practice) %>
-    <% if link&.verified_at? %>
-      <p class="mt-4 font-semibold text-medical-navy">Identity verified — awaiting Senior Staff Admin approval</p>
-      <p class="mt-2 text-medical-muted">Verified by <%= link.verified_by.full_name %> on <%= l(link.verified_at, format: :long) %>.</p>
-    <% else %>
+    <% if @registration_request.review_status == "awaiting_review" %>
       <%= form_with url: practice_patient_account_request_path(@registration_request), method: :get, class: "mt-6 flex flex-wrap gap-3" do |search_form| %>
-        <%= search_form.search_field :patient_search, value: @patient_search, placeholder: "Search name or patient number", aria: { label: "Search clinical patient records" }, class: "min-w-0 flex-1 rounded-xl border border-medical-border px-4 py-3" %>
+        <%= search_form.search_field :patient_search, value: @patient_search, placeholder: "Search existing patient name or number", class: "min-w-0 flex-1 rounded-xl border border-medical-border px-4 py-3" %>
         <%= search_form.submit "Find patient", class: "cursor-pointer rounded-full bg-medical-teal px-5 py-3 font-semibold text-white" %>
       <% end %>
-      <% if @patient_search.present? && @matching_patients.empty? %>
-        <p class="mt-3 text-sm text-medical-muted">No matching patient records in this practice.</p>
-      <% end %>
       <%= form_with url: verify_practice_patient_account_request_path(@registration_request), method: :post, class: "mt-6 space-y-5" do |form| %>
+        <fieldset class="space-y-3">
+          <legend class="font-semibold text-medical-navy">Registration type</legend>
+          <label class="block"><%= form.radio_button :patient_route, "new_patient", required: true %> New patient — create clinical record after approval</label>
+          <label class="block"><%= form.radio_button :patient_route, "existing_patient", required: true %> Existing patient — connect verified clinical record</label>
+        </fieldset>
+        <% if @patient_search.present? && @matching_patients.empty? %>
+          <p class="text-sm text-medical-muted">No matching existing clinical patient records.</p>
+        <% end %>
+        <% if @matching_patients.any? %>
+          <fieldset class="space-y-3">
+            <legend class="font-semibold text-medical-navy">Existing clinical record (only if selected above)</legend>
+            <% @matching_patients.each do |patient| %>
+              <label class="block rounded-xl border border-medical-border p-3">
+                <%= form.radio_button :patient_id, patient.id %>
+                <%= patient.first_name %> <%= patient.last_name %> — DOB <%= l(patient.date_of_birth) %> — <%= patient.patient_number %>
+              </label>
+            <% end %>
+          </fieldset>
+        <% end %>
         <div>
-          <p class="font-semibold text-medical-navy">Clinical patient record</p>
-          <% if @matching_patients.any? %>
-            <fieldset class="mt-3 space-y-3">
-              <legend class="text-sm text-medical-muted">Select the record only after independently checking the patient's identity.</legend>
-              <% @matching_patients.each do |patient| %>
-                <label class="flex items-start gap-3 rounded-xl border border-medical-border p-4">
-                  <%= form.radio_button :patient_id, patient.id, required: true, class: "mt-1" %>
-                  <span>
-                    <strong class="block text-medical-navy"><%= patient.first_name %> <%= patient.last_name %></strong>
-                    <span class="block text-sm text-medical-muted">DOB: <%= l(patient.date_of_birth) %> · Patient number: <%= patient.patient_number %></span>
-                  </span>
-                </label>
-              <% end %>
-            </fieldset>
-          <% else %>
-            <p class="mt-2 text-sm text-medical-muted">Search for a patient below before recording verification. Do not select a record using email alone.</p>
-          <% end %>
-          <p class="mt-3 text-sm text-medical-muted">No existing record? <%= link_to "Register a new patient", new_practice_patient_path, class: "font-semibold text-medical-teal-dark" %>, then return here and search using the generated patient number.</p>
+          <%= form.label :verification_method, "Identity verification method", class: "block font-semibold text-medical-navy" %>
+          <%= form.select :verification_method, [["In person — approved identity check", "in_person"], ["Remote — practice-approved identity procedure", "approved_remote"]], { prompt: "Select verification method" }, { required: true, class: "mt-2 w-full rounded-xl border border-medical-border px-4 py-3" } %>
         </div>
-        <div>
-          <%= form.label :verification_method, "Verification method", class: "block font-semibold text-medical-navy" %>
-          <%= form.select :verification_method,
-            [["In person — approved identity check", "in_person"], ["Remote — practice-approved identity procedure", "approved_remote"]],
-            { prompt: "Select verification method" },
-            { required: true, class: "mt-2 w-full rounded-xl border border-medical-border px-4 py-3" } %>
-        </div>
-        <div class="flex items-start gap-3">
+        <label class="flex items-start gap-3 text-sm text-medical-navy">
           <%= form.check_box :identity_checked, required: true %>
-          <%= form.label :identity_checked, "I have verified this person's identity using our practice-approved procedure and confirmed the selected clinical record belongs to them.", class: "text-sm text-medical-navy" %>
-        </div>
+          <span>I have independently verified the applicant's identity, checked the submitted details and confirmed whether this is a new or existing patient.</span>
+        </label>
         <%= form.submit "Record identity verification", class: "cursor-pointer rounded-full bg-medical-navy px-6 py-3 font-semibold text-white" %>
       <% end %>
-    <% end %>
-    <% if @current_staff_member.senior_administration_access? %>
-      <p class="mt-4 text-medical-muted">As a Senior Staff Admin, you will be able to give final approval once identity verification has been recorded. Approval is not yet enabled.</p>
     <% else %>
-      <p class="mt-4 text-medical-muted">Staff Admins can review requests. Final account approval will be restricted to Senior Staff Admins.</p>
+      <p class="mt-4 font-semibold text-medical-navy">Status: <%= @registration_request.review_status.humanize %></p>
+      <p class="mt-2 text-medical-muted">Route: <%= @registration_request.patient_route&.humanize %></p>
+      <% if @registration_request.reviewed_by %>
+        <p class="mt-2 text-medical-muted">Verified by <%= @registration_request.reviewed_by.full_name %> on <%= l(@registration_request.identity_verified_at, format: :long) %>.</p>
+      <% end %>
+    <% end %>
+    <% if @registration_request.review_status == "verified" && @current_staff_member.senior_administration_access? %>
+      <%= button_to "Approve patient registration", approve_practice_patient_account_request_path(@registration_request), method: :post, class: "mt-5 cursor-pointer rounded-full bg-medical-teal px-6 py-3 font-semibold text-white", data: { turbo_confirm: "Approve this verified request and queue clinical record processing?" } %>
+    <% elsif @registration_request.review_status == "verified" %>
+      <p class="mt-4 text-medical-muted">Awaiting Senior Staff Admin approval.</p>
     <% end %>
   </div>
 </div>

@@ -56,6 +56,27 @@ RSpec.describe "Patient account requests", type: :request do
     expect(response.body).not_to include(account.email)
   end
 
+  it "shows confirmed registration requests only for the current practice" do
+    own_account = create(:patient_account)
+    own_account.confirm
+    PatientRegistrationRequest.create!(practice: practice, patient_account: own_account)
+
+    other_account = create(:patient_account)
+    other_account.confirm
+    PatientRegistrationRequest.create!(practice: create(:practice), patient_account: other_account)
+
+    unconfirmed_account = create(:patient_account)
+    PatientRegistrationRequest.create!(practice: practice, patient_account: unconfirmed_account)
+
+    sign_in admin
+    get practice_patient_account_requests_path
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include(own_account.email)
+    expect(response.body).not_to include(other_account.email)
+    expect(response.body).not_to include(unconfirmed_account.email)
+  end
+
   it "does not provide a route for creating an assignment" do
     sign_in admin
     expect {

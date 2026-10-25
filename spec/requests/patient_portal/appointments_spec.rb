@@ -73,6 +73,6 @@ RSpec.describe "Patient portal appointment discovery", type: :request do
     get patient_portal_appointments_path, params: { clinician_id: other_clinician.id }
     expect(response).to have_http_status(:ok)
     expect(response.body).not_to include(other_clinician.full_name)
-    expect(response.body).to include("Choose a clinician")
+    expect(response.body).to include("There are no clinicians with online availability at the moment.")
   end
 end

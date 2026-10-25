@@ -41,7 +41,7 @@ module Staff
 
     def patient_params
       params.require(:patient).permit(
-        :patient_number, :first_name, :last_name, :date_of_birth
+        :first_name, :last_name, :date_of_birth
       )
     end
   end

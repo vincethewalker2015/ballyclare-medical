@@ -92,6 +92,35 @@ RSpec.describe "Patient account requests", type: :request do
     expect(response).to have_http_status(:forbidden)
   end
 
+  it "searches only the current practice's patients by name or patient number" do
+    account = create(:patient_account)
+    account.confirm
+    request_record = PatientRegistrationRequest.create!(practice: practice, patient_account: account)
+    own_patient = create(:patient, practice: practice, first_name: "Distinctive")
+    other_patient = create(:patient, practice: create(:practice), first_name: "Distinctive")
+    sign_in admin
+
+    get practice_patient_account_request_path(request_record), params: { patient_search: "Distinctive" }
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include(own_patient.patient_number)
+    expect(response.body).not_to include(other_patient.patient_number)
+    expect(response.body).to include("Record identity verification")
+  end
+
+  it "does not display the full patient directory before a search" do
+    account = create(:patient_account)
+    account.confirm
+    request_record = PatientRegistrationRequest.create!(practice: practice, patient_account: account)
+    patient = create(:patient, practice: practice)
+    sign_in admin
+
+    get practice_patient_account_request_path(request_record)
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).not_to include(patient.patient_number)
+  end
+
   it "records verification without approving a patient link" do
     account = create(:patient_account)
     account.confirm

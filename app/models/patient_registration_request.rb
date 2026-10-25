@@ -24,7 +24,7 @@ class PatientRegistrationRequest < ApplicationRecord
   end
 
   def reviewers_belong_to_practice
-    [reviewed_by, approved_by].compact.each do |staff|
+    [ reviewed_by, approved_by ].compact.each do |staff|
       next if staff.practice_id == practice_id && staff.active? &&
         staff.staff_administration_access?
 

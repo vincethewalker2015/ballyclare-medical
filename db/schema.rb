@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_23_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_25_170000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -174,7 +174,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_23_130000) do
     t.index ["practice_id", "clinician_type"], name: "index_consultation_fees_on_practice_id_and_clinician_type", unique: true
     t.index ["practice_id"], name: "index_consultation_fees_on_practice_id"
     t.check_constraint "amount_cents > 0", name: "consultation_fees_positive_amount"
-    t.check_constraint "clinician_type::text = ANY (ARRAY['doctor'::character varying, 'nurse'::character varying]::text[])", name: "consultation_fees_clinician_type"
+    t.check_constraint "clinician_type::text = ANY (ARRAY['doctor'::character varying::text, 'nurse'::character varying::text])", name: "consultation_fees_clinician_type"
   end
 
   create_table "encounters", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -197,6 +197,43 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_23_130000) do
     t.check_constraint "ended_at IS NULL OR ended_at >= started_at", name: "encounters_end_must_not_be_before_start"
   end
 
+  create_table "patient_account_links", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "practice_id", null: false
+    t.uuid "patient_id", null: false
+    t.uuid "patient_account_id", null: false
+    t.uuid "verified_by_id"
+    t.string "status", default: "pending", null: false
+    t.string "verification_method"
+    t.datetime "verified_at"
+    t.datetime "approved_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["patient_account_id"], name: "index_patient_account_links_on_account_unique", unique: true
+    t.index ["patient_account_id"], name: "index_patient_account_links_on_patient_account_id"
+    t.index ["patient_id"], name: "index_patient_account_links_on_patient_id", unique: true
+    t.index ["practice_id"], name: "index_patient_account_links_on_practice_id"
+    t.index ["verified_by_id"], name: "index_patient_account_links_on_verified_by_id"
+    t.check_constraint "status::text <> 'approved'::text OR verified_by_id IS NOT NULL AND verified_at IS NOT NULL AND approved_at IS NOT NULL AND verification_method IS NOT NULL", name: "patient_account_links_approval_requires_verification"
+    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying::text, 'approved'::character varying::text, 'revoked'::character varying::text])", name: "patient_account_links_valid_status"
+  end
+
+  create_table "patient_accounts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "email", default: "", null: false
+    t.string "encrypted_password", default: "", null: false
+    t.string "reset_password_token"
+    t.datetime "reset_password_sent_at"
+    t.datetime "remember_created_at"
+    t.string "confirmation_token"
+    t.datetime "confirmed_at"
+    t.datetime "confirmation_sent_at"
+    t.string "unconfirmed_email"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["confirmation_token"], name: "index_patient_accounts_on_confirmation_token", unique: true
+    t.index ["email"], name: "index_patient_accounts_on_email", unique: true
+    t.index ["reset_password_token"], name: "index_patient_accounts_on_reset_password_token", unique: true
+  end
+
   create_table "patient_identifiers", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "patient_id", null: false
     t.string "identifier_type", null: false
@@ -207,6 +244,30 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_23_130000) do
     t.datetime "updated_at", null: false
     t.index ["identifier_type", "identifier_value"], name: "idx_on_identifier_type_identifier_value_cd539bf894"
     t.index ["patient_id", "identifier_type", "identifier_value"], name: "index_patient_identifiers_on_patient_type_and_value", unique: true
+  end
+
+  create_table "patient_registration_requests", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "practice_id", null: false
+    t.uuid "patient_account_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "first_name"
+    t.string "last_name"
+    t.date "date_of_birth"
+    t.string "review_status", default: "awaiting_review", null: false
+    t.string "patient_route"
+    t.uuid "selected_patient_id"
+    t.uuid "reviewed_by_id"
+    t.string "verification_method"
+    t.datetime "identity_verified_at"
+    t.uuid "approved_by_id"
+    t.datetime "approved_at"
+    t.datetime "processed_at"
+    t.index ["approved_by_id"], name: "index_patient_registration_requests_on_approved_by_id"
+    t.index ["patient_account_id"], name: "index_patient_registration_requests_on_patient_account_id", unique: true
+    t.index ["practice_id"], name: "index_patient_registration_requests_on_practice_id"
+    t.index ["reviewed_by_id"], name: "index_patient_registration_requests_on_reviewed_by_id"
+    t.index ["selected_patient_id"], name: "index_patient_registration_requests_on_selected_patient_id"
   end
 
   create_table "patients", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -555,7 +616,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_23_130000) do
   add_foreign_key "encounters", "patients"
   add_foreign_key "encounters", "practices"
   add_foreign_key "encounters", "staff_members", column: "clinician_id"
+  add_foreign_key "patient_account_links", "patient_accounts"
+  add_foreign_key "patient_account_links", "patients"
+  add_foreign_key "patient_account_links", "practices"
+  add_foreign_key "patient_account_links", "staff_members", column: "verified_by_id"
   add_foreign_key "patient_identifiers", "patients"
+  add_foreign_key "patient_registration_requests", "patient_accounts"
+  add_foreign_key "patient_registration_requests", "patients", column: "selected_patient_id"
+  add_foreign_key "patient_registration_requests", "practices"
+  add_foreign_key "patient_registration_requests", "staff_members", column: "approved_by_id"
+  add_foreign_key "patient_registration_requests", "staff_members", column: "reviewed_by_id"
   add_foreign_key "patients", "practices"
   add_foreign_key "patients", "users"
   add_foreign_key "payments", "appointment_holds"

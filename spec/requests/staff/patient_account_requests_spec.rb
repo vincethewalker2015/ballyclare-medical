@@ -92,6 +92,53 @@ RSpec.describe "Patient account requests", type: :request do
     expect(response).to have_http_status(:forbidden)
   end
 
+  it "records verification without approving a patient link" do
+    account = create(:patient_account)
+    account.confirm
+    request_record = PatientRegistrationRequest.create!(practice: practice, patient_account: account)
+    patient = create(:patient, practice: practice)
+    sign_in admin
+
+    expect {
+      post verify_practice_patient_account_request_path(request_record),
+        params: { patient_id: patient.id, verification_method: "in_person", identity_checked: "1" }
+    }.to change(PatientAccountLink, :count).by(1)
+      .and change(AuditEvent, :count).by(1)
+
+    link = PatientAccountLink.last
+    expect(link.status).to eq("pending")
+    expect(link.approved_at).to be_nil
+    expect(link.verified_by).to eq(membership)
+  end
+
+  it "rejects a patient from another practice" do
+    account = create(:patient_account)
+    account.confirm
+    request_record = PatientRegistrationRequest.create!(practice: practice, patient_account: account)
+    sign_in admin
+
+    expect {
+      post verify_practice_patient_account_request_path(request_record),
+        params: { patient_id: create(:patient).id, verification_method: "in_person",
+                  identity_checked: "1" }
+    }.not_to change(PatientAccountLink, :count)
+
+    expect(response).to have_http_status(:not_found)
+  end
+
+  it "rejects verification without explicit identity attestation" do
+    account = create(:patient_account)
+    account.confirm
+    request_record = PatientRegistrationRequest.create!(practice: practice, patient_account: account)
+    sign_in admin
+
+    expect {
+      post verify_practice_patient_account_request_path(request_record),
+        params: { patient_id: create(:patient, practice: practice).id,
+                  verification_method: "in_person" }
+    }.not_to change(PatientAccountLink, :count)
+  end
+
   it "does not provide a route for creating an assignment" do
     sign_in admin
     expect {

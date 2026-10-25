@@ -19,13 +19,12 @@
     <p class="mt-5 text-sm font-semibold text-medical-muted">Email confirmed</p>
     <p class="mt-2"><%= l(@registration_request.patient_account.confirmed_at, format: :long) %></p>
     <p class="mt-5 text-sm font-semibold text-medical-muted">Status</p>
-    <p class="mt-2">Identity check required</p>
+    <p class="mt-2"><%= @registration_request.review_status.humanize %></p>
   </div>
 
   <div class="mt-8 rounded-2xl border border-medical-border bg-white p-8">
     <h2 class="text-xl font-semibold text-medical-navy">Identity verification</h2>
     <p class="mt-3 text-medical-muted">The practice must establish the patient's identity using its approved procedure before selecting and connecting a clinical record. Email confirmation alone is not sufficient.</p>
-    <% link = @registration_request.patient_account.patient_account_links.find_by(practice: @registration_request.practice) %>
     <% if @registration_request.review_status == "awaiting_review" %>
       <%= form_with url: practice_patient_account_request_path(@registration_request), method: :get, class: "mt-6 flex flex-wrap gap-3" do |search_form| %>
         <%= search_form.search_field :patient_search, value: @patient_search, placeholder: "Search existing patient name or number", class: "min-w-0 flex-1 rounded-xl border border-medical-border px-4 py-3" %>

@@ -1,6 +1,7 @@
 class Patient < ApplicationRecord
   belongs_to :practice
   belongs_to :user, optional: true
+  has_one :patient_account_link, dependent: :restrict_with_error
 
   has_many :patient_identifiers, dependent: :destroy
   has_many :appointments, dependent: :restrict_with_error

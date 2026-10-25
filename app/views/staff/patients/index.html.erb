@@ -8,16 +8,6 @@
   </header>
 
   <section class="rounded-2xl border border-medical-border bg-white p-6">
-    <%= form_with url: practice_patients_path, method: :get, class: "mb-5 flex flex-wrap gap-3" do |form| %>
-      <%= form.search_field :patient_search, value: @patient_search,
-        placeholder: "Search by name or patient number",
-        aria: { label: "Search patients" },
-        class: "min-w-0 flex-1 rounded-xl border border-medical-border bg-white px-4 py-3 text-sm text-medical-ink" %>
-      <%= form.submit "Search", class: "cursor-pointer rounded-full bg-medical-teal px-5 py-3 text-sm font-semibold text-white" %>
-      <% if @patient_search.present? %>
-        <%= link_to "Clear", practice_patients_path, class: "self-center text-sm font-semibold text-medical-teal-dark" %>
-      <% end %>
-    <% end %>
     <%= form_with url: practice_patients_path, method: :get, class: "mb-5 flex flex-wrap items-center gap-3", role: "search" do |form| %>
       <%= form.search_field :patient_search, value: @patient_search,
         placeholder: "Search by name or patient number",
@@ -32,7 +22,7 @@
     <% if @patients.any? %>
       <p class="mb-3 text-xs text-medical-muted">Showing up to 100 patients. Search to narrow the list.</p>
       <div class="max-h-96 overflow-y-auto overscroll-contain" tabindex="0" role="region" aria-label="Patient list">
-        <ul class="max-h-96 divide-y divide-medical-border overflow-y-auto overscroll-contain pr-2" tabindex="0" aria-label="Patient list">
+        <ul class="divide-y divide-medical-border pr-2">
           <% @patients.each do |patient| %>
             <li class="py-3 text-medical-ink">
               <%= link_to "#{patient.first_name} #{patient.last_name}", practice_patient_path(patient), class: "font-semibold text-medical-navy hover:underline" %>
@@ -44,7 +34,7 @@
     <% elsif @patient_search.present? %>
       <p class="text-medical-muted">No matching patients in this practice.</p>
     <% else %>
-      <p class="text-medical-muted"><%= @patient_search.present? ? "No matching patients in this practice." : "No patients registered yet." %></p>
+      <p class="text-medical-muted">No patients registered yet.</p>
     <% end %>
   </section>
 </div>

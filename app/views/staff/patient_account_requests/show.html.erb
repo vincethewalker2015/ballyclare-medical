@@ -17,6 +17,34 @@
   <div class="mt-8 rounded-2xl border border-medical-border bg-white p-8">
     <h2 class="text-xl font-semibold text-medical-navy">Identity verification</h2>
     <p class="mt-3 text-medical-muted">The practice must establish the patient's identity using its approved procedure before selecting and connecting a clinical record. Email confirmation alone is not sufficient.</p>
+    <% link = @registration_request.patient_account.patient_account_links.find_by(practice: @registration_request.practice) %>
+    <% if link&.verified_at? %>
+      <p class="mt-4 font-semibold text-medical-navy">Identity verified — awaiting Senior Staff Admin approval</p>
+      <p class="mt-2 text-medical-muted">Verified by <%= link.verified_by.full_name %> on <%= l(link.verified_at, format: :long) %>.</p>
+    <% else %>
+      <%= form_with url: verify_practice_patient_account_request_path(@registration_request), method: :post, class: "mt-6 space-y-5" do |form| %>
+        <div>
+          <%= form.label :patient_id, "Clinical patient record", class: "block font-semibold text-medical-navy" %>
+          <%= form.select :patient_id,
+            options_from_collection_for_select(@registration_request.practice.patients.order(:last_name, :first_name), :id, :patient_number),
+            { prompt: "Select patient by patient number" },
+            { required: true, class: "mt-2 w-full rounded-xl border border-medical-border px-4 py-3" } %>
+          <p class="mt-2 text-sm text-medical-muted">Check the patient's name, date of birth and record details separately before selecting their patient number. Never rely on matching email alone.</p>
+        </div>
+        <div>
+          <%= form.label :verification_method, "Verification method", class: "block font-semibold text-medical-navy" %>
+          <%= form.select :verification_method,
+            [["In person — approved identity check", "in_person"], ["Remote — practice-approved identity procedure", "approved_remote"]],
+            { prompt: "Select verification method" },
+            { required: true, class: "mt-2 w-full rounded-xl border border-medical-border px-4 py-3" } %>
+        </div>
+        <div class="flex items-start gap-3">
+          <%= form.check_box :identity_checked, required: true %>
+          <%= form.label :identity_checked, "I have verified this person's identity using our practice-approved procedure and confirmed the selected clinical record belongs to them.", class: "text-sm text-medical-navy" %>
+        </div>
+        <%= form.submit "Record identity verification", class: "cursor-pointer rounded-full bg-medical-navy px-6 py-3 font-semibold text-white" %>
+      <% end %>
+    <% end %>
     <% if @current_staff_member.senior_administration_access? %>
       <p class="mt-4 text-medical-muted">As a Senior Staff Admin, you will be able to give final approval once identity verification has been recorded. Approval is not yet enabled.</p>
     <% else %>

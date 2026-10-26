@@ -11,6 +11,7 @@ RSpec.describe "Patient portal hold payments", type: :request do
   end
 
   before do
+    allow(ENV).to receive(:fetch).with("STRIPE_PUBLISHABLE_KEY").and_return("pk_test_patient_portal")
     administrator = create(:staff_member, practice: patient.practice, staff_type: "administrator", access_level: "staff_admin")
     PatientAccountLink.create!(patient_account: account, patient: patient, practice: patient.practice,
       status: "approved", verification_method: "in_person", verified_at: Time.current,

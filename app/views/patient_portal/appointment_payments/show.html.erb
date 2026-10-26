@@ -6,7 +6,7 @@
 
   <% booked = @payment.appointment.present? && @payment.status == "succeeded" %>
   <% refund_required = @payment.status == "requires_refund" %>
-  <% processing = @payment.status.in?(%w[pending processing]) %>
+  <% processing = @payment.status.in?(%w[ pending processing ]) %>
   <section class="mt-8 overflow-hidden rounded-2xl border border-medical-border bg-white shadow-sm" aria-labelledby="payment-result-heading">
     <div class="border-b border-medical-border bg-sky-50/70 px-6 py-6 sm:px-8">
       <% if booked %>

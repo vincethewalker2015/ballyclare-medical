@@ -40,7 +40,7 @@ RSpec.describe "Guest booking entry", type: :request do
 
     expect(response).to have_http_status(:ok)
     expect(response.parsed_body.css("select[name=clinician_id] option").map { |option| option["value"] }).not_to include(clinician.id.to_s)
-    expect(response.parsed_body.at_css("h3")&.text).not_to include("Available appointments")
+    expect(response.parsed_body.css("h3").map { |heading| heading.text.squish }).not_to include("Available appointments")
   end
 
   it "does not list practices without online availability" do

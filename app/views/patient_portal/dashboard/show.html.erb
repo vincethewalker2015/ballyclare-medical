@@ -1,63 +1,123 @@
 <% content_for :title, "Patient portal | Ballyclare Medical" %>
-
-<main class="mx-auto max-w-4xl px-6 py-12">
-  <div class="flex flex-wrap items-center justify-between gap-4">
+<main class="mx-auto max-w-7xl px-6 py-10 lg:px-8 lg:py-12">
+  <header class="flex flex-wrap items-start justify-between gap-6">
     <div>
-      <h1 class="text-3xl font-semibold text-medical-navy">Your patient portal</h1>
-      <p class="mt-2 text-medical-muted">Your appointments and balances in one place.</p>
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-medical-teal">Patient portal</p>
+      <h1 class="mt-3 text-4xl font-semibold tracking-tight text-medical-navy sm:text-5xl">Welcome back</h1>
+      <p class="mt-3 text-medical-muted">Your appointments and balances in one place.</p>
     </div>
-    <%= button_to "Sign out", destroy_patient_account_session_path, method: :delete, class: "rounded-full bg-medical-navy px-6 py-3 font-semibold text-white" %>
-  </div>
+    <%= button_to destroy_patient_account_session_path, method: :delete,
+          class: "inline-flex items-center gap-2 rounded-full bg-medical-navy px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90" do %>
+      <span aria-hidden="true">↪</span> Sign out
+    <% end %>
+  </header>
 
   <% unless @dashboard.patient %>
-    <section class="mt-10 rounded-2xl border border-slate-200 p-6">
+    <section class="mt-10 rounded-2xl border border-medical-border bg-white p-8 shadow-sm">
       <h2 class="text-xl font-semibold text-medical-navy">Account verification pending</h2>
-      <p class="mt-3 text-medical-muted">Your account must be securely linked to a patient record before appointments or balances can be displayed. Please contact your practice to complete a quick security check and verify your identity.</p>
+      <p class="mt-3 max-w-2xl text-medical-muted">Your account must be securely linked to a patient record before appointments or balances can be displayed. Please contact your practice to complete a security check and verify your identity.</p>
     </section>
   <% else %>
-    <%= link_to "Find an appointment", patient_portal_appointments_path, class: "mt-6 inline-block rounded-full bg-medical-navy px-6 py-3 font-semibold text-white" %>
-    <section class="mt-10 rounded-2xl border border-slate-200 p-6" aria-labelledby="next-appointment-heading">
-      <h2 id="next-appointment-heading" class="text-xl font-semibold text-medical-navy">Next appointment</h2>
-      <% if @dashboard.next_appointment %>
-        <% appointment = @dashboard.next_appointment %>
-        <p class="mt-3 text-medical-navy"><strong><%= appointment.appointment_slot.starts_at.in_time_zone(@dashboard.practice.timezone).strftime("%A %-d %B %Y, %-I:%M %p") %></strong></p>
-        <p class="mt-2 text-medical-muted">With <%= appointment.clinician.first_name %> <%= appointment.clinician.last_name %> · <%= appointment.status.humanize %></p>
-      <% else %>
-        <p class="mt-3 text-medical-muted">You have no upcoming appointments.</p>
+    <nav aria-label="Patient portal actions" class="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <%= link_to patient_portal_appointments_path, class: "group rounded-2xl border border-medical-teal/30 bg-medical-teal-soft p-6 transition hover:border-medical-teal hover:shadow-sm" do %>
+        <div class="flex items-start justify-between">
+          <span class="flex size-12 items-center justify-center rounded-full bg-white text-2xl text-medical-teal" aria-hidden="true">▦</span>
+          <span class="text-medical-navy" aria-hidden="true">›</span>
+        </div>
+        <h2 class="mt-4 text-lg font-semibold text-medical-navy">Find an appointment</h2>
+        <p class="mt-1 text-sm text-medical-muted">Book a new appointment</p>
       <% end %>
-    </section>
+      <a href="#upcoming-appointments" class="group rounded-2xl border border-medical-border bg-white p-6 transition hover:border-medical-teal hover:shadow-sm">
+        <div class="flex items-start justify-between">
+          <span class="flex size-12 items-center justify-center rounded-full bg-sky-50 text-2xl text-medical-navy" aria-hidden="true">▤</span>
+          <span class="text-medical-navy" aria-hidden="true">›</span>
+        </div>
+        <h2 class="mt-4 text-lg font-semibold text-medical-navy">View your appointments</h2>
+        <p class="mt-1 text-sm text-medical-muted">See your upcoming appointments</p>
+      </a>
+      <a href="#outstanding-balances" class="group rounded-2xl border border-medical-border bg-white p-6 transition hover:border-medical-teal hover:shadow-sm">
+        <div class="flex items-start justify-between">
+          <span class="flex size-12 items-center justify-center rounded-full bg-amber-50 text-2xl text-medical-navy" aria-hidden="true">▣</span>
+          <span class="text-medical-navy" aria-hidden="true">›</span>
+        </div>
+        <h2 class="mt-4 text-lg font-semibold text-medical-navy">View balances</h2>
+        <p class="mt-1 text-sm text-medical-muted">See your outstanding account balance</p>
+      </a>
+    </nav>
 
-    <section class="mt-8" aria-labelledby="upcoming-heading">
-      <h2 id="upcoming-heading" class="text-xl font-semibold text-medical-navy">Upcoming appointments</h2>
+    <% total_balance_cents = @dashboard.outstanding_appointments.sum { |appointment| @dashboard.balances.fetch(appointment.id)[:balance_cents] } %>
+    <div class="mt-7 grid gap-5 lg:grid-cols-3">
+      <section aria-labelledby="next-appointment-heading" class="rounded-2xl border border-sky-200 bg-sky-50/70 p-7 shadow-sm lg:col-span-2">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="next-appointment-heading" class="text-xs font-semibold uppercase tracking-[0.14em] text-medical-teal">Next appointment</h2>
+          <% if @dashboard.next_appointment %>
+            <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800"><%= @dashboard.next_appointment.status.humanize %></span>
+          <% end %>
+        </div>
+        <% if (appointment = @dashboard.next_appointment) %>
+          <% local_start = appointment.appointment_slot.starts_at.in_time_zone(@dashboard.practice.timezone) %>
+          <p class="mt-5 text-2xl font-semibold tracking-tight text-medical-navy"><%= local_start.strftime("%A %-d %B %Y") %></p>
+          <p class="mt-4 text-medical-navy"><span aria-hidden="true">◷</span> <strong><%= local_start.strftime("%-I:%M %p") %></strong></p>
+          <p class="mt-2 text-medical-navy"><span aria-hidden="true">♙</span> <%= appointment.clinician.first_name %> <%= appointment.clinician.last_name %></p>
+        <% else %>
+          <p class="mt-5 text-medical-muted">You have no upcoming appointments.</p>
+          <%= link_to "Find an appointment", patient_portal_appointments_path, class: "mt-4 inline-block font-semibold text-medical-teal underline" %>
+        <% end %>
+      </section>
+      <section id="outstanding-balances" aria-labelledby="balance-heading" class="rounded-2xl border border-medical-border bg-white p-7 shadow-sm">
+        <h2 id="balance-heading" class="text-lg font-semibold text-medical-navy">Outstanding balance</h2>
+        <p class="mt-5 text-4xl font-semibold tracking-tight text-medical-navy"><%= number_to_currency(total_balance_cents / 100.0, unit: "£") %></p>
+        <div class="mt-6 border-t border-medical-border pt-5">
+          <% if total_balance_cents.zero? %>
+            <p class="text-sm text-medical-muted"><span class="mr-2 text-emerald-700" aria-hidden="true">✓</span>Your account is up to date.</p>
+          <% else %>
+            <p class="text-sm text-medical-muted">You have outstanding appointment charges.</p>
+          <% end %>
+        </div>
+      </section>
+    </div>
+
+    <section id="upcoming-appointments" aria-labelledby="upcoming-heading" class="mt-6 rounded-2xl border border-medical-border bg-white p-6 shadow-sm sm:p-7">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 id="upcoming-heading" class="text-xl font-semibold text-medical-navy">Upcoming appointments</h2>
+        <%= link_to "Find another appointment →", patient_portal_appointments_path, class: "text-sm font-semibold text-medical-teal hover:underline" %>
+      </div>
       <% if @dashboard.upcoming_appointments.any? %>
-        <ul class="mt-4 space-y-3">
+        <ul class="mt-5 space-y-3">
           <% @dashboard.upcoming_appointments.each do |appointment| %>
-            <li class="rounded-xl border border-slate-200 p-4">
-              <p class="font-semibold text-medical-navy"><%= appointment.appointment_slot.starts_at.in_time_zone(@dashboard.practice.timezone).strftime("%-d %B %Y at %-I:%M %p") %></p>
-              <p class="mt-1 text-medical-muted"><%= appointment.clinician.first_name %> <%= appointment.clinician.last_name %> · <%= appointment.status.humanize %></p>
+            <% local_start = appointment.appointment_slot.starts_at.in_time_zone(@dashboard.practice.timezone) %>
+            <li class="flex flex-wrap items-center gap-5 rounded-xl border border-medical-border p-4">
+              <div class="min-w-16 border-r border-medical-border pr-5 text-center">
+                <p class="text-xs font-semibold uppercase text-medical-muted"><%= local_start.strftime("%a") %></p>
+                <p class="text-2xl font-semibold text-medical-navy"><%= local_start.strftime("%-d") %></p>
+                <p class="text-xs text-medical-muted"><%= local_start.strftime("%b %Y") %></p>
+              </div>
+              <div class="flex-1">
+                <p class="font-semibold text-medical-navy"><%= local_start.strftime("%-I:%M %p") %></p>
+                <p class="mt-1 text-sm text-medical-navy"><%= appointment.clinician.first_name %> <%= appointment.clinician.last_name %></p>
+              </div>
+              <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800"><%= appointment.status.humanize %></span>
             </li>
           <% end %>
         </ul>
       <% else %>
-        <p class="mt-4 text-medical-muted">There are no upcoming appointments to display.</p>
+        <p class="mt-5 text-sm text-medical-muted">There are no upcoming appointments to display.</p>
       <% end %>
     </section>
 
-    <section class="mt-8" aria-labelledby="balances-heading">
-      <h2 id="balances-heading" class="text-xl font-semibold text-medical-navy">Outstanding balances</h2>
-      <% if @dashboard.outstanding_appointments.any? %>
-        <ul class="mt-4 space-y-3">
+    <% if @dashboard.outstanding_appointments.any? %>
+      <section aria-labelledby="outstanding-detail-heading" class="mt-6 rounded-2xl border border-medical-border bg-white p-6 shadow-sm sm:p-7">
+        <h2 id="outstanding-detail-heading" class="text-xl font-semibold text-medical-navy">Outstanding charges</h2>
+        <ul class="mt-4 divide-y divide-medical-border">
           <% @dashboard.outstanding_appointments.each do |appointment| %>
             <% balance = @dashboard.balances.fetch(appointment.id) %>
-            <li class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 p-4">
+            <li class="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
               <span class="text-medical-muted">Appointment on <%= appointment.appointment_slot.starts_at.in_time_zone(@dashboard.practice.timezone).strftime("%-d %B %Y") %></span>
-              <strong class="text-medical-navy"><%= number_to_currency(balance[:balance_cents] / 100.0, unit: balance[:currency].to_s + " ", format: "%u%n") %></strong>
+              <strong class="text-medical-navy"><%= number_to_currency(balance[:balance_cents] / 100.0, unit: balance[:currency] == "GBP" ? "£" : "#{balance[:currency]} ") %></strong>
             </li>
           <% end %>
         </ul>
-      <% else %>
-        <p class="mt-4 text-medical-muted">You have no outstanding balances.</p>
-      <% end %>
-    </section>
+      </section>
+    <% end %>
   <% end %>
 </main>

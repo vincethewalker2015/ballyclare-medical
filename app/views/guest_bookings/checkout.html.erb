@@ -1,0 +1,17 @@
+<% content_for :title, "Secure guest payment | Ballyclare Medical" %>
+<main class="mx-auto max-w-3xl px-6 py-12">
+  <h1 class="text-3xl font-semibold text-medical-navy">Secure guest payment</h1>
+  <p class="mt-3 text-medical-muted">Your appointment will be confirmed only after successful payment.</p>
+  <div class="mt-8 rounded-2xl border border-medical-border bg-white p-8"
+       data-controller="stripe-payment"
+       data-stripe-payment-publishable-key-value="<%= ENV.fetch("STRIPE_PUBLISHABLE_KEY") %>"
+       data-stripe-payment-client-secret-value="<%= @client_secret %>"
+       data-return-url="<%= guest_booking_payment_url(@payment) %>">
+    <p class="mb-6 text-xl font-semibold text-medical-navy"><%= @payment.currency %> <%= number_with_precision(@payment.amount_cents / 100.0, precision: 2) %></p>
+    <form data-stripe-payment-target="form">
+      <div data-stripe-payment-target="element"></div>
+      <div class="mt-4 hidden text-red-700" data-stripe-payment-target="error"></div>
+      <button type="submit" data-stripe-payment-target="submit" data-label="Pay securely" class="mt-6 rounded-full bg-medical-navy px-6 py-3 font-semibold text-white">Pay securely</button>
+    </form>
+  </div>
+</main>

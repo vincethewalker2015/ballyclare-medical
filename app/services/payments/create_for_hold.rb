@@ -13,7 +13,7 @@ module Payments
           raise HoldExpired, "Reservation has expired" if hold.expired?
           existing = hold.payments.order(:created_at).first
           if existing
-            return existing if existing.status.in?(%w[pending processing])
+            return existing if existing.status.in?(%w[ pending processing ])
             raise PaymentInProgress, "This reservation already has a completed or unsuccessful payment"
           end
 

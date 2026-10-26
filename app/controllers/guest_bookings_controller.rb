@@ -27,9 +27,31 @@ class GuestBookingsController < ApplicationController
   end
 
   def review
-    @guest_booking = GuestBooking.where(status: "draft")
-      .where("expires_at > ?", Time.current)
-      .find_by!(id: session[:guest_booking_id])
+    @guest_booking = session_guest_booking
+  end
+
+  def checkout
+    guest = session_guest_booking
+    hold = guest.appointment_hold || GuestBookings::ReserveSlot.new(guest_booking: guest).call
+    result = Payments::TakeHoldPayment.new(hold: hold).call
+    @payment = result.payment
+    @client_secret = result.payment_intent.client_secret
+  rescue GuestBookings::ReserveSlot::Unavailable, AppointmentSlot::Unavailable,
+         Payments::CreateForHold::HoldExpired, Payments::CreateForHold::PaymentInProgress,
+         Billing::ConsultationPrice::Unavailable
+    redirect_to guest_booking_review_path, alert: "This appointment is no longer available for checkout."
+  rescue Stripe::StripeError
+    redirect_to guest_booking_review_path, alert: "Secure payment could not be started. Please try again."
+  end
+
+  def payment_status
+    guest = GuestBooking.find_by!(id: session[:guest_booking_id])
+    @payment = Payment.find_by!(guest_booking: guest, id: params[:id])
+    begin
+      Payments::ReconcileStripeStatus.new(payment: @payment).call
+    rescue Stripe::StripeError => error
+      Rails.logger.warn("Guest payment reconciliation unavailable: #{error.class}")
+    end
   end
 
   def index
@@ -61,6 +83,12 @@ class GuestBookingsController < ApplicationController
     @consultation_fee = @practice.consultation_fees.find_by(clinician_type: @clinician.staff_type)
   end
   private
+
+  def session_guest_booking
+    GuestBooking.where(id: session[:guest_booking_id])
+      .where(status: %w[draft payment_pending])
+      .first!
+  end
 
   def guest_booking_params
     params.require(:guest_booking).permit(

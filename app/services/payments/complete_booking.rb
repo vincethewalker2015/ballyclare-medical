@@ -46,6 +46,10 @@ module Payments
                   "Appointment slot has already been booked"
           end
 
+          if hold.guest_booking_id.present? && hold.patient.nil?
+            raise MissingHold, "Guest patient has not been created yet"
+          end
+
           appointment = Appointment.create!(
             practice: slot.practice,
             appointment_slot: slot,

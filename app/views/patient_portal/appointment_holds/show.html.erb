@@ -1,0 +1,12 @@
+<% content_for :title, "Appointment reservation | Ballyclare Medical" %>
+<main class="mx-auto max-w-3xl px-6 py-12">
+  <%= link_to "Back to appointment search", patient_portal_appointments_path, class: "text-medical-navy underline" %>
+  <h1 class="mt-6 text-3xl font-semibold text-medical-navy">Your appointment selection</h1>
+  <% if @hold.expired? %>
+    <p class="mt-4 text-medical-muted">This reservation has expired. Please select another appointment time.</p>
+  <% else %>
+    <p class="mt-4 text-medical-navy"><strong><%= @hold.appointment_slot.starts_at.in_time_zone(@hold.appointment_slot.practice.timezone).strftime("%A %-d %B %Y at %-I:%M %p") %></strong></p>
+    <p class="mt-2 text-medical-muted">With <%= @hold.appointment_slot.clinician.full_name %></p>
+    <p class="mt-4 text-medical-muted">Held until <%= @hold.expires_at.in_time_zone(@hold.appointment_slot.practice.timezone).strftime("%-I:%M %p") %>. Your appointment is not booked yet. Payment confirmation will be added in the next stage.</p>
+  <% end %>
+</main>

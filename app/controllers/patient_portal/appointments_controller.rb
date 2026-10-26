@@ -6,7 +6,11 @@ module PatientPortal
         clinician_id: params[:clinician_id],
         date: params[:date]
       ).call
-      head :forbidden unless @discovery.patient
+      return head :forbidden unless @discovery.patient
+
+      @consultation_fee = if @discovery.clinician
+        @discovery.practice.consultation_fees.find_by(clinician_type: @discovery.clinician.staff_type)
+      end
     end
   end
 end

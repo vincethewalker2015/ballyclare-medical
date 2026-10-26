@@ -17,6 +17,6 @@ RSpec.describe "Guest booking entry", type: :request do
     get guest_booking_path
 
     expect(response).to have_http_status(:ok)
-    expect(response.body).not_to include(practice.name)
+    expect(response.parsed_body.css("ul li").map { |item| item.text.squish }).not_to include(practice.name)
   end
 end

@@ -11,7 +11,11 @@ module Payments
       AppointmentHold.transaction do
         hold.with_lock do
           raise HoldExpired, "Reservation has expired" if hold.expired?
-          raise PaymentInProgress, "Payment already started for this reservation" if hold.payments.exists?
+          existing = hold.payments.order(:created_at).first
+          if existing
+            return existing if existing.status.in?(%w[pending processing])
+            raise PaymentInProgress, "This reservation already has a completed or unsuccessful payment"
+          end
 
           slot = hold.appointment_slot
           fee = Billing::ConsultationPrice.new(practice: slot.practice, clinician: slot.clinician).call

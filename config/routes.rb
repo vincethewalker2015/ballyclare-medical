@@ -4,6 +4,7 @@ Rails.application.routes.draw do
   root "home#index"
   get "/book", to: "guest_bookings#index", as: :guest_booking
   get "/book/details", to: "guest_bookings#new", as: :new_guest_booking
+  get "/book/review", to: "guest_bookings#review", as: :guest_booking_review
   post "/book/details", to: "guest_bookings#create", as: :guest_booking_details
 
   devise_for :users, controllers: { sessions: "users/sessions" }

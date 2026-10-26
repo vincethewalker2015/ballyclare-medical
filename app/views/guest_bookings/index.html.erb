@@ -1,0 +1,38 @@
+<% content_for :title, "Book an appointment | Ballyclare Medical" %>
+
+<main class="mx-auto max-w-5xl px-6 py-12">
+  <div class="mb-8 flex flex-wrap items-center justify-between gap-4">
+    <%= link_to root_path, class: "font-sans text-2xl font-semibold tracking-tight text-medical-navy" do %>
+      Ballyclare <span class="text-medical-teal-dark">Medical</span>
+    <% end %>
+    <%= link_to "Already a patient? Sign in", new_patient_account_session_path,
+          class: "text-sm font-semibold text-medical-teal-dark underline underline-offset-4" %>
+  </div>
+
+  <section class="rounded-3xl border border-medical-border bg-white p-7 shadow-sm sm:p-10">
+    <p class="text-xs font-bold uppercase tracking-[0.2em] text-medical-teal-dark">Appointments</p>
+    <h1 class="mt-3 text-4xl font-semibold tracking-tight text-medical-navy">Book as a guest</h1>
+    <p class="mt-4 max-w-2xl leading-7 text-medical-muted">
+      Visiting the area or need a one-off consultation? You won't need an account or password.
+      We're preparing secure guest checkout; appointment requests cannot be submitted from this page yet.
+    </p>
+
+    <div class="mt-8 rounded-2xl border border-medical-border bg-medical-cream p-6">
+      <h2 class="text-lg font-semibold text-medical-navy">Practices offering online appointments</h2>
+      <% if @practices.any? %>
+        <ul class="mt-4 space-y-3">
+          <% @practices.each do |practice| %>
+            <li class="rounded-xl border border-medical-border bg-white px-5 py-4 font-medium text-medical-navy">
+              <%= practice.name %>
+            </li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="mt-3 text-sm text-medical-muted">No online appointments are currently listed. Please check back later.</p>
+      <% end %>
+    </div>
+    <p class="mt-6 text-sm text-medical-muted">
+      This is not an emergency service. For a life-threatening emergency, call 999.
+    </p>
+  </section>
+</main>

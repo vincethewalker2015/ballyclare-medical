@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_26_163000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_26_170000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -43,12 +43,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_26_163000) do
 
   create_table "appointment_holds", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "appointment_slot_id", null: false
-    t.uuid "patient_id", null: false
+    t.uuid "patient_id"
+    t.uuid "guest_booking_id"
     t.datetime "expires_at", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["appointment_slot_id", "expires_at"], name: "index_appointment_holds_on_slot_and_expires_at"
     t.index ["expires_at"], name: "index_appointment_holds_on_expires_at"
+    t.index ["guest_booking_id"], name: "index_appointment_holds_on_guest_booking_id", unique: true
+    t.check_constraint "(patient_id IS NOT NULL AND guest_booking_id IS NULL) OR (patient_id IS NULL AND guest_booking_id IS NOT NULL)", name: "appointment_holds_exactly_one_booking_owner"
     t.index ["patient_id", "expires_at"], name: "index_appointment_holds_on_patient_id_and_expires_at"
     t.index ["patient_id"], name: "index_appointment_holds_on_patient_id"
   end
@@ -294,6 +297,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_26_163000) do
   create_table "patients", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "practice_id", null: false
     t.uuid "user_id"
+    t.string "patient_type", default: "practice", null: false
     t.string "patient_number", null: false
     t.string "title"
     t.string "first_name", null: false
@@ -314,6 +318,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_26_163000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["practice_id", "last_name", "date_of_birth"], name: "index_patients_on_practice_id_and_last_name_and_date_of_birth"
+    t.check_constraint "patient_type IN ('practice', 'external')", name: "patients_patient_type_valid"
     t.index ["practice_id", "patient_number"], name: "index_patients_on_practice_id_and_patient_number", unique: true
     t.index ["practice_id"], name: "index_patients_on_practice_id"
     t.index ["user_id"], name: "index_patients_on_user_id", unique: true, where: "(user_id IS NOT NULL)"
@@ -321,7 +326,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_26_163000) do
 
   create_table "payments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "appointment_id"
-    t.uuid "patient_id", null: false
+    t.uuid "patient_id"
+    t.uuid "guest_booking_id"
     t.string "provider", null: false
     t.string "provider_payment_id"
     t.string "provider_charge_id"
@@ -338,6 +344,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_26_163000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.uuid "appointment_hold_id"
+    t.index ["guest_booking_id"], name: "index_payments_on_guest_booking_id", unique: true
     t.index ["appointment_hold_id"], name: "index_payments_on_appointment_hold_id"
     t.index ["appointment_id", "created_at"], name: "index_payments_on_appointment_id_and_created_at"
     t.index ["idempotency_key"], name: "index_payments_on_idempotency_key", unique: true
@@ -345,6 +352,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_26_163000) do
     t.index ["provider", "provider_payment_id"], name: "index_payments_on_provider_and_provider_payment_id", unique: true, where: "(provider_payment_id IS NOT NULL)"
     t.index ["status", "created_at"], name: "index_payments_on_status_and_created_at"
     t.check_constraint "amount_cents > 0", name: "payments_amount_must_be_positive"
+    t.check_constraint "patient_id IS NOT NULL OR guest_booking_id IS NOT NULL", name: "payments_booking_owner_present"
   end
 
   create_table "practices", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -613,6 +621,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_26_163000) do
   add_foreign_key "appointment_charges", "patients"
   add_foreign_key "appointment_charges", "practices"
   add_foreign_key "appointment_charges", "users", column: "created_by_id"
+  add_foreign_key "appointment_holds", "guest_bookings"
+  add_foreign_key "payments", "guest_bookings"
   add_foreign_key "guest_bookings", "appointment_slots"
   add_foreign_key "guest_bookings", "patients"
   add_foreign_key "guest_bookings", "practices"

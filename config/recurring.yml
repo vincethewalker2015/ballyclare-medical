@@ -5,6 +5,10 @@ production:
     command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"
     schedule: every hour at minute 12
 
+  cleanup_expired_guest_bookings:
+    class: CleanupExpiredGuestBookingsJob
+    schedule: every 15 minutes
+
   recover_pending_refunds:
     class: RecoverPendingRefundsJob
     schedule: every 5 minutes

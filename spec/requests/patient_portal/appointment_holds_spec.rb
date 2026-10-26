@@ -76,7 +76,7 @@ RSpec.describe "Patient portal appointment reservations", type: :request do
     offline = slot_for(patient, online: false)
     foreign = slot_for(create(:patient))
     sign_in account, scope: :patient_account
-    [offline, foreign].each do |slot|
+    [ offline, foreign ].each do |slot|
       post patient_portal_appointment_holds_path, params: { appointment_slot_id: slot.id }
       expect(response).to redirect_to(patient_portal_appointments_path)
     end

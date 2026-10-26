@@ -30,7 +30,7 @@
       <div>
         <%= form.label :date, "Appointment date", class: "mb-2 block text-sm font-semibold text-medical-navy" %>
         <%= form.date_field :date,
-              value: params[:date].presence || Date.current.in_time_zone(@discovery.practice&.timezone || Time.zone.name).to_date.iso8601,
+              value: params[:date].presence || Time.current.in_time_zone(@discovery.practice&.timezone || Time.zone.name).to_date.iso8601,
               min: Time.current.in_time_zone(@discovery.practice&.timezone || Time.zone.name).to_date.iso8601,
               class: "rounded-xl border border-medical-border bg-white px-4 py-3 text-base text-medical-ink" %>
       </div>

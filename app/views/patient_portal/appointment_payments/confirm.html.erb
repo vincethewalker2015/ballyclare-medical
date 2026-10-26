@@ -6,7 +6,7 @@
        data-controller="stripe-payment"
        data-stripe-payment-publishable-key-value="<%= ENV.fetch("STRIPE_PUBLISHABLE_KEY") %>"
        data-stripe-payment-client-secret-value="<%= @client_secret %>"
-       data-return-url="<%= patient_portal_appointment_hold_payment_url(@hold, @payment) %>">
+       data-return-url="<%= patient_portal_payment_url(@payment) %>">
     <p class="mb-6 text-xl font-semibold"><%= @payment.currency %> <%= number_with_precision(@payment.amount_cents / 100.0, precision: 2) %></p>
     <form data-stripe-payment-target="form">
       <div data-stripe-payment-target="element"></div>

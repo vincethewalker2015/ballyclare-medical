@@ -46,8 +46,29 @@ RSpec.describe "Patient portal hold payments", type: :request do
     )
     post patient_portal_appointment_hold_payment_path(hold)
     post patient_portal_appointment_hold_payment_path(hold)
-    expect(response).to redirect_to(patient_portal_appointment_hold_path(hold))
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Pay for your appointment")
     expect(Payment.count).to eq(1)
+  end
+
+  it "retries an interrupted Stripe request with the same idempotency key" do
+    hold = slot.hold_for!(patient: patient)
+    sign_in account, scope: :patient_account
+    intent = instance_double(Stripe::PaymentIntent, id: "pi_patient_retry", client_secret: "pi_secret_retry")
+    allow(Stripe::PaymentIntent).to receive(:create)
+      .and_raise(Stripe::APIConnectionError.new("Temporary Stripe connection failure"))
+      .once
+    allow(Stripe::PaymentIntent).to receive(:create).and_return(intent)
+
+    post patient_portal_appointment_hold_payment_path(hold)
+    expect(response).to redirect_to(patient_portal_appointment_hold_path(hold))
+    payment = Payment.last
+    expect(payment.status).to eq("pending")
+
+    post patient_portal_appointment_hold_payment_path(hold)
+    expect(response).to have_http_status(:ok)
+    expect(Payment.count).to eq(1)
+    expect(payment.reload.provider_payment_id).to eq("pi_patient_retry")
   end
 
   it "refuses to charge an expired hold" do

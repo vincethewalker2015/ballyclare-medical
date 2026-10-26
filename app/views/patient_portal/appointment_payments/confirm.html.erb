@@ -1,3 +1,6 @@
+<% content_for :head do %>
+  <script src="https://js.stripe.com/v3/"></script>
+<% end %>
 <% content_for :title, "Pay for appointment | Ballyclare Medical" %>
 <main class="mx-auto max-w-3xl px-6 py-12">
   <h1 class="text-3xl font-semibold text-medical-navy">Pay for your appointment</h1>
@@ -11,7 +14,7 @@
     <form data-stripe-payment-target="form">
       <div data-stripe-payment-target="element"></div>
       <div class="mt-4 hidden text-red-700" data-stripe-payment-target="error"></div>
-      <button type="submit" data-stripe-payment-target="submit" class="mt-6 rounded-full bg-medical-navy px-6 py-3 font-semibold text-white">Pay securely</button>
+      <button type="submit" data-stripe-payment-target="submit" data-label="Pay securely" class="mt-6 rounded-full bg-medical-navy px-6 py-3 font-semibold text-white">Pay securely</button>
     </form>
   </div>
 </main>

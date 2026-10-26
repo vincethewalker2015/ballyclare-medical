@@ -1,0 +1,14 @@
+<% content_for :title, "Payment status | Ballyclare Medical" %>
+<main class="mx-auto max-w-3xl px-6 py-12">
+  <h1 class="text-3xl font-semibold text-medical-navy">Appointment payment status</h1>
+  <% if @payment.appointment.present? && @payment.status == "succeeded" %>
+    <p class="mt-4">Your payment succeeded and your appointment is booked.</p>
+  <% elsif @payment.status == "requires_refund" %>
+    <p class="mt-4">Payment was received, but the appointment could not be booked. Please contact the practice about a refund.</p>
+  <% elsif @payment.status.in?(%w[pending processing]) %>
+    <p class="mt-4">Payment is still being processed. Your appointment is not confirmed. Please check back shortly.</p>
+  <% else %>
+    <p class="mt-4">Payment was not completed. Your appointment is not booked.</p>
+  <% end %>
+  <%= link_to "Patient portal", patient_portal_path, class: "mt-6 inline-block underline" %>
+</main>

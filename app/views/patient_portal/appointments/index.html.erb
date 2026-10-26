@@ -2,7 +2,7 @@
 <main class="mx-auto max-w-4xl px-6 py-12">
   <%= link_to "Back to patient portal", patient_portal_path, class: "text-medical-navy underline" %>
   <h1 class="mt-6 text-3xl font-semibold text-medical-navy">Find an appointment</h1>
-  <p class="mt-2 text-medical-muted">Browse online appointment availability at your practice. Booking and payment are not available yet.</p>
+  <p class="mt-2 text-medical-muted">Browse online appointment availability at your practice. Select a time to hold it temporarily. Payment and booking confirmation are not yet available.</p>
 
   <%= form_with url: patient_portal_appointments_path, method: :get, class: "mt-8 flex flex-wrap items-end gap-4" do |form| %>
     <div>

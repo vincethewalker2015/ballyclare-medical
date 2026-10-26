@@ -52,6 +52,7 @@ class GuestBookingsController < ApplicationController
     rescue Stripe::StripeError => error
       Rails.logger.warn("Guest payment reconciliation unavailable: #{error.class}")
     end
+    @payment.reload
   end
 
   def index

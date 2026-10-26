@@ -23,6 +23,7 @@ module Payments
           Payment.create!(
             appointment_hold: hold,
             patient: hold.patient,
+            guest_booking: hold.guest_booking,
             provider: "stripe",
             currency: fee.currency,
             amount_cents: fee.amount_cents,

@@ -46,14 +46,13 @@ module Payments
                   "Appointment slot has already been booked"
           end
 
-          if hold.guest_booking_id.present? && hold.patient.nil?
-            raise MissingHold, "Guest patient has not been created yet"
-          end
+          patient = hold.patient || hold.guest_booking&.patient
+          raise MissingHold, "Booking patient is missing" unless patient
 
           appointment = Appointment.create!(
             practice: slot.practice,
             appointment_slot: slot,
-            patient: hold.patient,
+            patient: patient,
             clinician: slot.clinician,
             status: "booked",
             booked_at: Time.current
@@ -66,7 +65,10 @@ module Payments
             amount_cents: payment.amount_cents
           ).call
 
+          payment.guest_booking&.update!(status: "completed")
+
           payment.update!(
+            patient: patient,
             appointment: appointment,
             appointment_hold: nil
           )

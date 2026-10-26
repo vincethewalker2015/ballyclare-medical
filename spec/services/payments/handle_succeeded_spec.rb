@@ -61,6 +61,46 @@ RSpec.describe Payments::HandleSucceeded do
         }.to raise_error(ActiveRecord::RecordNotFound)
       end
 
+      it "creates a matching charge and zero balance for the paid appointment" do
+        described_class.new(payment_intent: payment_intent).call
+
+        appointment = payment.reload.appointment
+        expect(appointment.appointment_charges.active.count).to eq(1)
+        expect(appointment.appointment_charges.active.first.amount_cents).to eq(payment.amount_cents)
+        expect(Billing::AppointmentBalance.new(appointment: appointment).call[:balance_cents]).to eq(0)
+      end
+
+      it "does not create duplicate appointments or charges for repeated success events" do
+        handler = described_class.new(payment_intent: payment_intent)
+        handler.call
+        appointment = payment.reload.appointment
+
+        expect { handler.call }.not_to change(Appointment, :count)
+        expect(appointment.appointment_charges.active.count).to eq(1)
+        expect(payment.reload.appointment).to eq(appointment)
+      end
+
+      it "requires a refund rather than booking when the hold expired before Stripe succeeded" do
+        appointment_hold.update!(expires_at: 1.minute.ago)
+
+        expect { described_class.new(payment_intent: payment_intent).call }
+          .not_to change(Appointment, :count)
+        expect(payment.reload.status).to eq("requires_refund")
+        expect(payment.appointment).to be_nil
+        expect(AppointmentHold.exists?(appointment_hold.id)).to be(true)
+      end
+
+      it "requires a refund when another appointment occupies the held slot" do
+        create(:appointment, practice: appointment_slot.practice,
+          appointment_slot: appointment_slot, patient: patient,
+          clinician: appointment_slot.clinician)
+
+        expect { described_class.new(payment_intent: payment_intent).call }
+          .not_to change(Appointment, :count)
+        expect(payment.reload.status).to eq("requires_refund")
+        expect(payment.appointment).to be_nil
+      end
+
       it "completes the booking when the payment is already succeeded" do
         payment.update!(
           status: "succeeded",

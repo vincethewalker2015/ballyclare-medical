@@ -16,6 +16,7 @@ Rails.application.routes.draw do
 
   get "/patient-portal", to: "patient_portal/dashboard#show", as: :patient_portal
   get "/patient-portal/appointments", to: "patient_portal/appointments#index", as: :patient_portal_appointments
+  resources :patient_portal_appointment_holds, path: "/patient-portal/appointment-holds", module: :patient_portal, controller: :appointment_holds, only: %i[create show]
 
   get "/staff/invitation/accept", to: "staff/invitations#edit", as: :edit_staff_invitation
   patch "/staff/invitation/accept", to: "staff/invitations#update", as: :staff_invitation

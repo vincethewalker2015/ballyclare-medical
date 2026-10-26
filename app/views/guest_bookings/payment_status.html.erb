@@ -1,0 +1,20 @@
+<% content_for :title, "Guest payment status | Ballyclare Medical" %>
+<main class="mx-auto max-w-3xl px-6 py-12">
+  <section class="rounded-2xl border border-medical-border bg-white p-8">
+    <h1 class="text-3xl font-semibold text-medical-navy">Your appointment payment</h1>
+    <% if @payment.status == "succeeded" && @payment.appointment.present? %>
+      <h2 class="mt-5 text-xl font-semibold text-medical-teal-dark">Appointment confirmed</h2>
+      <p class="mt-3 text-medical-muted">Your payment was successful and your appointment has been booked.</p>
+    <% elsif @payment.status == "requires_refund" %>
+      <h2 class="mt-5 text-xl font-semibold text-medical-navy">Booking needs attention</h2>
+      <p class="mt-3 text-medical-muted">Your payment was received but your appointment could not be completed. Please contact the practice regarding a refund.</p>
+    <% elsif @payment.status.in?(%w[pending processing succeeded]) %>
+      <h2 class="mt-5 text-xl font-semibold text-medical-navy">Payment processing</h2>
+      <p class="mt-3 text-medical-muted">Your appointment is not confirmed yet. Please refresh this page shortly.</p>
+    <% else %>
+      <h2 class="mt-5 text-xl font-semibold text-medical-navy">Payment not completed</h2>
+      <p class="mt-3 text-medical-muted">No appointment has been confirmed.</p>
+    <% end %>
+    <%= link_to "Find appointments", guest_booking_path, class: "mt-6 inline-block rounded-xl bg-medical-navy px-6 py-3 text-sm font-semibold text-white" %>
+  </section>
+</main>

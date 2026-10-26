@@ -1,0 +1,14 @@
+<% content_for :title, "Review guest details | Ballyclare Medical" %>
+<main class="mx-auto max-w-3xl px-6 py-12">
+  <section class="rounded-3xl border border-medical-border bg-white p-7 shadow-sm sm:p-10">
+    <p class="text-xs font-bold uppercase tracking-[0.2em] text-medical-teal-dark">Guest appointment</p>
+    <h1 class="mt-3 text-3xl font-semibold text-medical-navy">Details received</h1>
+    <p class="mt-4 text-medical-muted">Thank you, <%= @guest_booking.first_name %>. Your details have been saved temporarily.</p>
+    <div class="mt-6 rounded-xl border border-medical-border bg-medical-cream p-5">
+      <p class="font-semibold text-medical-navy"><%= @guest_booking.appointment_slot.clinician.full_name %></p>
+      <p class="mt-2 text-sm text-medical-muted"><%= @guest_booking.appointment_slot.starts_at.in_time_zone(@guest_booking.practice.timezone).strftime("%A %-d %B %Y, %H:%M") %></p>
+    </div>
+    <p class="mt-6 text-sm text-medical-muted">Guest checkout is not enabled yet. No payment has been taken, no appointment is reserved or confirmed, and no clinical Patient record has been created.</p>
+    <%= link_to "Back to appointment search", guest_booking_path, class: "mt-6 inline-block rounded-xl bg-medical-navy px-6 py-3 text-sm font-semibold text-white" %>
+  </section>
+</main>

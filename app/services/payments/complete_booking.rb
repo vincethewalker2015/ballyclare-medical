@@ -55,6 +55,13 @@ module Payments
             booked_at: Time.current
           )
 
+          Billing::CreateCharge.new(
+            appointment: appointment,
+            description: "Appointment",
+            charge_type: "appointment",
+            amount_cents: payment.amount_cents
+          ).call
+
           payment.update!(
             appointment: appointment,
             appointment_hold: nil

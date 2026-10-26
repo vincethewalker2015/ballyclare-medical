@@ -1,4 +1,4 @@
-class CreateGuestBookings < ActiveRecord::Migration[8.0]
+class CreateGuestBookings < ActiveRecord::Migration[8.1]
   def change
     create_table :guest_bookings, id: :uuid do |t|
       t.references :practice, type: :uuid, null: false, foreign_key: true

@@ -1,5 +1,6 @@
 class CompleteGuestBookingJob < ApplicationJob
   queue_as :default
+  retry_on ActiveRecord::Deadlocked, wait: :polynomially_longer, attempts: 5
 
   def perform(payment_id)
     payment = Payment.find(payment_id)

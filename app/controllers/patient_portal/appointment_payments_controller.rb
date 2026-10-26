@@ -27,14 +27,10 @@ module PatientPortal
       else
         raise ActiveRecord::RecordNotFound
       end
-      if @payment.status == "processing" && @payment.provider_payment_id.present?
-        begin
-          intent = Stripe::PaymentIntent.retrieve(@payment.provider_payment_id)
-          Payments::HandleSucceeded.new(payment_intent: intent).call if intent.status == "succeeded"
-          @payment.reload
-        rescue Stripe::StripeError => error
-          Rails.logger.warn("Patient payment reconciliation unavailable: #{error.class}")
-        end
+      begin
+        Payments::ReconcileStripeStatus.new(payment: @payment).call
+      rescue Stripe::StripeError => error
+        Rails.logger.warn("Patient payment reconciliation unavailable: #{error.class}")
       end
     end
 

@@ -23,7 +23,10 @@
     <% if @discovery.slots.any? %>
       <ul class="mt-4 space-y-3">
         <% @discovery.slots.each do |slot| %>
-          <li class="rounded-xl border border-slate-200 p-4"><%= slot.starts_at.in_time_zone(@discovery.practice.timezone).strftime("%A %-d %B %Y at %-I:%M %p") %></li>
+          <li class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 p-4">
+            <span><%= slot.starts_at.in_time_zone(@discovery.practice.timezone).strftime("%A %-d %B %Y at %-I:%M %p") %></span>
+            <%= button_to "Select time", patient_portal_appointment_holds_path, params: { appointment_slot_id: slot.id }, class: "rounded-full bg-medical-navy px-5 py-2 font-semibold text-white" %>
+          </li>
         <% end %>
       </ul>
     <% else %>

@@ -68,7 +68,7 @@ RSpec.describe "Guest booking entry", type: :request do
     expect(response).to redirect_to(guest_booking_review_path)
     get guest_booking_review_path
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("No payment has been taken")
+    expect(response.body).to include("No clinical Patient record is created before payment")
   end
 
   it "does not list practices without online availability" do

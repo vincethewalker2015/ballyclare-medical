@@ -55,6 +55,7 @@ module Payments
             patient: patient,
             clinician: slot.clinician,
             status: "booked",
+            reason: hold.guest_booking&.consultation_reason,
             booked_at: Time.current
           )
 

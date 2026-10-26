@@ -7,6 +7,7 @@
   <% else %>
     <p class="mt-4 text-medical-navy"><strong><%= @hold.appointment_slot.starts_at.in_time_zone(@hold.appointment_slot.practice.timezone).strftime("%A %-d %B %Y at %-I:%M %p") %></strong></p>
     <p class="mt-2 text-medical-muted">With <%= @hold.appointment_slot.clinician.full_name %></p>
-    <p class="mt-4 text-medical-muted">Held until <%= @hold.expires_at.in_time_zone(@hold.appointment_slot.practice.timezone).strftime("%-I:%M %p") %>. Your appointment is not booked yet. Payment confirmation will be added in the next stage.</p>
+    <%= button_to "Continue to secure payment", patient_portal_appointment_hold_payment_path(@hold), class: "mt-5 rounded-full bg-medical-navy px-6 py-3 font-semibold text-white", data: { turbo: false } %>
+    <p class="mt-4 text-medical-muted">Held until <%= @hold.expires_at.in_time_zone(@hold.appointment_slot.practice.timezone).strftime("%-I:%M %p") %>. Your appointment is not booked yet. Your appointment is confirmed only after successful payment.</p>
   <% end %>
 </main>

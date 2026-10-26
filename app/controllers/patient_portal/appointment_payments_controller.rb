@@ -11,7 +11,7 @@ module PatientPortal
     rescue Payments::CreateForHold::HoldExpired
       redirect_to patient_portal_appointment_hold_path(@hold), alert: "Your reservation has expired."
     rescue Payments::CreateForHold::PaymentInProgress
-      redirect_to patient_portal_appointment_hold_path(@hold), alert: "Payment has already been started for this reservation."
+      redirect_to patient_portal_appointment_hold_path(@hold), alert: "This reservation cannot start another payment. Please select a new appointment time."
     rescue Billing::ConsultationPrice::Unavailable
       redirect_to patient_portal_appointment_hold_path(@hold), alert: "Consultation pricing is currently unavailable."
     rescue Stripe::StripeError

@@ -55,10 +55,12 @@ RSpec.describe "Patient portal hold payments", type: :request do
     hold = slot.hold_for!(patient: patient)
     sign_in account, scope: :patient_account
     intent = instance_double(Stripe::PaymentIntent, id: "pi_patient_retry", client_secret: "pi_secret_retry")
-    allow(Stripe::PaymentIntent).to receive(:create)
-      .and_raise(Stripe::APIConnectionError.new("Temporary Stripe connection failure"))
-      .once
-    allow(Stripe::PaymentIntent).to receive(:create).and_return(intent)
+    attempts = 0
+    allow(Stripe::PaymentIntent).to receive(:create) do
+      attempts += 1
+      raise Stripe::APIConnectionError.new("Temporary Stripe connection failure") if attempts == 1
+      intent
+    end
 
     post patient_portal_appointment_hold_payment_path(hold)
     expect(response).to redirect_to(patient_portal_appointment_hold_path(hold))

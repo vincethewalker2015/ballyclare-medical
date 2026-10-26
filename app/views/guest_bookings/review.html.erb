@@ -8,7 +8,12 @@
       <p class="font-semibold text-medical-navy"><%= @guest_booking.appointment_slot.clinician.full_name %></p>
       <p class="mt-2 text-sm text-medical-muted"><%= @guest_booking.appointment_slot.starts_at.in_time_zone(@guest_booking.practice.timezone).strftime("%A %-d %B %Y, %H:%M") %></p>
     </div>
-    <p class="mt-6 text-sm text-medical-muted">Guest checkout is not enabled yet. No payment has been taken, no appointment is reserved or confirmed, and no clinical Patient record has been created.</p>
+    <p class="mt-6 text-sm text-medical-muted">Your appointment is confirmed only after successful payment. No clinical Patient record is created before payment.</p>
+    <% if @guest_booking.status == "draft" || @guest_booking.appointment_hold&.expires_at&.future? %>
+      <%= button_to "Continue to secure payment", guest_booking_checkout_path, class: "mt-6 rounded-xl bg-medical-navy px-6 py-3 text-sm font-semibold text-white", data: { turbo: false } %>
+    <% else %>
+      <p class="mt-4 text-sm text-medical-muted">Your reservation has expired. Please select another time.</p>
+    <% end %>
     <%= link_to "Back to appointment search", guest_booking_path, class: "mt-6 inline-block rounded-xl bg-medical-navy px-6 py-3 text-sm font-semibold text-white" %>
   </section>
 </main>

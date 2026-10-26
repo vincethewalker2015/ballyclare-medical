@@ -11,7 +11,25 @@ class GuestBookingsController < ApplicationController
   end
 
   def create
-    head :not_implemented
+    @slot = public_slot_scope.find(params.require(:guest_booking).require(:appointment_slot_id))
+    @guest_booking = GuestBooking.new(guest_booking_params.merge(
+      practice: @slot.practice,
+      appointment_slot: @slot,
+      expires_at: 30.minutes.from_now
+    ))
+
+    if @guest_booking.save
+      session[:guest_booking_id] = @guest_booking.id
+      redirect_to guest_booking_review_path
+    else
+      render :new, status: :unprocessable_entity
+    end
+  end
+
+  def review
+    @guest_booking = GuestBooking.where(status: "draft")
+      .where("expires_at > ?", Time.current)
+      .find_by!(id: session[:guest_booking_id])
   end
 
   def index
@@ -43,6 +61,12 @@ class GuestBookingsController < ApplicationController
     @consultation_fee = @practice.consultation_fees.find_by(clinician_type: @clinician.staff_type)
   end
   private
+
+  def guest_booking_params
+    params.require(:guest_booking).permit(
+      :first_name, :last_name, :date_of_birth, :email, :phone, :consultation_reason
+    )
+  end
 
   def public_slot_scope
     AppointmentSlot.joins(:availability_block, :clinician)

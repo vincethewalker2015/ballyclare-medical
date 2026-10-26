@@ -10,10 +10,9 @@ module Payments
       payment = Payments::CreateForHold.new(hold: @hold).call
       intent = PaymentProviders::StripeProvider::CreatePayment.new(payment: payment).call
       Result.new(payment: payment, payment_intent: intent)
-    rescue Stripe::StripeError => error
-      if payment && !error.is_a?(Stripe::APIConnectionError)
-        payment.with_lock { payment.update!(status: "failed") }
-      end
+    rescue Stripe::StripeError
+      # Stripe may have created the intent before the response failed.
+      # Retain the Payment and idempotency key so retries are safe.
       raise
     end
   end

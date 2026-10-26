@@ -2,6 +2,8 @@ class GuestBooking < ApplicationRecord
   belongs_to :practice
   belongs_to :appointment_slot
   belongs_to :patient, optional: true
+  has_one :appointment_hold, dependent: :restrict_with_error
+  has_one :payment, dependent: :restrict_with_error
 
   validates :first_name, :last_name, :date_of_birth, :email, :phone, :consultation_reason, presence: true
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }

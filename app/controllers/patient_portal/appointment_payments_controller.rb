@@ -1,6 +1,7 @@
 module PatientPortal
   class AppointmentPaymentsController < BaseController
-    before_action :set_hold
+    before_action :set_link
+    before_action :set_hold, only: :create
 
     def create
       result = Payments::TakeHoldPayment.new(hold: @hold).call
@@ -18,7 +19,14 @@ module PatientPortal
     end
 
     def show
-      @payment = @hold.payments.find(params[:id])
+      @payment = Payment.where(patient: @link.patient).where(id: params[:id]).first!
+      if @payment.appointment.present?
+        raise ActiveRecord::RecordNotFound unless @payment.appointment.practice_id == @link.practice_id
+      elsif @payment.appointment_hold.present?
+        raise ActiveRecord::RecordNotFound unless @payment.appointment_hold.appointment_slot.practice_id == @link.practice_id
+      else
+        raise ActiveRecord::RecordNotFound
+      end
       if @payment.status == "processing" && @payment.provider_payment_id.present?
         begin
           intent = Stripe::PaymentIntent.retrieve(@payment.provider_payment_id)
@@ -32,12 +40,14 @@ module PatientPortal
 
     private
 
-    def set_hold
-      link = current_patient_account.patient_account_links.approved.includes(:patient, :practice).first
-      return head :forbidden unless link && link.patient.practice_id == link.practice_id
+    def set_link
+      @link = current_patient_account.patient_account_links.approved.includes(:patient, :practice).first
+      head :forbidden unless @link && @link.patient.practice_id == @link.practice_id
+    end
 
+    def set_hold
       @hold = AppointmentHold.joins(:appointment_slot)
-        .where(patient: link.patient, appointment_slots: { practice_id: link.practice_id })
+        .where(patient: @link.patient, appointment_slots: { practice_id: @link.practice_id })
         .includes(appointment_slot: :clinician).find(params[:appointment_hold_id])
     end
   end

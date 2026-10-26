@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_25_170000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_26_163000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -268,6 +268,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_25_170000) do
     t.index ["practice_id"], name: "index_patient_registration_requests_on_practice_id"
     t.index ["reviewed_by_id"], name: "index_patient_registration_requests_on_reviewed_by_id"
     t.index ["selected_patient_id"], name: "index_patient_registration_requests_on_selected_patient_id"
+  end
+
+  create_table "guest_bookings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "practice_id", null: false
+    t.uuid "appointment_slot_id", null: false
+    t.uuid "patient_id"
+    t.string "first_name", null: false
+    t.string "last_name", null: false
+    t.date "date_of_birth", null: false
+    t.string "email", null: false
+    t.string "phone", null: false
+    t.text "consultation_reason", null: false
+    t.string "status", default: "draft", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["appointment_slot_id", "status"], name: "index_guest_bookings_on_appointment_slot_id_and_status"
+    t.index ["appointment_slot_id"], name: "index_guest_bookings_on_appointment_slot_id"
+    t.index ["expires_at"], name: "index_guest_bookings_on_expires_at"
+    t.index ["patient_id"], name: "index_guest_bookings_on_patient_id"
+    t.index ["practice_id"], name: "index_guest_bookings_on_practice_id"
   end
 
   create_table "patients", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -592,6 +613,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_25_170000) do
   add_foreign_key "appointment_charges", "patients"
   add_foreign_key "appointment_charges", "practices"
   add_foreign_key "appointment_charges", "users", column: "created_by_id"
+  add_foreign_key "guest_bookings", "appointment_slots"
+  add_foreign_key "guest_bookings", "patients"
+  add_foreign_key "guest_bookings", "practices"
   add_foreign_key "appointment_holds", "appointment_slots"
   add_foreign_key "appointment_holds", "patients"
   add_foreign_key "appointment_slots", "availability_blocks"

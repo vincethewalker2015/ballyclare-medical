@@ -63,13 +63,14 @@
             <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <% @slots.each do |slot| %>
                 <% starts_at = slot.starts_at.in_time_zone(@practice.timezone) %>
-                <div class="rounded-xl border border-medical-border bg-medical-cream px-5 py-4">
+                <%= link_to new_guest_booking_path(appointment_slot_id: slot.id), class: "block rounded-xl border border-medical-border bg-medical-cream px-5 py-4 transition hover:border-medical-teal hover:bg-medical-teal-soft" do %>
                   <p class="font-semibold text-medical-navy"><%= starts_at.strftime("%A, %d %B") %></p>
                   <p class="mt-1 text-sm text-medical-muted"><%= starts_at.strftime("%H:%M") %></p>
-                </div>
+                  <p class="mt-3 text-sm font-semibold text-medical-teal-dark">Enter your details</p>
+                <% end %>
               <% end %>
             </div>
-            <p class="mt-4 text-sm text-medical-muted">Guest reservation and payment will be enabled in the next stage. Times shown are not reserved.</p>
+            <p class="mt-4 text-sm text-medical-muted">Selecting a time lets you enter your details. Your time is not reserved until checkout is available.</p>
           <% else %>
             <p class="mt-3 text-sm text-medical-muted">No times available for this selection. Try another date or clinician.</p>
           <% end %>

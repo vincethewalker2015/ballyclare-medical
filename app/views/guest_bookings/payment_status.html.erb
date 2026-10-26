@@ -1,20 +1,85 @@
-<% content_for :title, "Guest payment status | Ballyclare Medical" %>
-<main class="mx-auto max-w-3xl px-6 py-12">
-  <section class="rounded-2xl border border-medical-border bg-white p-8">
-    <h1 class="text-3xl font-semibold text-medical-navy">Your appointment payment</h1>
-    <% if @payment.status == "succeeded" && @payment.appointment.present? %>
-      <h2 class="mt-5 text-xl font-semibold text-medical-teal-dark">Appointment confirmed</h2>
-      <p class="mt-3 text-medical-muted">Your payment was successful and your appointment has been booked.</p>
-    <% elsif @payment.status == "requires_refund" %>
-      <h2 class="mt-5 text-xl font-semibold text-medical-navy">Booking needs attention</h2>
-      <p class="mt-3 text-medical-muted">Your payment was received but your appointment could not be completed. Please contact the practice regarding a refund.</p>
-    <% elsif @payment.status.in?(%w[pending processing succeeded]) %>
-      <h2 class="mt-5 text-xl font-semibold text-medical-navy">Payment processing</h2>
-      <p class="mt-3 text-medical-muted">Your appointment is not confirmed yet. Please refresh this page shortly.</p>
-    <% else %>
-      <h2 class="mt-5 text-xl font-semibold text-medical-navy">Payment not completed</h2>
-      <p class="mt-3 text-medical-muted">No appointment has been confirmed.</p>
+<% content_for :title, "Guest appointment status | Ballyclare Medical" %>
+<% confirmed = @payment.status == "succeeded" && @payment.appointment.present? %>
+<% processing = @payment.status.in?(%w[pending processing succeeded]) && !confirmed %>
+<main class="mx-auto max-w-3xl px-6 py-12 sm:py-16">
+  <div class="mb-8 flex items-center justify-between gap-4">
+    <%= link_to root_path, class: "text-xl font-semibold tracking-tight text-medical-navy" do %>
+      Ballyclare <span class="text-medical-teal">Medical</span>
     <% end %>
-    <%= link_to "Find appointments", guest_booking_path, class: "mt-6 inline-block rounded-xl bg-medical-navy px-6 py-3 text-sm font-semibold text-white" %>
+  </div>
+  <section class="overflow-hidden rounded-3xl border border-medical-border bg-white shadow-sm" aria-labelledby="guest-payment-heading">
+    <div class="border-b border-medical-border bg-medical-cream px-7 py-8 sm:px-10">
+      <p class="text-xs font-bold uppercase tracking-[0.22em] text-medical-teal">Guest appointment</p>
+      <h1 id="guest-payment-heading" class="mt-3 text-3xl font-semibold tracking-tight text-medical-navy sm:text-4xl">
+        <%= confirmed ? "Your appointment is confirmed" : "Your appointment payment" %>
+      </h1>
+      <% if confirmed %>
+        <p class="mt-3 text-medical-muted">Payment received. Your consultation is booked.</p>
+      <% elsif processing %>
+        <p class="mt-3 text-medical-muted">We're securely finalising your booking.</p>
+      <% else %>
+        <p class="mt-3 text-medical-muted">Your appointment payment status.</p>
+      <% end %>
+    </div>
+    <div class="px-7 py-8 sm:px-10 sm:py-10">
+      <% if confirmed %>
+        <% appointment = @payment.appointment %>
+        <% starts_at = appointment.appointment_slot.starts_at.in_time_zone(appointment.practice.timezone) %>
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4">
+          <p class="font-semibold text-emerald-900">Appointment booked successfully</p>
+          <p class="mt-1 text-sm text-emerald-800">Your payment has been received and your appointment is confirmed.</p>
+        </div>
+        <dl class="mt-8 grid gap-6 sm:grid-cols-2">
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-wider text-medical-muted">Practice</dt>
+            <dd class="mt-2 font-semibold text-medical-navy"><%= appointment.practice.name %></dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-wider text-medical-muted">Clinician</dt>
+            <dd class="mt-2 font-semibold text-medical-navy"><%= appointment.clinician.full_name %></dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-wider text-medical-muted">Appointment date</dt>
+            <dd class="mt-2 font-semibold text-medical-navy"><%= starts_at.strftime("%A %-d %B %Y") %></dd>
+          </div>
+          <div>
+            <dt class="text-xs font-semibold uppercase tracking-wider text-medical-muted">Time</dt>
+            <dd class="mt-2 font-semibold text-medical-navy"><%= starts_at.strftime("%-I:%M %p") %></dd>
+          </div>
+        </dl>
+        <div class="mt-8 rounded-xl bg-medical-cream px-5 py-5">
+          <p class="text-sm font-semibold text-medical-navy">Payment received</p>
+          <p class="mt-2 text-2xl font-semibold text-medical-navy"><%= number_to_currency(@payment.amount_cents / 100.0, unit: @payment.currency == "GBP" ? "£" : "#{@payment.currency} ") %></p>
+        </div>
+        <%= link_to "Book another appointment", guest_booking_path, class: "mt-8 inline-block rounded-xl border border-medical-border px-6 py-3 text-sm font-semibold text-medical-navy hover:bg-medical-cream" %>
+      <% elsif @payment.status == "requires_refund" %>
+        <div class="rounded-xl border border-amber-200 bg-amber-50 px-5 py-5">
+          <h2 class="text-lg font-semibold text-amber-900">Your booking needs attention</h2>
+          <p class="mt-2 text-sm text-amber-900">Your payment was received, but we couldn't confirm the appointment. Please contact the practice about a refund. Do not pay again for this booking.</p>
+        </div>
+      <% elsif processing %>
+        <div class="rounded-xl border border-sky-200 bg-sky-50 px-5 py-5" role="status" aria-live="polite">
+          <div class="flex items-start gap-3">
+            <span class="mt-1 inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-sky-200 border-t-medical-navy" aria-hidden="true"></span>
+            <div>
+              <h2 class="text-lg font-semibold text-medical-navy">Finalising your booking</h2>
+              <p class="mt-2 text-sm text-medical-muted">Your payment is being verified and your appointment is not confirmed yet. Please don't make another payment.</p>
+            </div>
+          </div>
+        </div>
+        <p class="mt-5 text-sm text-medical-muted">This page will check for confirmation automatically. You can also refresh it manually.</p>
+        <%= link_to "Check booking status", guest_booking_payment_path(@payment), class: "mt-5 inline-block rounded-xl border border-medical-border px-6 py-3 text-sm font-semibold text-medical-navy hover:bg-medical-cream" %>
+        <script>
+          setTimeout(() => { if (document.visibilityState === "visible") window.location.reload(); }, 4000);
+        </script>
+      <% else %>
+        <div class="rounded-xl border border-amber-200 bg-amber-50 px-5 py-5">
+          <h2 class="text-lg font-semibold text-amber-900">Payment not completed</h2>
+          <p class="mt-2 text-sm text-amber-900">Your appointment has not been confirmed. No booking confirmation has been issued.</p>
+        </div>
+        <%= link_to "Find another appointment", guest_booking_path, class: "mt-6 inline-block rounded-xl border border-medical-border px-6 py-3 text-sm font-semibold text-medical-navy hover:bg-medical-cream" %>
+      <% end %>
+      <p class="mt-8 border-t border-medical-border pt-5 text-xs text-medical-muted">This is not an emergency service. For a life-threatening emergency, call 999.</p>
+    </div>
   </section>
 </main>

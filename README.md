@@ -232,6 +232,12 @@ The CLI must be able to retrieve it. If Stripe returns `resource_missing`, Rails
 
 A successful `stripe trigger` by itself does not prove that Rails and the CLI are using the same Stripe resource space.
 
+### Recurring payment recovery in development
+
+The default development Active Job adapter is `async`, and `bin/dev` starts Rails and asset watchers, **not** the Solid Queue recurring scheduler. Therefore, recurring jobs defined under `production` in `config/recurring.yml` do not run automatically during ordinary local development. This includes `ReconcileProcessingGuestPaymentsJob`, which checks guest Stripe payments left in `processing` after a declined card or missed webhook.
+
+For a local, one-off verification, run `ReconcileProcessingGuestPaymentsJob.perform_now` in `bin/rails console`. This executes the job immediately; it does **not** prove that periodic scheduling works. The production schedule runs every five minutes when the Solid Queue scheduler is operating. Verify the production worker/scheduler separately before relying on automatic recovery.
+
 ### Local webhooks
 
 Authenticate the Stripe CLI:

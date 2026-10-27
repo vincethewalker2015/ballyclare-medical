@@ -26,6 +26,15 @@ class CompletePatientRegistrationJob < ApplicationJob
         raise ArgumentError, "Patient route must be selected before processing"
       end
 
+      if PatientAccountLink.exists?(patient_id: patient.id) ||
+          PatientAccountLink.exists?(patient_account_id: request_record.patient_account_id)
+        request_record.update!(review_status: "failed", processed_at: Time.current)
+        Rails.logger.warn(
+          "Patient registration link conflict: request=#{request_record.id} patient=#{patient.id}"
+        )
+        return
+      end
+
       link = PatientAccountLink.create!(
         practice: request_record.practice,
         patient_account: request_record.patient_account,

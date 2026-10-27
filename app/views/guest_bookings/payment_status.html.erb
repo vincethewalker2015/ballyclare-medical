@@ -75,9 +75,10 @@
       <% else %>
         <div class="rounded-xl border border-amber-200 bg-amber-50 px-5 py-5">
           <h2 class="text-lg font-semibold text-amber-900">Payment not completed</h2>
-          <p class="mt-2 text-sm text-amber-900">Your appointment has not been confirmed. No booking confirmation has been issued.</p>
+          <p class="mt-2 text-sm text-amber-900">Your payment was not completed, so no appointment has been booked. You have not received a booking confirmation.</p>
+          <p class="mt-2 text-sm text-amber-900">To try again, choose an available appointment and start a new secure checkout. If your bank shows a charge, contact the practice before paying again.</p>
         </div>
-        <%= link_to "Find another appointment", guest_booking_path, class: "mt-6 inline-block rounded-xl border border-medical-border px-6 py-3 text-sm font-semibold text-medical-navy hover:bg-medical-cream" %>
+        <%= link_to "Choose an appointment and try again", guest_booking_path, class: "mt-6 inline-block rounded-xl border border-medical-border px-6 py-3 text-sm font-semibold text-medical-navy hover:bg-medical-cream" %>
       <% end %>
       <p class="mt-8 border-t border-medical-border pt-5 text-xs text-medical-muted">This is not an emergency service. For a life-threatening emergency, call 999.</p>
     </div>

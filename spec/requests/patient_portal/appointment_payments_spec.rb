@@ -121,6 +121,33 @@ RSpec.describe "Patient portal hold payments", type: :request do
     expect(response).to have_http_status(:not_found)
   end
 
+  it "blocks cross-practice hold and payment IDs without Stripe reconciliation" do
+    foreign_patient = create(:patient, practice: create(:practice))
+    foreign_slot = create(:appointment_slot, practice: foreign_patient.practice,
+      clinician: create(:staff_member, practice: foreign_patient.practice))
+    foreign_hold = create(:appointment_hold, patient: foreign_patient,
+      appointment_slot: foreign_slot)
+    foreign_appointment = create(:appointment, patient: foreign_patient,
+      practice: foreign_patient.practice)
+    foreign_payment = create(:payment, patient: foreign_patient,
+      appointment: foreign_appointment)
+
+    sign_in account, scope: :patient_account
+    expect(Payments::ReconcileStripeStatus).not_to receive(:new)
+    expect(Stripe::PaymentIntent).not_to receive(:create)
+
+    get patient_portal_appointment_hold_path(foreign_hold)
+    expect(response).to have_http_status(:not_found)
+
+    get patient_portal_payment_path(foreign_payment)
+    expect(response).to have_http_status(:not_found)
+
+    expect {
+      post patient_portal_appointment_hold_payment_path(foreign_hold)
+    }.not_to change(Payment, :count)
+    expect(response).to have_http_status(:not_found)
+  end
+
   it "rejects payments for another patient's reservation" do
     hold = slot.hold_for!(patient: patient)
     another_patient = create(:patient, practice: patient.practice)

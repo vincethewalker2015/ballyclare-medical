@@ -14,6 +14,16 @@ RSpec.describe "Public landing page", type: :request do
     expect(response.body).to include(new_user_session_path)
   end
 
+  it "offers registered-patient signup separately from guest booking" do
+    get root_path
+
+    expect(response).to have_http_status(:ok)
+    document = response.parsed_body
+    expect(document.at_css('a[href="' + new_patient_account_registration_path + '"]')).to be_present
+    expect(document.at_css('a[href="' + guest_booking_path + '"]')).to be_present
+    expect(response.body).to include("Join a practice")
+  end
+
   it "offers a working sign-in destination" do
     get new_user_session_path
 

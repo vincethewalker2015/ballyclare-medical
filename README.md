@@ -584,6 +584,65 @@ For regression tests covering refunds and the staff appointment page:
 bundle exec rspec spec/models/refund_spec.rb spec/requests/practice/appointments_spec.rb spec/services/appointments/change_status_spec.rb
 ```
 
+## Local development: create a second practice for booking isolation tests
+
+These commands are for a **local development database only**. Do not run them against production. A practice must have an active doctor or nurse, an online availability block, actual `AppointmentSlot` records and a consultation fee before its times can be booked at `/book`.
+
+Open `bin/rails console`:
+
+```ruby
+parkmore = Practice.find_or_create_by!(name: "Parkmore Medical Centre") do |p|
+  p.timezone = "Europe/London"
+  p.currency = "GBP"
+  p.country_code = "GB"
+end
+
+# Use an existing local development User; do not create a shared production login.
+doctor_user = User.find_by!(email: "doctor@example.com")
+clinician = StaffMember.find_or_create_by!(practice: parkmore, user: doctor_user) do |staff|
+  staff.first_name = "Alex"
+  staff.last_name = "Morgan"
+  staff.staff_type = "doctor"
+  staff.access_level = "staff_clinician"
+  staff.active = true
+end
+
+ConsultationFee.find_or_create_by!(practice: parkmore, clinician_type: "doctor") do |fee|
+  fee.amount_cents = 4500
+  fee.currency = parkmore.currency
+end
+
+zone = ActiveSupport::TimeZone[parkmore.timezone]
+date = 3.days.from_now.in_time_zone(zone).to_date
+starts_at = zone.local(date.year, date.month, date.day, 10, 0)
+block = AvailabilityBlock.create!(
+  practice: parkmore, clinician: clinician,
+  starts_at: starts_at, ends_at: starts_at + 2.hours,
+  slot_duration_minutes: 20, bookable_online: true
+)
+
+# AvailabilityBlock does not itself create AppointmentSlot rows.
+(0...6).each do |i|
+  slot_start = starts_at + i * 20.minutes
+  AppointmentSlot.find_or_create_by!(
+    practice: parkmore, clinician: clinician,
+    availability_block: block, starts_at: slot_start
+  ) { |slot| slot.ends_at = slot_start + 20.minutes }
+end
+```
+
+Check that six future slots exist:
+
+```ruby
+parkmore.appointment_slots.where(availability_block: block).order(:starts_at).pluck(:starts_at, :ends_at)
+```
+
+Visit `/book`, select Parkmore, choose Alex Morgan and the date above, then click **Find available times**. Check that the fee is £45 and that Parkmore slots are shown. Switch to another practice and verify Parkmore's clinician and slots disappear. Do not make a payment for this isolation test.
+
+If the practice appears but no times show, first check that the selected date matches the block, that `AppointmentSlot` records exist, that the slots are in the future, and that none is already booked or actively held. Re-running the entire snippet creates another availability block; reuse the existing block if only slots need adding.
+
+---
+
 ## Practice administration: initial administrator setup
 
 The following procedure is for authorised platform operators and developers,

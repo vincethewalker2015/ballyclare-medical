@@ -139,9 +139,11 @@ RSpec.describe "Patient portal hold payments", type: :request do
     get patient_portal_appointment_hold_path(foreign_hold)
     expect(response).to have_http_status(:not_found)
 
+    sign_in account, scope: :patient_account
     get patient_portal_payment_path(foreign_payment)
     expect(response).to have_http_status(:not_found)
 
+    sign_in account, scope: :patient_account
     expect {
       post patient_portal_appointment_hold_payment_path(foreign_hold)
     }.not_to change(Payment, :count)

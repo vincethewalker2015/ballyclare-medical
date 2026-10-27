@@ -56,5 +56,4 @@ RSpec.describe "Guest payment failure page", type: :request do
     expect(response.body).to include("Your full payment has been refunded")
     expect(response.body).not_to include("Contact the practice to arrange a refund")
   end
-
 end

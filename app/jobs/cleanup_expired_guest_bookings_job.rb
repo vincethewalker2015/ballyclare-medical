@@ -5,6 +5,7 @@ class CleanupExpiredGuestBookingsJob < ApplicationJob
 
   def perform
     GuestBooking.where(status: "draft")
+      .where.missing(:appointment_hold, :payment)
       .where("expires_at <= ?", Time.current)
       .in_batches(of: BATCH_SIZE) do |batch|
         batch.delete_all

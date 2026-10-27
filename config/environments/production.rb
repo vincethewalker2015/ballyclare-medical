@@ -40,6 +40,9 @@ Rails.application.configure do
   # Change to "debug" to log everything (including potentially personally-identifiable information!).
   config.log_level = ENV.fetch("RAILS_LOG_LEVEL", "info")
 
+  # Keep production database queries (including bind values) out of app logs.
+  config.active_record.logger = nil
+
   # Prevent health checks from clogging up the logs.
   config.silence_healthcheck_path = "/up"
 

@@ -76,6 +76,10 @@ module Payments
 
           hold.destroy!
 
+          if payment.guest_booking
+            GuestBookings::ClearCompletedDetails.new(guest_booking: payment.guest_booking).call
+          end
+
           appointment
         end
       end

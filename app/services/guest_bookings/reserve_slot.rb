@@ -13,6 +13,7 @@ module GuestBookings
 
         slot.with_lock do
           guest_booking.lock!
+          raise Unavailable, "Practice or clinician mismatch" unless GuestBookings::PracticeConsistency.valid?(guest: guest_booking, slot: slot)
           raise Unavailable, "Guest booking has expired" if guest_booking.expires_at <= Time.current
           raise Unavailable, "Guest booking is not a draft" unless guest_booking.status == "draft"
           raise Unavailable, "Online booking is no longer available" unless slot.availability_block.active? && slot.availability_block.bookable_online?

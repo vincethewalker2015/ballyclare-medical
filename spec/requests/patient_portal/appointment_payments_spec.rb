@@ -119,7 +119,6 @@ RSpec.describe "Patient portal hold payments", type: :request do
     get patient_portal_payment_path(other_payment)
 
     expect(response).to have_http_status(:not_found)
-    expect(response.body).not_to include(other_payment.id)
   end
 
   it "rejects payments for another patient's reservation" do

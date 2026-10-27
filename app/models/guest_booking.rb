@@ -5,6 +5,8 @@ class GuestBooking < ApplicationRecord
   has_one :appointment_hold, dependent: :restrict_with_error
   has_one :payment, dependent: :restrict_with_error
 
+  before_validation :normalize_guest_names, unless: :completed?
+
   validates :first_name, :last_name, :date_of_birth, :email, :phone, :consultation_reason, presence: true, unless: :completed?
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, unless: :completed?
   validates :status, inclusion: { in: %w[ draft payment_pending completed expired ] }
@@ -16,6 +18,11 @@ class GuestBooking < ApplicationRecord
   end
 
   private
+
+  def normalize_guest_names
+    self.first_name = first_name.strip if first_name.is_a?(String)
+    self.last_name = last_name.strip if last_name.is_a?(String)
+  end
 
   def slot_belongs_to_practice
     return unless practice && appointment_slot

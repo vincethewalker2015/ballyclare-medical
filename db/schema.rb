@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_27_101500) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_27_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -219,6 +219,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_27_101500) do
     t.index ["expires_at"], name: "index_guest_bookings_on_expires_at"
     t.index ["patient_id"], name: "index_guest_bookings_on_patient_id"
     t.index ["practice_id"], name: "index_guest_bookings_on_practice_id"
+    t.check_constraint "status::text = 'completed'::text OR first_name IS NOT NULL AND btrim(first_name::text) <> ''::text AND last_name IS NOT NULL AND btrim(last_name::text) <> ''::text AND date_of_birth IS NOT NULL AND email IS NOT NULL AND btrim(email::text) <> ''::text AND phone IS NOT NULL AND btrim(phone::text) <> ''::text AND consultation_reason IS NOT NULL AND btrim(consultation_reason) <> ''::text", name: "guest_bookings_active_details_present"
   end
 
   create_table "patient_account_links", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|

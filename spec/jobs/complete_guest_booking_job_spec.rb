@@ -43,6 +43,9 @@ RSpec.describe CompleteGuestBookingJob, type: :job do
     expect(guest.reload.patient.patient_type).to eq("external")
     expect(payment.reload.appointment.patient).to eq(guest.patient)
     expect(payment.appointment.reason).to eq("One-off consultation")
+    expect(guest.reload.attributes.slice("first_name", "last_name", "date_of_birth", "email", "phone", "consultation_reason").values).to all(be_nil)
+    expect(payment.reload.guest_booking).to eq(guest)
+    expect(payment.appointment.patient.email).to eq("visitor@example.com")
   end
 
   it "does not leave an external patient behind when a paid hold has expired" do

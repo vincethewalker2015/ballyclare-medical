@@ -33,7 +33,7 @@ function loadStripeScript() {
 }
 
 export default class extends Controller {
-  static targets = ["form", "element", "error", "submit", "countdown"];
+  static targets = ["form", "element", "error", "submit", "countdown", "expiredNotice"];
 
   static values = {
     publishableKey: String,
@@ -116,6 +116,8 @@ export default class extends Controller {
     if (!this.hasExpiresAtValue) return;
     const remaining = Math.max(0, Math.ceil((Date.parse(this.expiresAtValue) - Date.now()) / 1000));
     if (remaining === 0) {
+      if (this.hasFormTarget) this.formTarget.classList.add("hidden");
+      if (this.hasExpiredNoticeTarget) this.expiredNoticeTarget.classList.remove("hidden");
       if (this.hasCountdownTarget) this.countdownTarget.textContent = "Reservation expired. Please return to appointment search and select a new time.";
       if (this.hasSubmitTarget) this.submitTarget.disabled = true;
       return;

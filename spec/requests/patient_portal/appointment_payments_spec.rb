@@ -82,6 +82,32 @@ RSpec.describe "Patient portal hold payments", type: :request do
     expect(Payment.count).to eq(0)
   end
 
+  it "rejects payment initiation after the patient link is revoked" do
+    hold = slot.hold_for!(patient: patient)
+    account.patient_account_links.first.update!(status: "revoked")
+    sign_in account, scope: :patient_account
+
+    expect(Stripe::PaymentIntent).not_to receive(:create)
+    expect {
+      post patient_portal_appointment_hold_payment_path(hold)
+    }.not_to change(Payment, :count)
+
+    expect(response).to have_http_status(:forbidden)
+  end
+
+  it "rejects payment initiation without a patient link" do
+    hold = slot.hold_for!(patient: patient)
+    account.patient_account_links.delete_all
+    sign_in account, scope: :patient_account
+
+    expect(Stripe::PaymentIntent).not_to receive(:create)
+    expect {
+      post patient_portal_appointment_hold_payment_path(hold)
+    }.not_to change(Payment, :count)
+
+    expect(response).to have_http_status(:forbidden)
+  end
+
   it "rejects payments for another patient's reservation" do
     hold = slot.hold_for!(patient: patient)
     another_patient = create(:patient, practice: patient.practice)

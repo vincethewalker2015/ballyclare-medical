@@ -50,6 +50,55 @@ RSpec.describe "Stripe webhooks", type: :request do
       expect(response).to have_http_status(:ok)
     end
 
+    it "completes a paid patient hold only once when Stripe delivers the success event twice" do
+      slot = create(:appointment_slot)
+      patient = create(:patient, practice: slot.practice)
+      hold = slot.hold_for!(patient: patient)
+      payment = Payment.create!(
+        appointment_hold: hold,
+        patient: patient,
+        provider: "stripe",
+        provider_payment_id: "pi_webhook_duplicate",
+        amount_cents: 5000,
+        currency: slot.practice.currency,
+        status: "processing",
+        idempotency_key: SecureRandom.uuid
+      )
+      payment_intent = instance_double(
+        Stripe::PaymentIntent,
+        id: "pi_webhook_duplicate",
+        amount_received: 5000,
+        currency: slot.practice.currency.downcase
+      )
+      event = instance_double(
+        Stripe::Event,
+        type: "payment_intent.succeeded",
+        data: double(object: payment_intent)
+      )
+      allow(Stripe::Webhook).to receive(:construct_event).and_return(event)
+
+      deliver_event = lambda do
+        post "/webhooks/stripe",
+          params: "{}",
+          headers: {
+            "Stripe-Signature" => "valid-signature",
+            "CONTENT_TYPE" => "application/json"
+          }
+        expect(response).to have_http_status(:ok)
+      end
+
+      expect {
+        deliver_event.call
+        deliver_event.call
+      }.to change(Appointment, :count).by(1)
+        .and change(AppointmentCharge, :count).by(1)
+
+      expect(payment.reload.status).to eq("succeeded")
+      expect(payment.appointment).to be_present
+      expect(payment.appointment.appointment_slot).to eq(slot)
+      expect(payment.appointment.appointment_charges.first.amount_cents).to eq(5000)
+    end
+
     it "rejects an invalid Stripe signature" do
       allow(Stripe::Webhook)
         .to receive(:construct_event)

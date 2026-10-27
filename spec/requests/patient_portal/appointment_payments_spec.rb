@@ -97,7 +97,7 @@ RSpec.describe "Patient portal hold payments", type: :request do
 
   it "rejects payment initiation without a patient link" do
     hold = slot.hold_for!(patient: patient)
-    account.patient_account_links.delete_all
+    PatientAccountLink.where(patient_account: account).delete_all
     sign_in account, scope: :patient_account
 
     expect(Stripe::PaymentIntent).not_to receive(:create)

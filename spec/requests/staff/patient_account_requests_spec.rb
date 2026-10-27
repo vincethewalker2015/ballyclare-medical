@@ -243,6 +243,44 @@ RSpec.describe "Patient account requests", type: :request do
     expect(request_record.reload.review_status).to eq("approved")
   end
 
+  it "links a verified existing patient only after senior approval without creating a duplicate patient" do
+    membership.update!(access_level: "senior_staff_admin")
+    account = create(:patient_account)
+    account.confirm
+    existing_patient = create(:patient, practice: practice)
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account
+    )
+    sign_in admin
+
+    post verify_practice_patient_account_request_path(request_record),
+      params: {
+        patient_route: "existing_patient",
+        patient_id: existing_patient.id,
+        verification_method: "in_person",
+        identity_checked: "1"
+      }
+
+    expect(request_record.reload.review_status).to eq("verified")
+    expect(request_record.selected_patient).to eq(existing_patient)
+    expect(PatientAccountLink.where(patient_account: account)).to be_empty
+
+    post approve_practice_patient_account_request_path(request_record)
+    expect(request_record.reload.review_status).to eq("approved")
+
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.not_to change(Patient, :count)
+
+    link = PatientAccountLink.find_by!(patient_account: account)
+    expect(link.patient).to eq(existing_patient)
+    expect(link.practice).to eq(practice)
+    expect(link.status).to eq("approved")
+    expect(PatientAccountLink.where(patient_account: account).count).to eq(1)
+    expect(request_record.reload.review_status).to eq("completed")
+  end
+
   it "does not provide a route for creating an assignment" do
     sign_in admin
     expect {

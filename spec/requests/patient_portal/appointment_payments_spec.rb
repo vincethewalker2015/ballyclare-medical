@@ -61,6 +61,9 @@ RSpec.describe "Patient portal hold payments", type: :request do
     )
     post patient_portal_appointment_hold_payment_path(hold)
     expect(response).to have_http_status(:ok)
+    allow(Stripe::PaymentIntent).to receive(:retrieve).with("pi_refresh_test").and_return(
+      instance_double(Stripe::PaymentIntent, client_secret: "pi_refresh_secret")
+    )
 
     expect {
       get patient_portal_appointment_hold_payment_path(hold)

@@ -217,6 +217,32 @@ RSpec.describe "Patient account requests", type: :request do
     expect(response.body).to include(practice_patient_path(PatientAccountLink.last.patient))
   end
 
+  it "does not complete an approved registration if email confirmation is missing" do
+    membership.update!(access_level: "senior_staff_admin")
+    account = create(:patient_account)
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice,
+      patient_account: account,
+      review_status: "approved",
+      patient_route: "new_patient",
+      first_name: "Unconfirmed",
+      last_name: "Applicant",
+      date_of_birth: Date.new(1980, 1, 1),
+      reviewed_by: membership,
+      approved_by: membership,
+      approved_at: Time.current,
+      identity_verified_at: Time.current,
+      verification_method: "in_person"
+    )
+
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.not_to change(Patient, :count)
+
+    expect(PatientAccountLink.where(patient_account: account)).to be_empty
+    expect(request_record.reload.review_status).to eq("approved")
+  end
+
   it "does not provide a route for creating an assignment" do
     sign_in admin
     expect {

@@ -1,5 +1,8 @@
 <% content_for :title, "Guest appointment status | Ballyclare Medical" %>
 <% confirmed = @payment.status == "succeeded" && @payment.appointment.present? %>
+<% refunded_cents = @payment.refunds.where(status: "succeeded").sum(:amount_cents) %>
+<% refund_in_flight = @payment.refunds.where(status: %w[pending processing]).exists? %>
+<% refund_needs_review = @payment.refunds.where(status: %w[failed cancelled]).exists? %>
 <% processing = @payment.status.in?(%w[pending processing succeeded]) && !confirmed %>
 <main class="mx-auto max-w-3xl px-6 py-12 sm:py-16">
   <div class="mb-8 flex items-center justify-between gap-4">
@@ -55,10 +58,18 @@
         <%= link_to "Book another appointment", guest_booking_path, class: "mt-8 inline-block rounded-xl border border-medical-border px-6 py-3 text-sm font-semibold text-medical-navy hover:bg-medical-cream" %>
       <% elsif @payment.status == "requires_refund" %>
         <div class="rounded-xl border border-amber-200 bg-amber-50 px-5 py-5">
-          <h2 class="text-lg font-semibold text-amber-900">Your booking needs attention</h2>
+          <h2 class="text-lg font-semibold text-amber-900"><%= refunded_cents >= @payment.amount_cents ? "Your refund has been completed" : "Your booking needs attention" %></h2>
           <p class="mt-2 text-sm text-amber-900">Your payment was received, but we couldn't confirm the appointment. No appointment has been booked. Please do not pay again for this booking.</p>
           <h3 class="mt-5 font-semibold text-amber-900">What happens next?</h3>
-          <p class="mt-2 text-sm text-amber-900">Contact the practice to arrange a refund. Quote the payment reference below so the team can locate your payment.</p>
+          <% if refunded_cents >= @payment.amount_cents %>
+            <p class="mt-2 text-sm text-amber-900">Your full payment has been refunded. Your bank may take additional time to show the credit.</p>
+          <% elsif refund_needs_review %>
+            <p class="mt-2 text-sm text-amber-900">Your refund needs manual review. Please contact the practice and quote the payment reference below.</p>
+          <% elsif refund_in_flight %>
+            <p class="mt-2 text-sm text-amber-900">Your refund has been initiated and is being processed. Please do not make another payment for this booking.</p>
+          <% else %>
+            <p class="mt-2 text-sm text-amber-900">Your refund is being arranged. If you need assistance, contact the practice and quote the payment reference below.</p>
+          <% end %>
           <p class="mt-3 break-all rounded-lg bg-white px-4 py-3 text-sm text-medical-navy"><strong>Payment reference:</strong> <%= @payment.id %></p>
           <p class="mt-3 text-sm text-amber-900">If you need an appointment urgently, contact the practice directly.</p>
         </div>

@@ -61,8 +61,8 @@ RSpec.describe CompleteGuestBookingJob, type: :job do
   it "does not create a patient when the paid slot is already booked" do
     payment
     other_patient = create(:patient, practice: practice)
-    create(:appointment, practice: practice, appointment_slot: slot,
-      clinician: clinician, patient: other_patient)
+    Appointment.create!(practice: practice, appointment_slot: slot,
+      clinician: clinician, patient: other_patient, status: "booked", booked_at: Time.current)
 
     expect {
       described_class.perform_now(payment.id)

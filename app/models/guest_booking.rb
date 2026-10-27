@@ -5,11 +5,15 @@ class GuestBooking < ApplicationRecord
   has_one :appointment_hold, dependent: :restrict_with_error
   has_one :payment, dependent: :restrict_with_error
 
-  validates :first_name, :last_name, :date_of_birth, :email, :phone, :consultation_reason, presence: true
-  validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }
+  validates :first_name, :last_name, :date_of_birth, :email, :phone, :consultation_reason, presence: true, unless: :completed?
+  validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, unless: :completed?
   validates :status, inclusion: { in: %w[ draft payment_pending completed expired ] }
   validate :slot_belongs_to_practice
   validate :date_of_birth_not_in_future
+
+  def completed?
+    status == "completed"
+  end
 
   private
 

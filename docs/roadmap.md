@@ -774,56 +774,50 @@ generate diseases and medical advice.
 
 ------------------------------------------------------------------------
 
-## Phase 9 --- Intelligent Medical Search and Retrieval
+## Phase 9 --- Technical AI Integration and Intelligent Retrieval
 
-**Status: Planned**
+**Status: Planned — dedicated technical foundation, no public assistant launch**
 
-Once the knowledge base exists, introduce intelligent retrieval.
+Phase 9 is the **AI integration setup phase**. It establishes a reusable,
+application-owned AI infrastructure on top of the reviewed Phase 8 Medical
+Knowledge Base. It includes intelligent medical search and retrieval, but
+**does not launch the conversational patient assistant**.
 
-Traditional search remains available.
+### Deliverables
 
-Intelligent retrieval adds the ability to understand natural-language
-questions and retrieve relevant trusted material.
+- Evaluate RubyLLM in a proof of concept; assess compatibility, security,
+  licensing, privacy terms, cost and latency before adopting it.
+- Implement an `Ai::` service boundary and provider/model adapters, avoiding
+  vendor-specific calls in controllers and core domain models.
+- Implement searchable, attributable retrieval from the approved Medical
+  Knowledge Base, retaining conventional search as a fallback. Add embeddings
+  or vector storage only when evidence shows they are useful.
+- Establish prompt and response contracts, structured output validation,
+  source citations, model configuration and versioning.
+- Introduce appropriate background jobs for indexing and other non-interactive
+  tasks, isolated from booking, payment, webhook and refund recovery capacity.
+- Add rate limiting, abuse prevention, data minimisation, provider access
+  controls, budgets, cost/token/latency metrics, alerts and failure handling.
+- Build automated evaluations for factual grounding, clinical red flags,
+  hallucinations, prompt injection, privacy boundaries and regression quality.
+- Document provider selection, operational runbooks, data-processing terms and
+  readiness criteria for Phase 10.
 
-Example:
+### Exit criteria
 
-``` text
-Patient:
-"I've had a dry cough at night and sometimes feel wheezy."
-
-          ↓
-
-Interpret search intent
-
-          ↓
-
-Retrieve relevant material from the
-approved Medical Knowledge Base
-
-          ↓
-
-Present relevant conditions/topics
-and source material
-```
-
-The system should distinguish between:
-
--   finding relevant information;
--   explaining information;
--   diagnosing a patient.
-
-These are not equivalent operations.
-
-The search layer should not silently turn information retrieval into an
-autonomous diagnosis.
+The AI integration can retrieve and explain approved material in controlled
+tests, with measurable quality, cost and latency, verified security boundaries
+and safe failure behaviour. **A public symptom-chat interface is explicitly
+out of scope until Phase 10.**
 
 ------------------------------------------------------------------------
 
 ## Phase 10 --- Ballyclare Public AI Health & Booking Assistant
 
-**Status: Planned — public Ballyclare-only initial release**
+**Status: Planned — user-facing product, dependent on Phase 9**
 
-AI is introduced **after** the trusted knowledge and retrieval layers.
+The public assistant is introduced **after Phase 9 has delivered and verified**
+the technical AI integration and intelligent retrieval foundation.
 
 Architecture:
 
@@ -1028,9 +1022,11 @@ separate decisions; do not build them prematurely.
    installing model dependencies.
 2. **Phase 8:** publish and review trusted medical content, including source
    provenance and a refresh policy.
-3. **Phase 9:** deliver retrieval and the shared AI technical foundation,
-   with benchmarked costs, latency, safety evaluations and provider fallback.
-4. **Phase 10:** launch a limited public Ballyclare assistant only after
+3. **Phase 9 — AI integration setup:** implement and verify RubyLLM or a
+   selected alternative, provider abstraction, intelligent retrieval, jobs,
+   security, observability, budgets and evaluations. No public assistant yet.
+4. **Phase 10 — public assistant:** build and launch the Ballyclare AI Health
+   & Booking Assistant using Phase 9 infrastructure, only after
    clinical, privacy, regulatory, security and operational readiness review.
 5. **Later:** assess authenticated patient and clinician experiences, deeper
    diagnostic support and reuse in other projects as separate milestones.
@@ -1234,9 +1230,13 @@ is:
         ↓
 9. Communications
         ↓
-10. Medical Knowledge Base → Intelligent Retrieval and AI foundation → Ballyclare public AI Health & Booking Assistant
+10. Phase 8: Medical Knowledge Base
         ↓
-11. Reporting / expanded administration
+11. Phase 9: Technical AI integration setup and intelligent retrieval
+        ↓
+12. Phase 10: Ballyclare public AI Health & Booking Assistant
+        ↓
+13. Reporting / expanded administration
 ```
 
 Security, privacy, payment resilience, accessibility, auditability, backup and
@@ -1249,11 +1249,11 @@ individual phases, but architectural dependencies should be respected.
 In particular:
 
 ``` text
-Medical Knowledge Base
+Phase 8: Medical Knowledge Base
         ↓
-Intelligent Search / Retrieval
+Phase 9: Technical AI integration + intelligent retrieval
         ↓
-AI Assistant
+Phase 10: Public AI Health & Booking Assistant
 ```
 
 should remain the preferred order for patient-facing medical
@@ -1349,7 +1349,7 @@ fee policy is proposed.**
 | Date | Decision | Rationale | Revisit when |
 | --- | --- | --- | --- |
 | 2026-10-27 | Public Ballyclare-only AI Health & Booking Assistant first | Patient discovery and useful symptom guidance, with existing guest booking as a conversion path | Authenticated or other-practice demand is validated |
-| 2026-10-27 | Defer AI implementation; prepare service boundaries now | Avoid premature infrastructure while protecting later integration | Phase 9 planning or earlier AI dependency |
+| 2026-10-27 | Phase 9 owns technical AI integration and retrieval; Phase 10 owns the public assistant | Keep infrastructure and user-facing product as separate, testable delivery milestones | Phase 9 planning or an earlier demonstrated dependency |
 | 2026-10-27 | Evaluate RubyLLM, do not commit to a provider yet | Preserve portability, test real latency, cost and privacy | AI foundation proof of concept |
 | 2026-10-27 | Keep Phase 5 authenticated portal distinct from public guest booking | Different identity, authorization and account-linking requirements | Phase 5 completion review |
 

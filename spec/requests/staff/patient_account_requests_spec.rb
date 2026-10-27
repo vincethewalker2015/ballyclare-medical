@@ -328,6 +328,31 @@ RSpec.describe "Patient account requests", type: :request do
     expect(request_record.reload.review_status).not_to eq("completed")
   end
 
+  it "handles a database uniqueness conflict after link prechecks" do
+    membership.update!(access_level: "senior_staff_admin")
+    account = create(:patient_account)
+    account.confirm
+    patient = create(:patient, practice: practice)
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account,
+      review_status: "approved", patient_route: "existing_patient",
+      selected_patient: patient, reviewed_by: membership,
+      approved_by: membership, approved_at: Time.current,
+      identity_verified_at: Time.current, verification_method: "in_person"
+    )
+
+    allow(PatientAccountLink).to receive(:create!)
+      .and_raise(ActiveRecord::RecordNotUnique)
+
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.not_to change(PatientAccountLink, :count)
+
+    expect(request_record.reload.review_status).to eq("failed")
+    expect(request_record.processed_at).to be_present
+    expect(PatientAccountLink.where(patient_account: account)).to be_empty
+  end
+
   it "records a failed registration when the selected patient is already linked" do
     membership.update!(access_level: "senior_staff_admin")
     existing_patient = create(:patient, practice: practice)

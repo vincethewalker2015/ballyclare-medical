@@ -53,6 +53,20 @@ RSpec.describe "Patient portal hold payments", type: :request do
     expect(response.body).to include("Back to patient portal")
   end
 
+  it "provides a dedicated expired-checkout state instead of leaving the Stripe form visible" do
+    hold = slot.hold_for!(patient: patient)
+    sign_in account, scope: :patient_account
+    allow(Stripe::PaymentIntent).to receive(:create).and_return(
+      instance_double(Stripe::PaymentIntent, id: "pi_expiry_ui", client_secret: "pi_expiry_secret")
+    )
+
+    post patient_portal_appointment_hold_payment_path(hold)
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include('data-stripe-payment-target="expiredNotice"')
+    expect(response.body).to include("Find another appointment")
+  end
+
   it "allows a safe checkout refresh without creating another payment" do
     hold = slot.hold_for!(patient: patient)
     sign_in account, scope: :patient_account

@@ -108,6 +108,20 @@ RSpec.describe "Patient portal hold payments", type: :request do
     expect(response).to have_http_status(:forbidden)
   end
 
+  it "does not disclose another patient's payment status by ID in the same practice" do
+    other_patient = create(:patient, practice: patient.practice)
+    other_appointment = create(:appointment, patient: other_patient, practice: patient.practice)
+    other_payment = create(:payment, patient: other_patient, appointment: other_appointment)
+
+    sign_in account, scope: :patient_account
+    expect(Payments::ReconcileStripeStatus).not_to receive(:new)
+
+    get patient_portal_payment_path(other_payment)
+
+    expect(response).to have_http_status(:not_found)
+    expect(response.body).not_to include(other_payment.id)
+  end
+
   it "rejects payments for another patient's reservation" do
     hold = slot.hold_for!(patient: patient)
     another_patient = create(:patient, practice: patient.practice)

@@ -439,12 +439,30 @@ Provide a single staff appointment screen showing:
 
 ## Phase 5 --- Patient Portal
 
-**Status: Next — design agreed, implementation not started**
+**Status: In progress — registration, portal foundation and paid booking implemented; completion audit outstanding**
 
-Create the `/portal` experience. At the October 2026 review, no `/portal`
-routes or controllers were present. Devise registration views and a
-`User`–`Patient` association exist, but they are **not** a complete patient
-onboarding or identity-linking flow.
+The current implementation uses `PatientAccount` authentication and
+`/patient-portal` routes (rather than the earlier proposed `/portal`
+namespace). Registration creates a practice-scoped request requiring staff
+verification/approval; patient dashboard, appointment discovery, holds and
+payment routes exist. Public `/book` guest booking is also delivered, but
+it is a separate anonymous workflow and does **not** complete Phase 5.
+
+**Remaining acceptance work to verify/implement:**
+
+- End-to-end account activation, email verification, staff approval and secure
+  linking to existing patient records, including abuse and enumeration tests.
+- Portal appointment history, cancellation and rescheduling policies, with
+  appropriate audit and financial/refund behaviour.
+- Payment history, receipts, outstanding balances and later payments within
+  the authenticated portal.
+- Approved documents, personal-detail management and patient communications
+  where required for the agreed Phase 5 scope.
+- End-to-end request/system, accessibility, practice-isolation and permission
+  regression tests, plus production email delivery verification.
+
+Existing routes and controllers establish implementation progress, **not**
+proof that every workflow or acceptance criterion is complete.
 
 ### Patient registration and secure record linking
 
@@ -801,9 +819,9 @@ autonomous diagnosis.
 
 ------------------------------------------------------------------------
 
-## Phase 10 --- AI Assistant
+## Phase 10 --- Ballyclare Public AI Health & Booking Assistant
 
-**Status: Planned / Later**
+**Status: Planned — public Ballyclare-only initial release**
 
 AI is introduced **after** the trusted knowledge and retrieval layers.
 
@@ -942,6 +960,88 @@ establish appropriate records of:
 
 The precise audit policy will depend on the use case and applicable
 regulatory/privacy requirements.
+
+------------------------------------------------------------------------
+
+# AI Integration Strategy & Architecture
+
+**Decision status:** Direction agreed; implementation deferred until the
+medical knowledge and retrieval foundations are ready. **Initial product:**
+Ballyclare Medical public AI Health & Booking Assistant. The assistant is
+available to anonymous visitors as a useful health-information and patient
+acquisition feature. It is not initially offered as a configurable assistant
+for other practices. Future authenticated and multi-practice variants require
+separate decisions; do not build them prematurely.
+
+## Intended experience
+
+- Answer questions about Ballyclare services, fees, registration and booking
+  using current, authoritative application data.
+- Discuss symptoms conversationally, ask relevant clarifying questions,
+  explain possible conditions with uncertainty, reference reviewed medical
+  information, and recommend suitable next steps.
+- Offer the existing guest booking flow where an ordinary consultation is
+  appropriate. Do not imply a booking is confirmed without the existing
+  authoritative payment and appointment services.
+- Prioritise urgent or emergency care when warning signs arise; never use a
+  sales prompt as a substitute for appropriate escalation.
+- No anonymous access to patient records, clinical notes, private appointments
+  or identity-linked information. Do not require registration to ask a public
+  question. Minimise retention of potentially sensitive symptom descriptions.
+- More advanced diagnostic functionality is a **future candidate**, not a
+  launch commitment: define its intended medical purpose, undertake clinical
+  validation and assess applicable medical-device, privacy and safety
+  requirements before offering it to the public.
+
+## Integration architecture
+
+- Evaluate **RubyLLM** as the leading Ruby/Rails integration candidate, not
+  an approved or installed dependency. Confirm current Rails compatibility,
+  provider support, licensing, data processing terms and operational fit in a
+  small proof of concept before selection.
+- Put model calls behind application-owned `Ai::` services and explicit
+  provider adapters. Controllers stay thin; domain services remain authoritative.
+- Use reviewed knowledge-base content and attributable retrieval (Phase 8 then
+  Phase 9) as grounding. Traditional search and non-AI fallback remain usable.
+- Define explicit, least-privilege tools for practice information and booking
+  discovery. Any consequential action requires Rails authorization, validation,
+  domain-service enforcement and appropriate confirmation.
+- Separate interactive latency-sensitive requests from background indexing,
+  embeddings and analysis; use distinct queue capacity so AI cannot delay
+  booking, payments, webhooks or refund recovery.
+- Prefer efficient model routing, bounded context, selective safe caching and
+  deterministic answers for straightforward FAQs. Measure per-feature requests,
+  tokens, provider cost, latency, failures and quality. Set abuse protection,
+  rate limits, budgets and alerts before anonymous launch.
+- Establish versioned prompts, structured output validation, source tracking,
+  evaluation fixtures and regression tests for red flags, uncertainty,
+  hallucinations, prompt injection and cross-practice leakage.
+- Before real health data or public symptom guidance: clinical governance,
+  clinician-reviewed escalation criteria, privacy/data-protection impact
+  assessment, provider retention and transfer review, jurisdiction-specific
+  regulatory assessment, incident response and human oversight.
+
+## Delivery gates
+
+1. **Now / Phases 5–7:** keep reusable services, clear permission boundaries,
+   and auditable domain operations; document AI-relevant decisions without
+   installing model dependencies.
+2. **Phase 8:** publish and review trusted medical content, including source
+   provenance and a refresh policy.
+3. **Phase 9:** deliver retrieval and the shared AI technical foundation,
+   with benchmarked costs, latency, safety evaluations and provider fallback.
+4. **Phase 10:** launch a limited public Ballyclare assistant only after
+   clinical, privacy, regulatory, security and operational readiness review.
+5. **Later:** assess authenticated patient and clinician experiences, deeper
+   diagnostic support and reuse in other projects as separate milestones.
+
+## Reuse across future projects
+
+Preserve reusable patterns (provider abstraction, evaluations, cost metering,
+background execution and safe tool interfaces) without coupling the current
+healthcare assistant to a generic cross-industry product. Each future project
+must define its own data permissions, intended purpose, risk controls and
+release gates; sharing infrastructure does not imply sharing clinical data.
 
 ------------------------------------------------------------------------
 
@@ -1116,7 +1216,7 @@ The recommended **next** sequence, following the October 2026 progress review,
 is:
 
 ``` text
-1. Verify/update roadmap and Phase 4 completion gaps
+1. Verify Phase 4 gaps and finish the remaining Phase 5 portal acceptance work
         ↓
 2. Staff-managed consultation fees by clinician type
         ↓
@@ -1134,7 +1234,7 @@ is:
         ↓
 9. Communications
         ↓
-10. Medical Knowledge Base → Intelligent Retrieval → AI Assistant
+10. Medical Knowledge Base → Intelligent Retrieval and AI foundation → Ballyclare public AI Health & Booking Assistant
         ↓
 11. Reporting / expanded administration
 ```
@@ -1163,8 +1263,9 @@ information.
 
 # Near-Term Development Plan
 
-The staff-booking vertical slice described by the original roadmap is now in
-place. The next work should proceed in deliberately small, reviewed branches.
+The staff-booking and public guest-booking vertical slices are in place.
+The authenticated patient portal remains a distinct Phase 5 workstream.
+The next work should proceed in deliberately small, reviewed branches.
 
 1. **Consultation fee configuration:** authorised staff edit per-practice
    doctor/nurse prices, initially £65/£40 at Ballyclare Medical. Establish a
@@ -1240,6 +1341,17 @@ maintenance cost.
 
 **No immediate refactor or change to the current doctor/nurse consultation
 fee policy is proposed.**
+
+------------------------------------------------------------------------
+
+# Decision Log (selected)
+
+| Date | Decision | Rationale | Revisit when |
+| --- | --- | --- | --- |
+| 2026-10-27 | Public Ballyclare-only AI Health & Booking Assistant first | Patient discovery and useful symptom guidance, with existing guest booking as a conversion path | Authenticated or other-practice demand is validated |
+| 2026-10-27 | Defer AI implementation; prepare service boundaries now | Avoid premature infrastructure while protecting later integration | Phase 9 planning or earlier AI dependency |
+| 2026-10-27 | Evaluate RubyLLM, do not commit to a provider yet | Preserve portability, test real latency, cost and privacy | AI foundation proof of concept |
+| 2026-10-27 | Keep Phase 5 authenticated portal distinct from public guest booking | Different identity, authorization and account-linking requirements | Phase 5 completion review |
 
 ------------------------------------------------------------------------
 
@@ -1337,7 +1449,17 @@ Where applicable, completion includes:
 
 # Living Roadmap
 
-This document should evolve with the product.
+**Last reviewed:** 27 October 2026. **Maintained in:** `docs/roadmap.md` on `main`.
+
+This document should evolve with the product. Phase status is a delivery
+assessment, not a substitute for checking current routes, code, tests and
+production readiness. Record completed work separately from proposed work;
+when uncertain, mark verification pending rather than assuming completion.
+
+For substantial decisions, capture the date, decision, rationale, affected
+phases, alternatives and conditions for revisiting it. Preserve history in Git
+and link implementation details to issues/PRs. Review the roadmap at each
+phase boundary and after major architectural or regulatory changes.
 
 When a significant feature is merged:
 

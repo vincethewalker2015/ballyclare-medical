@@ -38,6 +38,21 @@ RSpec.describe "Patient portal hold payments", type: :request do
     expect(response.body).to include("Pay for your appointment")
   end
 
+  it "shows the reservation deadline and a safe exit on checkout" do
+    hold = slot.hold_for!(patient: patient)
+    sign_in account, scope: :patient_account
+    allow(Stripe::PaymentIntent).to receive(:create).and_return(
+      instance_double(Stripe::PaymentIntent, id: "pi_patient_deadline", client_secret: "pi_secret_deadline")
+    )
+
+    post patient_portal_appointment_hold_payment_path(hold)
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Your reservation expires")
+    expect(response.body).to include('data-stripe-payment-expires-at-value=')
+    expect(response.body).to include("Back to patient portal")
+  end
+
   it "does not initiate two payments for the same reservation" do
     hold = slot.hold_for!(patient: patient)
     sign_in account, scope: :patient_account

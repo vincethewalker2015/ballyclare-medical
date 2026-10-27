@@ -328,6 +328,38 @@ RSpec.describe "Patient account requests", type: :request do
     expect(request_record.reload.review_status).not_to eq("completed")
   end
 
+  it "records a failed registration when the selected patient is already linked" do
+    membership.update!(access_level: "senior_staff_admin")
+    existing_patient = create(:patient, practice: practice)
+    original_account = create(:patient_account)
+    original_account.confirm
+    PatientAccountLink.create!(
+      practice: practice, patient: existing_patient,
+      patient_account: original_account, status: "approved",
+      verified_by: membership, verification_method: "in_person",
+      verified_at: Time.current, approved_at: Time.current
+    )
+
+    second_account = create(:patient_account)
+    second_account.confirm
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: second_account,
+      review_status: "approved", patient_route: "existing_patient",
+      selected_patient: existing_patient, reviewed_by: membership,
+      approved_by: membership, approved_at: Time.current,
+      identity_verified_at: Time.current, verification_method: "in_person"
+    )
+
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.not_to change(PatientAccountLink, :count)
+
+    expect(request_record.reload.review_status).to eq("failed")
+    expect(PatientAccountLink.find_by(patient_account: second_account)).to be_nil
+    expect(PatientAccountLink.find_by!(patient_account: original_account).patient)
+      .to eq(existing_patient)
+  end
+
   it "does not provide a route for creating an assignment" do
     sign_in admin
     expect {

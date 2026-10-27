@@ -27,6 +27,13 @@ module Payments
         slot.with_lock do
           hold.reload
 
+          if hold.guest_booking && !GuestBookings::PracticeConsistency.valid?(guest: hold.guest_booking, slot: slot)
+            raise SlotUnavailable, "Practice or clinician mismatch"
+          end
+          if hold.patient && hold.patient.practice_id != slot.practice_id
+            raise SlotUnavailable, "Patient and slot practice mismatch"
+          end
+
           raise HoldExpired, "Appointment hold has expired" if hold.expired?
 
           unless slot.availability_block.reload.active?

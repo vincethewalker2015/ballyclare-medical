@@ -45,11 +45,12 @@ export default class extends Controller {
     this.connected = true;
     this.submitTarget.disabled = true;
     this.updateExpiry();
+    if (this.reservationExpired()) return;
     if (this.hasExpiresAtValue) this.expiryTimer = setInterval(() => this.updateExpiry(), 1000);
 
     try {
       await loadStripeScript();
-      if (!this.connected) return;
+      if (!this.connected || this.reservationExpired()) return;
 
       this.stripe = window.Stripe(this.publishableKeyValue);
       this.elements = this.stripe.elements({ clientSecret: this.clientSecretValue });

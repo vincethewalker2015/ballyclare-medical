@@ -52,7 +52,6 @@ Rails.application.configure do
 
   # Highlight code that triggered database queries in logs.
   # Do not emit SQL bind values containing patient or consultation data.
-  config.active_record.logger = nil
 
   # Append comments with runtime information tags to SQL queries in logs.
   config.active_record.query_log_tags_enabled = true

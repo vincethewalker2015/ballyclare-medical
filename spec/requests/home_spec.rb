@@ -9,7 +9,8 @@ RSpec.describe "Public landing page", type: :request do
     expect(response.parsed_body.at_css("#hero-heading").text.squish).to eq("Care for every stage of life")
     expect(response.body).to include("Services")
     expect(response.body).to include("Our team")
-    expect(response.body).to include("How appointments work")
+    expect(response.body).to include("Book an appointment")
+    expect(response.body).to include(guest_booking_path)
     expect(response.body).to include(new_user_session_path)
   end
 

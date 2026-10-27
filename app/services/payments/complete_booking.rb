@@ -27,6 +27,13 @@ module Payments
         slot.with_lock do
           hold.reload
 
+          if hold.guest_booking && !GuestBookings::PracticeConsistency.valid?(guest: hold.guest_booking, slot: slot)
+            raise SlotUnavailable, "Practice or clinician mismatch"
+          end
+          if hold.patient && hold.patient.practice_id != slot.practice_id
+            raise SlotUnavailable, "Patient and slot practice mismatch"
+          end
+
           raise HoldExpired, "Appointment hold has expired" if hold.expired?
 
           unless slot.availability_block.reload.active?
@@ -46,12 +53,16 @@ module Payments
                   "Appointment slot has already been booked"
           end
 
+          patient = hold.patient || hold.guest_booking&.patient
+          raise MissingHold, "Booking patient is missing" unless patient
+
           appointment = Appointment.create!(
             practice: slot.practice,
             appointment_slot: slot,
-            patient: hold.patient,
+            patient: patient,
             clinician: slot.clinician,
             status: "booked",
+            reason: hold.guest_booking&.consultation_reason,
             booked_at: Time.current
           )
 
@@ -62,12 +73,19 @@ module Payments
             amount_cents: payment.amount_cents
           ).call
 
+          payment.guest_booking&.update!(status: "completed")
+
           payment.update!(
+            patient: patient,
             appointment: appointment,
             appointment_hold: nil
           )
 
           hold.destroy!
+
+          if payment.guest_booking
+            GuestBookings::ClearCompletedDetails.new(guest_booking: payment.guest_booking).call
+          end
 
           appointment
         end

@@ -78,7 +78,11 @@ module Payments
 
         return payment if payment.appointment.present?
 
-        complete_booking!(payment)
+        if payment.guest_booking_id.present?
+          CompleteGuestBookingJob.perform_later(payment.id)
+        else
+          complete_booking!(payment)
+        end
 
         payment
       end

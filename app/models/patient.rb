@@ -1,4 +1,6 @@
 class Patient < ApplicationRecord
+  PATIENT_TYPES = %w[practice external].freeze
+
   belongs_to :practice
   belongs_to :user, optional: true
   has_one :patient_account_link, dependent: :restrict_with_error
@@ -13,6 +15,8 @@ class Patient < ApplicationRecord
   before_validation :assign_patient_number, on: :create
 
   validate :patient_number_cannot_change, on: :update
+
+  validates :patient_type, inclusion: { in: PATIENT_TYPES }
 
   validates :patient_number, :first_name, :last_name, :date_of_birth,
     presence: true

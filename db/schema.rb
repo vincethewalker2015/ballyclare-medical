@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_25_170000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_27_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -43,14 +43,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_25_170000) do
 
   create_table "appointment_holds", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "appointment_slot_id", null: false
-    t.uuid "patient_id", null: false
+    t.uuid "patient_id"
     t.datetime "expires_at", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.uuid "guest_booking_id"
     t.index ["appointment_slot_id", "expires_at"], name: "index_appointment_holds_on_slot_and_expires_at"
     t.index ["expires_at"], name: "index_appointment_holds_on_expires_at"
+    t.index ["guest_booking_id"], name: "index_appointment_holds_on_guest_booking_id", unique: true
     t.index ["patient_id", "expires_at"], name: "index_appointment_holds_on_patient_id_and_expires_at"
     t.index ["patient_id"], name: "index_appointment_holds_on_patient_id"
+    t.check_constraint "patient_id IS NOT NULL AND guest_booking_id IS NULL OR patient_id IS NULL AND guest_booking_id IS NOT NULL", name: "appointment_holds_exactly_one_booking_owner"
   end
 
   create_table "appointment_slots", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -174,7 +177,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_25_170000) do
     t.index ["practice_id", "clinician_type"], name: "index_consultation_fees_on_practice_id_and_clinician_type", unique: true
     t.index ["practice_id"], name: "index_consultation_fees_on_practice_id"
     t.check_constraint "amount_cents > 0", name: "consultation_fees_positive_amount"
-    t.check_constraint "clinician_type::text = ANY (ARRAY['doctor'::character varying::text, 'nurse'::character varying::text])", name: "consultation_fees_clinician_type"
+    t.check_constraint "clinician_type::text = ANY (ARRAY['doctor'::character varying, 'nurse'::character varying]::text[])", name: "consultation_fees_clinician_type"
   end
 
   create_table "encounters", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -197,6 +200,28 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_25_170000) do
     t.check_constraint "ended_at IS NULL OR ended_at >= started_at", name: "encounters_end_must_not_be_before_start"
   end
 
+  create_table "guest_bookings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "practice_id", null: false
+    t.uuid "appointment_slot_id", null: false
+    t.uuid "patient_id"
+    t.string "first_name"
+    t.string "last_name"
+    t.date "date_of_birth"
+    t.string "email"
+    t.string "phone"
+    t.text "consultation_reason"
+    t.string "status", default: "draft", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["appointment_slot_id", "status"], name: "index_guest_bookings_on_appointment_slot_id_and_status"
+    t.index ["appointment_slot_id"], name: "index_guest_bookings_on_appointment_slot_id"
+    t.index ["expires_at"], name: "index_guest_bookings_on_expires_at"
+    t.index ["patient_id"], name: "index_guest_bookings_on_patient_id"
+    t.index ["practice_id"], name: "index_guest_bookings_on_practice_id"
+    t.check_constraint "status::text = 'completed'::text OR first_name IS NOT NULL AND btrim(first_name::text) <> ''::text AND last_name IS NOT NULL AND btrim(last_name::text) <> ''::text AND date_of_birth IS NOT NULL AND email IS NOT NULL AND btrim(email::text) <> ''::text AND phone IS NOT NULL AND btrim(phone::text) <> ''::text AND consultation_reason IS NOT NULL AND btrim(consultation_reason) <> ''::text", name: "guest_bookings_active_details_present"
+  end
+
   create_table "patient_account_links", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "practice_id", null: false
     t.uuid "patient_id", null: false
@@ -214,7 +239,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_25_170000) do
     t.index ["practice_id"], name: "index_patient_account_links_on_practice_id"
     t.index ["verified_by_id"], name: "index_patient_account_links_on_verified_by_id"
     t.check_constraint "status::text <> 'approved'::text OR verified_by_id IS NOT NULL AND verified_at IS NOT NULL AND approved_at IS NOT NULL AND verification_method IS NOT NULL", name: "patient_account_links_approval_requires_verification"
-    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying::text, 'approved'::character varying::text, 'revoked'::character varying::text])", name: "patient_account_links_valid_status"
+    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying, 'approved'::character varying, 'revoked'::character varying]::text[])", name: "patient_account_links_valid_status"
   end
 
   create_table "patient_accounts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -292,15 +317,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_25_170000) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "patient_type", default: "practice", null: false
     t.index ["practice_id", "last_name", "date_of_birth"], name: "index_patients_on_practice_id_and_last_name_and_date_of_birth"
     t.index ["practice_id", "patient_number"], name: "index_patients_on_practice_id_and_patient_number", unique: true
     t.index ["practice_id"], name: "index_patients_on_practice_id"
     t.index ["user_id"], name: "index_patients_on_user_id", unique: true, where: "(user_id IS NOT NULL)"
+    t.check_constraint "patient_type::text = ANY (ARRAY['practice'::character varying, 'external'::character varying]::text[])", name: "patients_patient_type_valid"
   end
 
   create_table "payments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "appointment_id"
-    t.uuid "patient_id", null: false
+    t.uuid "patient_id"
     t.string "provider", null: false
     t.string "provider_payment_id"
     t.string "provider_charge_id"
@@ -317,13 +344,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_25_170000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.uuid "appointment_hold_id"
+    t.uuid "guest_booking_id"
     t.index ["appointment_hold_id"], name: "index_payments_on_appointment_hold_id"
     t.index ["appointment_id", "created_at"], name: "index_payments_on_appointment_id_and_created_at"
+    t.index ["guest_booking_id"], name: "index_payments_on_guest_booking_id", unique: true
     t.index ["idempotency_key"], name: "index_payments_on_idempotency_key", unique: true
     t.index ["patient_id", "created_at"], name: "index_payments_on_patient_id_and_created_at"
     t.index ["provider", "provider_payment_id"], name: "index_payments_on_provider_and_provider_payment_id", unique: true, where: "(provider_payment_id IS NOT NULL)"
     t.index ["status", "created_at"], name: "index_payments_on_status_and_created_at"
     t.check_constraint "amount_cents > 0", name: "payments_amount_must_be_positive"
+    t.check_constraint "patient_id IS NOT NULL OR guest_booking_id IS NOT NULL", name: "payments_booking_owner_present"
   end
 
   create_table "practices", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -593,6 +623,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_25_170000) do
   add_foreign_key "appointment_charges", "practices"
   add_foreign_key "appointment_charges", "users", column: "created_by_id"
   add_foreign_key "appointment_holds", "appointment_slots"
+  add_foreign_key "appointment_holds", "guest_bookings"
   add_foreign_key "appointment_holds", "patients"
   add_foreign_key "appointment_slots", "availability_blocks"
   add_foreign_key "appointment_slots", "practices"
@@ -616,6 +647,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_25_170000) do
   add_foreign_key "encounters", "patients"
   add_foreign_key "encounters", "practices"
   add_foreign_key "encounters", "staff_members", column: "clinician_id"
+  add_foreign_key "guest_bookings", "appointment_slots"
+  add_foreign_key "guest_bookings", "patients"
+  add_foreign_key "guest_bookings", "practices"
   add_foreign_key "patient_account_links", "patient_accounts"
   add_foreign_key "patient_account_links", "patients"
   add_foreign_key "patient_account_links", "practices"
@@ -630,6 +664,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_25_170000) do
   add_foreign_key "patients", "users"
   add_foreign_key "payments", "appointment_holds"
   add_foreign_key "payments", "appointments"
+  add_foreign_key "payments", "guest_bookings"
   add_foreign_key "payments", "patients"
   add_foreign_key "refunds", "payments"
   add_foreign_key "refunds", "users", column: "requested_by_id"

@@ -232,6 +232,12 @@ The CLI must be able to retrieve it. If Stripe returns `resource_missing`, Rails
 
 A successful `stripe trigger` by itself does not prove that Rails and the CLI are using the same Stripe resource space.
 
+### Recurring payment recovery in development
+
+The default development Active Job adapter is `async`, and `bin/dev` starts Rails and asset watchers, **not** the Solid Queue recurring scheduler. Therefore, recurring jobs defined under `production` in `config/recurring.yml` do not run automatically during ordinary local development. This includes `ReconcileProcessingGuestPaymentsJob`, which checks guest Stripe payments left in `processing` after a declined card or missed webhook.
+
+For a local, one-off verification, run `ReconcileProcessingGuestPaymentsJob.perform_now` in `bin/rails console`. This executes the job immediately; it does **not** prove that periodic scheduling works. The production schedule runs every five minutes when the Solid Queue scheduler is operating. Verify the production worker/scheduler separately before relying on automatic recovery.
+
 ### Local webhooks
 
 Authenticate the Stripe CLI:
@@ -578,6 +584,65 @@ For regression tests covering refunds and the staff appointment page:
 bundle exec rspec spec/models/refund_spec.rb spec/requests/practice/appointments_spec.rb spec/services/appointments/change_status_spec.rb
 ```
 
+## Local development: create a second practice for booking isolation tests
+
+These commands are for a **local development database only**. Do not run them against production. A practice must have an active doctor or nurse, an online availability block, actual `AppointmentSlot` records and a consultation fee before its times can be booked at `/book`.
+
+Open `bin/rails console`:
+
+```ruby
+parkmore = Practice.find_or_create_by!(name: "Parkmore Medical Centre") do |p|
+  p.timezone = "Europe/London"
+  p.currency = "GBP"
+  p.country_code = "GB"
+end
+
+# Use an existing local development User; do not create a shared production login.
+doctor_user = User.find_by!(email: "doctor@example.com")
+clinician = StaffMember.find_or_create_by!(practice: parkmore, user: doctor_user) do |staff|
+  staff.first_name = "Alex"
+  staff.last_name = "Morgan"
+  staff.staff_type = "doctor"
+  staff.access_level = "staff_clinician"
+  staff.active = true
+end
+
+ConsultationFee.find_or_create_by!(practice: parkmore, clinician_type: "doctor") do |fee|
+  fee.amount_cents = 4500
+  fee.currency = parkmore.currency
+end
+
+zone = ActiveSupport::TimeZone[parkmore.timezone]
+date = 3.days.from_now.in_time_zone(zone).to_date
+starts_at = zone.local(date.year, date.month, date.day, 10, 0)
+block = AvailabilityBlock.create!(
+  practice: parkmore, clinician: clinician,
+  starts_at: starts_at, ends_at: starts_at + 2.hours,
+  slot_duration_minutes: 20, bookable_online: true
+)
+
+# AvailabilityBlock does not itself create AppointmentSlot rows.
+(0...6).each do |i|
+  slot_start = starts_at + i * 20.minutes
+  AppointmentSlot.find_or_create_by!(
+    practice: parkmore, clinician: clinician,
+    availability_block: block, starts_at: slot_start
+  ) { |slot| slot.ends_at = slot_start + 20.minutes }
+end
+```
+
+Check that six future slots exist:
+
+```ruby
+parkmore.appointment_slots.where(availability_block: block).order(:starts_at).pluck(:starts_at, :ends_at)
+```
+
+Visit `/book`, select Parkmore, choose Alex Morgan and the date above, then click **Find available times**. Check that the fee is £45 and that Parkmore slots are shown. Switch to another practice and verify Parkmore's clinician and slots disappear. Do not make a payment for this isolation test.
+
+If the practice appears but no times show, first check that the selected date matches the block, that `AppointmentSlot` records exist, that the slots are in the future, and that none is already booked or actively held. Re-running the entire snippet creates another availability block; reuse the existing block if only slots need adding.
+
+---
+
 ## Practice administration: initial administrator setup
 
 The following procedure is for authorised platform operators and developers,
@@ -654,3 +719,27 @@ bundle exec rspec spec/requests/practice/staff_members_spec.rb
 **Deployment blocker:** Production SMTP, sender identity and application
 host are not configured in the repository. Do not present staff invitations
 as operational in production until those are set up and verified.
+
+### Guest refund exceptions: operational review
+
+The production `RecoverGuestRefundsJob` creates refunds for guest payments marked `requires_refund`. Existing failed or cancelled refund attempts are deliberately **not** retried automatically: the Stripe refund might already have been sent, and a new idempotency key could duplicate it.
+
+Operators should monitor the following read-only query (Rails console or equivalent monitoring), especially after deployment and Stripe outages:
+
+```ruby
+Payment.where(provider: "stripe", status: "requires_refund")
+  .where.not(guest_booking_id: nil)
+  .includes(:refunds)
+  .find_each do |payment|
+    refunds = payment.refunds.to_a
+    next unless refunds.any? { |refund| %w[failed cancelled].include?(refund.status) } ||
+      refunds.empty? ||
+      (refunds.none? { |refund| %w[pending processing].include?(refund.status) } &&
+       refunds.select { |refund| refund.status == "succeeded" }.sum(&:amount_cents) < payment.amount_cents)
+
+    Rails.logger.warn("Guest refund requires operator review: payment=#{payment.id}")
+  end
+```
+
+Review the corresponding Stripe PaymentIntent and refund IDs in the Stripe Dashboard before taking action. Reconcile any existing Stripe refund before attempting another; do not manually create a duplicate refund. Escalate unresolved cases to the payment operations owner. The job's warning log is **not** a substitute for production alerting; configure monitoring for these exceptions before accepting live guest payments.
+

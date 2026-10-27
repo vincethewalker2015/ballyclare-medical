@@ -2,6 +2,12 @@ Rails.application.routes.draw do
   mount LetterOpenerWeb::Engine, at: "/letter_opener" if Rails.env.development?
 
   root "home#index"
+  get "/book", to: "guest_bookings#index", as: :guest_booking
+  get "/book/details", to: "guest_bookings#new", as: :new_guest_booking
+  get "/book/review", to: "guest_bookings#review", as: :guest_booking_review
+  post "/book/checkout", to: "guest_bookings#checkout", as: :guest_booking_checkout
+  get "/book/payments/:id", to: "guest_bookings#payment_status", as: :guest_booking_payment
+  post "/book/details", to: "guest_bookings#create", as: :guest_booking_details
 
   devise_for :users, controllers: { sessions: "users/sessions" }
 

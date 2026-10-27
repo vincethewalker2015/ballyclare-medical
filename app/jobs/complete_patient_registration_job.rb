@@ -1,6 +1,8 @@
 class CompletePatientRegistrationJob < ApplicationJob
   queue_as :default
 
+  class RegistrationLinkConflict < StandardError; end
+
   def perform(request_id)
     request_record = PatientRegistrationRequest.find(request_id)
 
@@ -35,16 +37,20 @@ class CompletePatientRegistrationJob < ApplicationJob
         return
       end
 
-      link = PatientAccountLink.create!(
-        practice: request_record.practice,
-        patient_account: request_record.patient_account,
-        patient: patient,
-        status: "approved",
-        verification_method: request_record.verification_method,
-        verified_at: request_record.identity_verified_at,
-        verified_by: request_record.reviewed_by,
-        approved_at: request_record.approved_at
-      )
+      link = begin
+        PatientAccountLink.create!(
+          practice: request_record.practice,
+          patient_account: request_record.patient_account,
+          patient: patient,
+          status: "approved",
+          verification_method: request_record.verification_method,
+          verified_at: request_record.identity_verified_at,
+          verified_by: request_record.reviewed_by,
+          approved_at: request_record.approved_at
+        )
+      rescue ActiveRecord::RecordNotUnique
+        raise RegistrationLinkConflict
+      end
 
       AuditEvent.create!(
         practice: request_record.practice,
@@ -56,6 +62,14 @@ class CompletePatientRegistrationJob < ApplicationJob
                     approving_staff_member_id: request_record.approved_by_id }
       )
       request_record.update!(review_status: "completed", processed_at: Time.current)
+    end
+  rescue RegistrationLinkConflict
+    # The failed insert's transaction has rolled back before we update the request.
+    request_record.with_lock do
+      if request_record.review_status.in?(%w[approved processing])
+        request_record.update!(review_status: "failed", processed_at: Time.current)
+        Rails.logger.warn("Patient registration unique-link conflict: request=#{request_record.id}")
+      end
     end
   end
 end

@@ -33,16 +33,19 @@ function loadStripeScript() {
 }
 
 export default class extends Controller {
-  static targets = ["form", "element", "error", "submit"];
+  static targets = ["form", "element", "error", "submit", "countdown"];
 
   static values = {
     publishableKey: String,
     clientSecret: String,
+    expiresAt: String,
   };
 
   async connect() {
     this.connected = true;
     this.submitTarget.disabled = true;
+    this.updateExpiry();
+    if (this.hasExpiresAtValue) this.expiryTimer = setInterval(() => this.updateExpiry(), 1000);
 
     try {
       await loadStripeScript();
@@ -53,7 +56,7 @@ export default class extends Controller {
       this.paymentElement = this.elements.create("payment");
       this.paymentElement.mount(this.elementTarget);
       this.formTarget.addEventListener("submit", this.submitPayment);
-      this.submitTarget.disabled = false;
+      this.submitTarget.disabled = this.reservationExpired();
     } catch (error) {
       if (this.connected) {
         console.error("Stripe payment initialization failed:", error);
@@ -64,6 +67,7 @@ export default class extends Controller {
 
   disconnect() {
     this.connected = false;
+    if (this.expiryTimer) clearInterval(this.expiryTimer);
     this.formTarget.removeEventListener("submit", this.submitPayment);
     if (this.paymentElement) {
       this.paymentElement.destroy();
@@ -74,12 +78,20 @@ export default class extends Controller {
   submitPayment = async (event) => {
     event.preventDefault();
     if (this.submitting || !this.stripe) return;
+    if (this.reservationExpired()) {
+      this.updateExpiry();
+      return;
+    }
 
     this.submitting = true;
     this.clearError();
     this.setSubmitting(true);
 
     try {
+      if (this.reservationExpired()) {
+        this.updateExpiry();
+        return;
+      }
       const { error } = await this.stripe.confirmPayment({
         elements: this.elements,
         confirmParams: { return_url: this.element.dataset.returnUrl },
@@ -95,6 +107,21 @@ export default class extends Controller {
     }
   };
 
+  reservationExpired() {
+    return this.hasExpiresAtValue && Date.now() >= Date.parse(this.expiresAtValue);
+  }
+
+  updateExpiry() {
+    if (!this.hasExpiresAtValue) return;
+    const remaining = Math.max(0, Math.ceil((Date.parse(this.expiresAtValue) - Date.now()) / 1000));
+    if (remaining === 0) {
+      if (this.hasCountdownTarget) this.countdownTarget.textContent = "Reservation expired. Please return to appointment search and select a new time.";
+      if (this.hasSubmitTarget) this.submitTarget.disabled = true;
+      return;
+    }
+    if (this.hasCountdownTarget) this.countdownTarget.textContent = `Time remaining to complete payment: ${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")}`;
+  }
+
   showError(message) {
     this.errorTarget.textContent = message;
     this.errorTarget.classList.remove("hidden");
@@ -106,7 +133,7 @@ export default class extends Controller {
   }
 
   setSubmitting(submitting) {
-    this.submitTarget.disabled = submitting;
+    this.submitTarget.disabled = submitting || this.reservationExpired();
     this.submitTarget.textContent = submitting
       ? "Processing…"
       : (this.submitTarget.dataset.label || "Pay securely");

@@ -53,6 +53,23 @@ RSpec.describe "Patient portal hold payments", type: :request do
     expect(response.body).to include("Back to patient portal")
   end
 
+  it "allows a safe checkout refresh without creating another payment" do
+    hold = slot.hold_for!(patient: patient)
+    sign_in account, scope: :patient_account
+    allow(Stripe::PaymentIntent).to receive(:create).and_return(
+      instance_double(Stripe::PaymentIntent, id: "pi_refresh_test", client_secret: "pi_refresh_secret")
+    )
+    post patient_portal_appointment_hold_payment_path(hold)
+    expect(response).to have_http_status(:ok)
+
+    expect {
+      get patient_portal_appointment_hold_payment_path(hold)
+    }.not_to change(Payment, :count)
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Pay for your appointment")
+  end
+
   it "does not initiate two payments for the same reservation" do
     hold = slot.hold_for!(patient: patient)
     sign_in account, scope: :patient_account

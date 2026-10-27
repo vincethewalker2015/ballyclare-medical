@@ -9,6 +9,10 @@ production:
     class: CleanupExpiredGuestBookingsJob
     schedule: every 15 minutes
 
+  reconcile_processing_guest_payments:
+    class: ReconcileProcessingGuestPaymentsJob
+    schedule: every 5 minutes
+
   recover_paid_guest_bookings:
     class: RecoverPaidGuestBookingsJob
     schedule: every 5 minutes

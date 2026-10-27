@@ -45,6 +45,33 @@ RSpec.describe CompleteGuestBookingJob, type: :job do
     expect(payment.appointment.reason).to eq("One-off consultation")
   end
 
+  it "does not leave an external patient behind when a paid hold has expired" do
+    payment
+    hold.update!(expires_at: 1.minute.ago)
+
+    expect {
+      described_class.perform_now(payment.id)
+    }.to change(Patient, :count).by(0)
+      .and change(Appointment, :count).by(0)
+
+    expect(payment.reload.status).to eq("requires_refund")
+    expect(guest.reload.patient).to be_nil
+  end
+
+  it "does not create a patient when the paid slot is already booked" do
+    payment
+    other_patient = create(:patient, practice: practice)
+    create(:appointment, practice: practice, appointment_slot: slot,
+      clinician: clinician, patient: other_patient)
+
+    expect {
+      described_class.perform_now(payment.id)
+    }.to change(Patient, :count).by(0)
+
+    expect(payment.reload.status).to eq("requires_refund")
+    expect(guest.reload.patient).to be_nil
+  end
+
   it "does not create a patient before payment succeeds" do
     payment.update!(status: "processing")
 

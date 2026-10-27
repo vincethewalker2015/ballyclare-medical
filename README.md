@@ -719,3 +719,27 @@ bundle exec rspec spec/requests/practice/staff_members_spec.rb
 **Deployment blocker:** Production SMTP, sender identity and application
 host are not configured in the repository. Do not present staff invitations
 as operational in production until those are set up and verified.
+
+### Guest refund exceptions: operational review
+
+The production `RecoverGuestRefundsJob` creates refunds for guest payments marked `requires_refund`. Existing failed or cancelled refund attempts are deliberately **not** retried automatically: the Stripe refund might already have been sent, and a new idempotency key could duplicate it.
+
+Operators should monitor the following read-only query (Rails console or equivalent monitoring), especially after deployment and Stripe outages:
+
+```ruby
+Payment.where(provider: "stripe", status: "requires_refund")
+  .where.not(guest_booking_id: nil)
+  .includes(:refunds)
+  .find_each do |payment|
+    refunds = payment.refunds.to_a
+    next unless refunds.any? { |refund| %w[failed cancelled].include?(refund.status) } ||
+      refunds.empty? ||
+      (refunds.none? { |refund| %w[pending processing].include?(refund.status) } &&
+       refunds.select { |refund| refund.status == "succeeded" }.sum(&:amount_cents) < payment.amount_cents)
+
+    Rails.logger.warn("Guest refund requires operator review: payment=#{payment.id}")
+  end
+```
+
+Review the corresponding Stripe PaymentIntent and refund IDs in the Stripe Dashboard before taking action. Reconcile any existing Stripe refund before attempting another; do not manually create a duplicate refund. Escalate unresolved cases to the payment operations owner. The job's warning log is **not** a substitute for production alerting; configure monitoring for these exceptions before accepting live guest payments.
+

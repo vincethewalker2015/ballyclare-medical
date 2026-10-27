@@ -12,7 +12,7 @@ class GuestBookingsController < ApplicationController
 
   def create
     @slot = public_slot_scope.find(params.require(:guest_booking).require(:appointment_slot_id))
-    @guest_booking = GuestBooking.new(guest_booking_params.merge(
+    @guest_booking = GuestBooking.new(guest_booking_params.except(:appointment_slot_id).merge(
       practice: @slot.practice,
       appointment_slot: @slot,
       expires_at: 30.minutes.from_now
@@ -93,7 +93,8 @@ class GuestBookingsController < ApplicationController
 
   def guest_booking_params
     params.require(:guest_booking).permit(
-      :first_name, :last_name, :date_of_birth, :email, :phone, :consultation_reason
+      :first_name, :last_name, :date_of_birth, :email, :phone, :consultation_reason,
+      :appointment_slot_id
     )
   end
 

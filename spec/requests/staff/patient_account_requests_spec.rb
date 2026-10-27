@@ -281,6 +281,53 @@ RSpec.describe "Patient account requests", type: :request do
     expect(request_record.reload.review_status).to eq("completed")
   end
 
+  it "does not grant a second account access to an already linked patient" do
+    membership.update!(access_level: "senior_staff_admin")
+    existing_patient = create(:patient, practice: practice)
+    original_account = create(:patient_account)
+    original_account.confirm
+    original_link = PatientAccountLink.create!(
+      practice: practice,
+      patient: existing_patient,
+      patient_account: original_account,
+      status: "approved",
+      verified_by: membership,
+      verification_method: "in_person",
+      verified_at: Time.current,
+      approved_at: Time.current
+    )
+    second_account = create(:patient_account)
+    second_account.confirm
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice,
+      patient_account: second_account,
+      review_status: "approved",
+      patient_route: "existing_patient",
+      selected_patient: existing_patient,
+      reviewed_by: membership,
+      approved_by: membership,
+      approved_at: Time.current,
+      identity_verified_at: Time.current,
+      verification_method: "in_person"
+    )
+
+    expect {
+      begin
+        CompletePatientRegistrationJob.perform_now(request_record.id)
+      rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique
+        # A rejected duplicate must not leave a partially completed registration.
+      end
+    }.not_to change(PatientAccountLink, :count)
+
+    expect(original_link.reload).to have_attributes(
+      patient: existing_patient,
+      patient_account: original_account,
+      status: "approved"
+    )
+    expect(PatientAccountLink.where(patient_account: second_account)).to be_empty
+    expect(request_record.reload.review_status).not_to eq("completed")
+  end
+
   it "does not provide a route for creating an assignment" do
     sign_in admin
     expect {

@@ -45,6 +45,32 @@ RSpec.describe CleanupExpiredGuestBookingsJob, type: :job do
     expect(GuestBooking.exists?(completed.id)).to be(true)
   end
 
+  it "preserves an expired draft that still owns a hold" do
+    draft = build_booking(status: "draft", expires_at: 1.hour.ago)
+    hold = AppointmentHold.create!(
+      appointment_slot: slot, guest_booking: draft, expires_at: 1.minute.ago
+    )
+
+    described_class.perform_now
+
+    expect(GuestBooking.exists?(draft.id)).to be(true)
+    expect(AppointmentHold.exists?(hold.id)).to be(true)
+  end
+
+  it "preserves an expired draft linked to a payment" do
+    draft = build_booking(status: "draft", expires_at: 1.hour.ago)
+    payment = Payment.create!(
+      guest_booking: draft, provider: "stripe", status: "processing",
+      amount_cents: 5000, currency: practice.currency,
+      idempotency_key: SecureRandom.uuid
+    )
+
+    described_class.perform_now
+
+    expect(GuestBooking.exists?(draft.id)).to be(true)
+    expect(Payment.exists?(payment.id)).to be(true)
+  end
+
   it "is safe to run twice" do
     build_booking(status: "draft", expires_at: 1.minute.ago)
 

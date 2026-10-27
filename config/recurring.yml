@@ -17,6 +17,10 @@ production:
     class: RecoverPaidGuestBookingsJob
     schedule: every 5 minutes
 
+  recover_guest_refunds:
+    class: RecoverGuestRefundsJob
+    schedule: every 5 minutes
+
   recover_pending_refunds:
     class: RecoverPendingRefundsJob
     schedule: every 5 minutes

@@ -108,4 +108,32 @@ RSpec.describe CompleteGuestBookingJob, type: :job do
     expect(payment.appointment).to be_nil
     expect(guest.reload.patient).to be_nil
   end
+
+  it "completes a delayed Stripe success once despite duplicate notifications and job retries" do
+    payment.update!(status: "processing", provider_payment_id: "pi_delayed_guest_success")
+    payment_intent = instance_double(
+      Stripe::PaymentIntent,
+      id: "pi_delayed_guest_success",
+      amount_received: payment.amount_cents,
+      currency: payment.currency.downcase
+    )
+    allow(CompleteGuestBookingJob).to receive(:perform_later)
+
+    2.times { Payments::HandleSucceeded.new(payment_intent: payment_intent).call }
+
+    expect(payment.reload.status).to eq("succeeded")
+    expect(payment.appointment).to be_nil
+
+    expect {
+      2.times { described_class.perform_now(payment.id) }
+    }.to change(Appointment, :count).by(1)
+      .and change(Patient, :count).by(1)
+
+    appointment = payment.reload.appointment
+    expect(appointment).to be_present
+    expect(appointment.appointment_charges.active.count).to eq(1)
+    expect(appointment.appointment_charges.active.sole.amount_cents).to eq(payment.amount_cents)
+    expect(payment.reload.status).to eq("succeeded")
+    expect(payment.refunds.count).to eq(0)
+  end
 end

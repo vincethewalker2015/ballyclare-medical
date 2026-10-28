@@ -40,6 +40,16 @@ module Staff
       intent = Stripe::PaymentIntent.retrieve(intent_id)
       if intent.metadata&.[]("payment_id").to_s != payment.id.to_s ||
           (payment.provider_payment_id.present? && payment.provider_payment_id != intent.id)
+        AuditEvent.create!(
+          practice: current_practice,
+          user: current_user,
+          auditable: payment,
+          action: "stripe_payment.verification_rejected",
+          metadata: {
+            payment_intent_id: intent.id,
+            reason: "payment_reference_mismatch"
+          }
+        )
         redirect_to practice_booking_payment_reconciliations_path,
           alert: "Stripe PaymentIntent does not match this payment."
         return

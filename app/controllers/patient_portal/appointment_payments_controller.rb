@@ -38,8 +38,8 @@ module PatientPortal
       return redirect_to patient_portal_appointment_hold_path(@hold), alert: "Payment has not been started." unless @payment&.provider_payment_id.present?
       return redirect_to patient_portal_payment_path(@payment) unless @payment.status.in?(%w[pending processing])
 
-      @client_secret = Stripe::PaymentIntent.retrieve(@payment.provider_payment_id).client_secret
-      render :confirm
+      redirect_to patient_portal_appointment_hold_path(@hold),
+        alert: "Payment verification pending. Please wait for your previous payment attempt to be reconciled."
     rescue Stripe::StripeError
       redirect_to patient_portal_appointment_hold_path(@hold), alert: "Payment service is temporarily unavailable."
     end

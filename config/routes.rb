@@ -44,6 +44,7 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
   scope "/practice", module: "staff", as: "practice" do
+  resource :stripe_outage, only: %i[show create], controller: "stripe_outages"
   resource :consultation_fees, only: %i[edit update], controller: "consultation_fees"
   resources :refunds, only: %i[index]
   resources :patients, only: %i[index show new create edit update]

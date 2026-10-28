@@ -385,6 +385,74 @@ RSpec.describe "Patient account requests", type: :request do
       .to eq(existing_patient)
   end
 
+  describe "scalable registration review" do
+    it "shows only five confirmed requests per page and supports searching by applicant name" do
+      6.times do |i|
+        account = create(:patient_account, confirmed_at: Time.current)
+        PatientRegistrationRequest.create!(
+          practice: practice, patient_account: account,
+          first_name: "Applicant#{i}", last_name: "Searchable"
+        )
+      end
+      sign_in admin
+
+      get practice_patient_account_requests_path
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body.css("a[href^='/practice/patient_account_requests/']").length).to eq(5)
+      expect(response.body).to include("Next")
+
+      get practice_patient_account_requests_path, params: { request_search: "Applicant5" }
+      expect(response.body).to include("Applicant5")
+      expect(response.body).not_to include("Applicant0")
+    end
+
+    it "keeps approved-link actions on the individual registration review, not the queue" do
+      account = create(:patient_account, confirmed_at: Time.current)
+      request_record = PatientRegistrationRequest.create!(practice: practice,
+        patient_account: account, review_status: "completed")
+      patient = create(:patient, practice: practice)
+      link = PatientAccountLink.create!(
+        practice: practice, patient: patient, patient_account: account,
+        status: "approved", verified_by: membership,
+        verification_method: "in_person", verified_at: Time.current,
+        approved_at: Time.current
+      )
+      membership.update!(access_level: "senior_staff_admin")
+      sign_in admin
+
+      get practice_patient_account_requests_path
+      expect(response.body).not_to include("Approved patient account links")
+
+      get practice_patient_account_request_path(request_record)
+      expect(response.body).to include(revoke_practice_patient_account_request_path(link))
+    end
+  end
+
+  describe "secure reinstatement of revoked patient access" do
+    it "requires a senior administrator and fresh identity attestation, and audits reinstatement" do
+      membership.update!(access_level: "senior_staff_admin")
+      account = create(:patient_account, confirmed_at: Time.current)
+      patient = create(:patient, practice: practice)
+      link = PatientAccountLink.create!(
+        practice: practice, patient: patient, patient_account: account,
+        status: "revoked", verified_by: membership,
+        verification_method: "in_person", verified_at: 3.days.ago,
+        approved_at: 3.days.ago
+      )
+      sign_in admin
+
+      expect {
+        patch reinstate_practice_patient_account_request_path(link),
+          params: { identity_checked: "1", verification_method: "in_person",
+                    reinstatement_reason: "Identity rechecked with patient" }
+      }.to change(AuditEvent, :count).by(1)
+
+      expect(link.reload.status).to eq("approved")
+      expect(link.verified_at).to be_within(1.minute).of(Time.current)
+      expect(AuditEvent.order(:created_at).last.action).to eq("patient_account.link_reinstated")
+    end
+  end
+
   describe "revoking an approved patient account link" do
     let(:account) { create(:patient_account, confirmed_at: Time.current) }
     let(:patient) { create(:patient, practice: practice) }

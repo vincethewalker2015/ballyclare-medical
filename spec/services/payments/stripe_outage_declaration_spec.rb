@@ -1,6 +1,9 @@
 require "rails_helper"
+require "active_support/testing/time_helpers"
+
 
 RSpec.describe Payments::StripeOutageDeclaration do
+  include ActiveSupport::Testing::TimeHelpers
   let(:practice) { create(:practice) }
   let(:administrator) do
     create(:staff_member, practice: practice, staff_type: "administrator",

@@ -113,6 +113,15 @@ RSpec.describe Refund do
   end
 
   describe "live appointment updates" do
+    it "does not broadcast an appointment refresh for an unbooked payment" do
+      payment = create(:payment, appointment: nil, patient: create(:patient), status: "requires_refund")
+      refund = create(:refund, payment: payment, status: "processing")
+
+      expect(refund).not_to receive(:broadcast_refresh_later_to)
+
+      refund.update!(status: "succeeded")
+    end
+
     it "broadcasts a refresh when a refund succeeds" do
       appointment = create(:appointment)
       payment = create(:payment, appointment: appointment)

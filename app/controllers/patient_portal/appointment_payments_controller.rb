@@ -9,6 +9,12 @@ module PatientPortal
           alert: "Secure payment is temporarily unavailable. Please review your booking options."
       end
 
+      existing_payment = @hold.payments.where(patient: @link.patient).order(:created_at).first
+      if existing_payment&.status.in?(%w[pending processing])
+        return redirect_to patient_portal_appointment_hold_path(@hold),
+          alert: "Payment verification pending. Please wait for your previous payment attempt to be reconciled."
+      end
+
       result = Payments::TakeHoldPayment.new(hold: @hold).call
       @payment = result.payment
       @client_secret = result.payment_intent.client_secret

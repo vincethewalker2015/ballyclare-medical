@@ -346,4 +346,34 @@ RSpec.describe "Staff unresolved booking payment review", type: :request do
     expect(AppointmentCharge.where(appointment_id: payment.appointment_id).count).to eq(0)
   end
 
+  it "rejects manual recovery when Stripe reports an incorrect currency" do
+    slot = create(:appointment_slot, practice: practice)
+    patient = create(:patient, practice: practice)
+    hold = slot.hold_for!(patient: patient)
+    payment = Payment.create!(
+      appointment_hold: hold, patient: patient, provider: "stripe",
+      amount_cents: 6500, currency: practice.currency,
+      status: "pending", idempotency_key: SecureRandom.uuid
+    )
+    intent = instance_double(Stripe::PaymentIntent,
+      id: "pi_wrong_recovery_currency", status: "succeeded",
+      metadata: { "payment_id" => payment.id.to_s },
+      amount_received: payment.amount_cents, currency: "eur")
+    allow(Stripe::PaymentIntent).to receive(:retrieve)
+      .with("pi_wrong_recovery_currency").and_return(intent)
+    expect(Stripe::PaymentIntent).not_to receive(:create)
+
+    sign_in user
+    expect {
+      post verify_practice_booking_payment_reconciliation_path(payment),
+        params: { payment_intent_id: "pi_wrong_recovery_currency" }
+    }.not_to change(Appointment, :count)
+
+    expect(response).to redirect_to(practice_booking_payment_reconciliations_path)
+    expect(payment.reload.status).to eq("pending")
+    expect(payment.provider_payment_id).to be_nil
+    expect(AuditEvent.where(practice: practice, auditable: payment,
+      user: user, action: "stripe_payment.verification_rejected").count).to eq(1)
+  end
+
 end

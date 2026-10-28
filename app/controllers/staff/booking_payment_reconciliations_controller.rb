@@ -66,8 +66,24 @@ module Staff
         }
       )
 
-      redirect_to practice_booking_payment_reconciliations_path,
-        notice: "Stripe reference verified. No payment changes were made."
+      if intent.status == "succeeded"
+        Payments::HandleSucceeded.new(payment_intent: intent).call
+        AuditEvent.create!(
+          practice: current_practice,
+          user: current_user,
+          auditable: payment,
+          action: "stripe_payment.recovered",
+          metadata: {
+            payment_intent_id: intent.id,
+            payment_status: payment.reload.status
+          }
+        )
+        redirect_to practice_booking_payment_reconciliations_path,
+          notice: "Stripe payment recovered and booking outcome reconciled."
+      else
+        redirect_to practice_booking_payment_reconciliations_path,
+          notice: "Stripe reference verified. No payment changes were made."
+      end
     rescue Stripe::StripeError => error
       AuditEvent.create!(
         practice: current_practice,

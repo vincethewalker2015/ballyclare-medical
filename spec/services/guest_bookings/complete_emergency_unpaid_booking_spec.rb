@@ -214,4 +214,27 @@ RSpec.describe GuestBookings::CompleteEmergencyUnpaidBooking do
     expect(Payment.where(guest_booking: [guest, other_guest]).count).to eq(0)
   end
 
+  it "clears completed guest personal details while preserving patient and unpaid charge records" do
+    create(:consultation_fee, practice: practice, clinician_type: "doctor")
+    Payments::StripeOutageDeclaration.activate!(
+      practice: practice, actor: administrator, reason: "Stripe outage independently confirmed"
+    )
+    hold = GuestBookings::ReserveSlot.new(guest_booking: guest).call
+
+    appointment = described_class.new(hold: hold).call
+    guest.reload
+
+    expect(guest.status).to eq("completed")
+    expect(guest.patient).to eq(appointment.patient)
+    expect(guest.attributes.slice(
+      "first_name", "last_name", "date_of_birth", "email", "phone", "consultation_reason"
+    ).values).to all(be_nil)
+
+    expect(appointment.patient.first_name).to eq("Guest")
+    expect(appointment.patient.email).to eq("visitor@example.com")
+    expect(appointment.reason).to eq("Consultation")
+    expect(appointment.appointment_charges.sole.status).to eq("active")
+    expect(appointment.appointment_charges.sole.amount_cents).to eq(6_500)
+  end
+
 end

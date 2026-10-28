@@ -6,7 +6,7 @@ module Staff
       practice_payment_ids = Payment.where(
         patient_id: current_practice.patients.select(:id)
       ).or(
-        Payment.where(guest_booking_id: current_practice.guest_bookings.select(:id))
+        Payment.where(guest_booking_id: GuestBooking.where(practice_id: current_practice.id).select(:id))
       ).or(
         Payment.where(appointment_id: current_practice.appointments.select(:id))
       )

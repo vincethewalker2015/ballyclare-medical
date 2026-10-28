@@ -285,4 +285,36 @@ RSpec.describe "Staff unresolved booking payment review", type: :request do
       user: user, action: "stripe_payment.recovered").count).to eq(1)
   end
 
+  it "requires a refund instead of booking when manual recovery finds an expired hold" do
+    slot = create(:appointment_slot, practice: practice)
+    patient = create(:patient, practice: practice)
+    hold = slot.hold_for!(patient: patient)
+    payment = Payment.create!(
+      appointment_hold: hold, patient: patient, provider: "stripe",
+      amount_cents: 6500, currency: practice.currency,
+      status: "pending", idempotency_key: SecureRandom.uuid
+    )
+    hold.update!(expires_at: 1.minute.ago)
+    intent = instance_double(Stripe::PaymentIntent,
+      id: "pi_expired_manual_recovery", status: "succeeded",
+      metadata: { "payment_id" => payment.id.to_s },
+      amount_received: payment.amount_cents,
+      currency: payment.currency.downcase)
+    allow(Stripe::PaymentIntent).to receive(:retrieve)
+      .with("pi_expired_manual_recovery").and_return(intent)
+    expect(Stripe::PaymentIntent).not_to receive(:create)
+
+    sign_in user
+    expect {
+      post verify_practice_booking_payment_reconciliation_path(payment),
+        params: { payment_intent_id: "pi_expired_manual_recovery" }
+    }.not_to change(Appointment, :count)
+
+    expect(response).to redirect_to(practice_booking_payment_reconciliations_path)
+    expect(payment.reload.status).to eq("requires_refund")
+    expect(payment.provider_payment_id).to eq("pi_expired_manual_recovery")
+    expect(AuditEvent.where(practice: practice, auditable: payment,
+      user: user, action: "stripe_payment.recovered").count).to eq(1)
+  end
+
 end

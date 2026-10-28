@@ -15,8 +15,7 @@
     <% end %>
     <% if @guest_booking.status == "draft" || @guest_booking.appointment_hold&.expires_at&.future? %>
       <% if @emergency_unpaid_available %>
-        <p class="mt-6 text-sm font-semibold text-medical-navy">Book now — pay later</p>
-        <p class="mt-2 text-sm text-medical-muted">Emergency booking will be available here once the secure booking action is enabled.</p>
+        <%= button_to "Book now — pay later", guest_booking_emergency_unpaid_path, class: "mt-6 rounded-xl bg-medical-navy px-6 py-3 text-sm font-semibold text-white", data: { turbo: false } %>
       <% else %>
         <%= button_to "Continue to secure payment", guest_booking_checkout_path, class: "mt-6 rounded-xl bg-medical-navy px-6 py-3 text-sm font-semibold text-white", data: { turbo: false } %>
       <% end %>

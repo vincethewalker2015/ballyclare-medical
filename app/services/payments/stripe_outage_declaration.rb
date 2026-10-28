@@ -2,6 +2,7 @@ module Payments
   class StripeOutageDeclaration
     Unauthorized = Class.new(StandardError)
     InvalidReason = Class.new(StandardError)
+    AlreadyActive = Class.new(StandardError)
 
     DURATION = 30.minutes
     ACTIONS = %w[stripe_outage.activated stripe_outage.deactivated].freeze
@@ -31,13 +32,19 @@ module Payments
 
       raise InvalidReason, "An outage declaration requires a reason" if reason.blank?
 
-      AuditEvent.create!(
-        practice: practice,
-        user: actor.user,
-        auditable: practice,
-        action: action,
-        metadata: { reason: reason.strip }
-      )
+      practice.with_lock do
+        if action == "stripe_outage.activated" && active?(practice: practice)
+          raise AlreadyActive, "A Stripe outage declaration is already active for this practice"
+        end
+
+        AuditEvent.create!(
+          practice: practice,
+          user: actor.user,
+          auditable: practice,
+          action: action,
+          metadata: { reason: reason.strip }
+        )
+      end
     end
 
     private_class_method :record!

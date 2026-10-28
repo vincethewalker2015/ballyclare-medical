@@ -130,4 +130,37 @@ RSpec.describe GuestBookings::CompleteEmergencyUnpaidBooking do
     expect(AppointmentHold.exists?(hold.id)).to be(true)
   end
 
+  it "allows only one completion when two guest holds compete for the same slot" do
+    create(:consultation_fee, practice: practice, clinician_type: "doctor")
+    Payments::StripeOutageDeclaration.activate!(
+      practice: practice, actor: administrator, reason: "Stripe outage independently confirmed"
+    )
+    first_hold = GuestBookings::ReserveSlot.new(guest_booking: guest).call
+    other_guest = GuestBooking.create!(
+      practice: practice, appointment_slot: slot,
+      first_name: "Other", last_name: "Visitor",
+      date_of_birth: Date.new(1991, 1, 1),
+      email: "other@example.com", phone: "07700900124",
+      consultation_reason: "Another consultation", status: "payment_pending",
+      expires_at: 20.minutes.from_now
+    )
+    competing_hold = AppointmentHold.create!(
+      appointment_slot: slot, guest_booking: other_guest,
+      expires_at: 20.minutes.from_now
+    )
+
+    first_appointment = described_class.new(hold: first_hold).call
+
+    expect {
+      expect { described_class.new(hold: competing_hold).call }
+        .to raise_error(described_class::Unavailable, /already booked/)
+    }.not_to change {
+      [Appointment.count, Patient.count, AppointmentCharge.count]
+    }
+
+    expect(Appointment.where(appointment_slot: slot).sole).to eq(first_appointment)
+    expect(other_guest.reload.status).to eq("payment_pending")
+    expect(AppointmentHold.exists?(competing_hold.id)).to be(true)
+  end
+
 end

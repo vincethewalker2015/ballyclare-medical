@@ -9,6 +9,11 @@ module Staff
         .includes(:patient_account)
         .order(:created_at)
 
+      @approved_links = current_practice.patient_account_links
+        .where(status: "approved")
+        .includes(:patient_account, :patient)
+        .order(:created_at)
+
       @links = current_practice.patient_account_links
         .includes(:patient_account, :patient)
         .where(status: "pending")
@@ -110,6 +115,28 @@ module Staff
       CompletePatientRegistrationJob.perform_later(request_record.id)
       redirect_to practice_patient_account_request_path(request_record),
         notice: "Registration approved. Clinical record processing has been queued."
+    end
+
+    def revoke
+      return head :forbidden unless current_staff_member.senior_administration_access?
+
+      link = current_practice.patient_account_links.find(params[:id])
+      revoked = false
+      link.with_lock do
+        if link.approved?
+          link.update!(status: "revoked")
+          AuditEvent.create!(
+            practice: current_practice, user: current_user, auditable: link,
+            action: "patient_account.link_revoked",
+            metadata: { staff_member_id: current_staff_member.id,
+                        patient_id: link.patient_id, patient_account_id: link.patient_account_id }
+          )
+          revoked = true
+        end
+      end
+
+      redirect_to practice_patient_account_requests_path,
+        (revoked ? { notice: "Patient account access revoked." } : { alert: "This link is not approved." })
     end
 
     private

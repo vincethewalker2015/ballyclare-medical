@@ -132,6 +132,8 @@ RSpec.describe "Guest checkout during a declared Stripe outage", type: :request 
     )
 
     get guest_booking_review_path
+    expect(response.body).to include("Payment verification pending")
+    expect(response.body).not_to include("Continue to secure payment")
     expect(response.body).not_to include("Book now — pay later")
 
     expect(Stripe::PaymentIntent).not_to receive(:create)

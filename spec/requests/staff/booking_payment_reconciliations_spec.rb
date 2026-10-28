@@ -376,4 +376,38 @@ RSpec.describe "Staff unresolved booking payment review", type: :request do
       user: user, action: "stripe_payment.verification_rejected").count).to eq(1)
   end
 
+  it "does not duplicate the appointment or charge when successful recovery is submitted twice" do
+    slot = create(:appointment_slot, practice: practice)
+    patient = create(:patient, practice: practice)
+    hold = slot.hold_for!(patient: patient)
+    payment = Payment.create!(
+      appointment_hold: hold, patient: patient, provider: "stripe",
+      amount_cents: 6500, currency: practice.currency,
+      status: "pending", idempotency_key: SecureRandom.uuid
+    )
+    intent = instance_double(Stripe::PaymentIntent,
+      id: "pi_recovery_twice", status: "succeeded",
+      metadata: { "payment_id" => payment.id.to_s },
+      amount_received: payment.amount_cents,
+      currency: payment.currency.downcase)
+    allow(Stripe::PaymentIntent).to receive(:retrieve)
+      .with("pi_recovery_twice").and_return(intent)
+    expect(Stripe::PaymentIntent).not_to receive(:create)
+
+    sign_in user
+    post verify_practice_booking_payment_reconciliation_path(payment),
+      params: { payment_intent_id: "pi_recovery_twice" }
+    expect(payment.reload.status).to eq("succeeded")
+    original_appointment_id = payment.appointment_id
+
+    expect {
+      post verify_practice_booking_payment_reconciliation_path(payment),
+        params: { payment_intent_id: "pi_recovery_twice" }
+    }.not_to change(Appointment, :count)
+    expect(AppointmentCharge.where(appointment_id: original_appointment_id).count).to eq(1)
+    expect(payment.reload.appointment_id).to eq(original_appointment_id)
+    expect(AuditEvent.where(practice: practice, auditable: payment,
+      user: user, action: "stripe_payment.recovered").count).to eq(1)
+  end
+
 end

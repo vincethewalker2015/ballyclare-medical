@@ -56,7 +56,8 @@ RSpec.describe "Patient portal dashboard", type: :request do
 
     link.update!(status: "revoked")
     get patient_portal_path
-    expect(response.body).to include("Account verification pending")
+    expect(response.body).to include("Patient portal access unavailable")
+    expect(response.body).to include("contact your practice")
     expect(response.body).not_to include("£65.00")
     expect(response.body).not_to include("Upcoming appointments")
   end

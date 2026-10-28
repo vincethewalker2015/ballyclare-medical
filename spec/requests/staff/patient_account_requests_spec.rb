@@ -453,6 +453,86 @@ RSpec.describe "Patient account requests", type: :request do
     end
   end
 
+  describe "reinstatement security boundaries" do
+    let(:account) { create(:patient_account, confirmed_at: Time.current) }
+    let(:patient) { create(:patient, practice: practice) }
+    let!(:revoked_link) do
+      PatientAccountLink.create!(
+        practice: practice, patient: patient, patient_account: account,
+        status: "revoked", verified_by: membership,
+        verification_method: "in_person", verified_at: 2.days.ago,
+        approved_at: 2.days.ago
+      )
+    end
+    let(:reinstatement_params) do
+      { identity_checked: "1", verification_method: "in_person",
+        reinstatement_reason: "Identity rechecked with patient" }
+    end
+
+    it "forbids a regular staff administrator from reinstating access" do
+      sign_in admin
+      expect {
+        patch reinstate_practice_patient_account_request_path(revoked_link),
+          params: reinstatement_params
+      }.not_to change(AuditEvent, :count)
+
+      expect(response).to have_http_status(:forbidden)
+      expect(revoked_link.reload.status).to eq("revoked")
+    end
+
+    it "cannot reinstate a link from another practice" do
+      membership.update!(access_level: "senior_staff_admin")
+      foreign_practice = create(:practice)
+      foreign_staff = create(:staff_member, practice: foreign_practice,
+        staff_type: "administrator", access_level: "staff_admin")
+      foreign_link = PatientAccountLink.create!(
+        practice: foreign_practice,
+        patient: create(:patient, practice: foreign_practice),
+        patient_account: create(:patient_account, confirmed_at: Time.current),
+        status: "revoked", verified_by: foreign_staff,
+        verification_method: "in_person", verified_at: 2.days.ago,
+        approved_at: 2.days.ago
+      )
+      sign_in admin
+
+      expect {
+        patch reinstate_practice_patient_account_request_path(foreign_link),
+          params: reinstatement_params
+      }.not_to change(AuditEvent, :count)
+
+      expect(response).to have_http_status(:not_found)
+      expect(foreign_link.reload.status).to eq("revoked")
+    end
+
+    it "rejects reinstatement without fresh identity attestation" do
+      membership.update!(access_level: "senior_staff_admin")
+      sign_in admin
+
+      expect {
+        patch reinstate_practice_patient_account_request_path(revoked_link),
+          params: reinstatement_params.except(:identity_checked)
+      }.not_to change(AuditEvent, :count)
+
+      expect(revoked_link.reload.status).to eq("revoked")
+    end
+
+    it "does not audit or approve reinstatement a second time" do
+      membership.update!(access_level: "senior_staff_admin")
+      sign_in admin
+
+      patch reinstate_practice_patient_account_request_path(revoked_link),
+        params: reinstatement_params
+      expect(revoked_link.reload.status).to eq("approved")
+
+      expect {
+        patch reinstate_practice_patient_account_request_path(revoked_link),
+          params: reinstatement_params
+      }.not_to change(AuditEvent, :count)
+
+      expect(revoked_link.reload.status).to eq("approved")
+    end
+  end
+
   describe "revoking an approved patient account link" do
     let(:account) { create(:patient_account, confirmed_at: Time.current) }
     let(:patient) { create(:patient, practice: practice) }

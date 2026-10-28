@@ -1,0 +1,28 @@
+<h1>Booking payments requiring reconciliation</h1>
+
+<p>These booking payments have remained pending or processing for at least 15 minutes. Verify their outcome with Stripe before taking any further payment or booking action. This page is read-only.</p>
+
+<% if @payments.empty? %>
+  <p>No unresolved booking payments currently require review.</p>
+<% else %>
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">Payment reference</th>
+        <th scope="col">Status</th>
+        <th scope="col">Last updated</th>
+        <th scope="col">Stripe PaymentIntent</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @payments.each do |payment| %>
+        <tr>
+          <td><%= payment.id %></td>
+          <td><%= payment.status %></td>
+          <td><%= l(payment.updated_at, format: :long) %></td>
+          <td><%= payment.provider_payment_id.presence || "Not recorded — manual verification required" %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>

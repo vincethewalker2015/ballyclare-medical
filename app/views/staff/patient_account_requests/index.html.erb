@@ -2,7 +2,7 @@
 
 <div class="mx-auto max-w-5xl">
   <h1 class="text-3xl font-semibold text-medical-navy">Patient account requests</h1>
-  <p class="mt-3 text-medical-muted">Patients have selected this practice during registration. This is an unverified request, not evidence of identity or a connection to a clinical record.</p>
+  <p class="mt-3 text-medical-muted">Review patient registration requests and current portal access. A registration request alone is not evidence of identity or a connection to a clinical record.</p>
 
   <%= form_with url: practice_patient_account_requests_path, method: :get, class: "mt-7 flex flex-wrap gap-3", role: "search" do |form| %>
     <%= form.search_field :request_search, value: @request_search, placeholder: "Search by applicant name or email", aria: { label: "Search registration requests" }, class: "min-w-0 flex-1 rounded-xl border border-medical-border bg-white px-4 py-3 text-sm" %>
@@ -13,7 +13,7 @@
     <% if @registration_requests.any? %>
       <table class="w-full text-left text-sm">
         <thead class="bg-medical-teal-soft text-medical-navy">
-          <tr><th class="px-5 py-4">Email address</th><th class="px-5 py-4">Email confirmed</th><th class="px-5 py-4">Status</th><th class="px-5 py-4">Review</th></tr>
+          <tr><th class="px-5 py-4">Email address</th><th class="px-5 py-4">Email confirmed</th><th class="px-5 py-4">Registration status</th><th class="px-5 py-4">Portal access</th><th class="px-5 py-4">Review</th></tr>
         </thead>
         <tbody>
           <% @registration_requests.each do |request| %>
@@ -21,6 +21,8 @@
               <td class="px-5 py-4"><%= request.patient_account.email %></td>
               <td class="px-5 py-4"><%= l(request.patient_account.confirmed_at, format: :long) %></td>
               <td class="px-5 py-4"><%= request.review_status.humanize %></td>
+              <% link = @links_by_account_id[request.patient_account_id] %>
+              <td class="px-5 py-4"><%= link ? link.status.humanize : "Not linked" %></td>
               <td class="px-5 py-4"><%= link_to "Review request", practice_patient_account_request_path(request), class: "font-semibold text-medical-teal-dark" %></td>
             </tr>
           <% end %>

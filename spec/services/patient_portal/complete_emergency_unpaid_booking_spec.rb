@@ -55,4 +55,27 @@ RSpec.describe PatientPortal::CompleteEmergencyUnpaidBooking do
     expect(Payment.where(patient: [patient, other_patient]).count).to eq(0)
     expect(AppointmentHold.where(id: [first_hold.id, second_hold.id]).count).to eq(1)
   end
+  it "rolls back the appointment when the outstanding charge cannot be created" do
+    create(:consultation_fee, practice: practice, clinician_type: "doctor")
+    senior = create(:staff_member, practice: practice,
+      staff_type: "administrator", access_level: "senior_staff_admin")
+    Payments::StripeOutageDeclaration.activate!(
+      practice: practice, actor: senior, reason: "Stripe outage independently confirmed"
+    )
+    hold = slot.hold_for!(patient: patient)
+
+    allow_any_instance_of(Billing::CreateCharge).to receive(:call)
+      .and_raise(ActiveRecord::RecordInvalid.new(AppointmentCharge.new))
+
+    expect {
+      expect { described_class.new(hold: hold).call }
+        .to raise_error(ActiveRecord::RecordInvalid)
+    }.not_to change {
+      [Appointment.count, AppointmentCharge.count, Payment.count]
+    }
+
+    expect(AppointmentHold.exists?(hold.id)).to be(true)
+    expect(Appointment.where(appointment_slot: slot).count).to eq(0)
+  end
+
 end

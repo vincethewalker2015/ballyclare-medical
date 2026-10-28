@@ -264,6 +264,8 @@ RSpec.describe GuestBookings::CompleteEmergencyUnpaidBooking do
   it "rejects emergency booking after the 30-minute outage declaration expires" do
     create(:consultation_fee, practice: practice, clinician_type: "doctor")
     hold = GuestBookings::ReserveSlot.new(guest_booking: guest).call
+    hold.update!(expires_at: 45.minutes.from_now)
+    guest.update!(expires_at: 45.minutes.from_now)
 
     travel_to Time.current.change(usec: 0) do
       Payments::StripeOutageDeclaration.activate!(

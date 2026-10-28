@@ -252,4 +252,24 @@ RSpec.describe "Patient portal checkout during a declared Stripe outage", type: 
     expect(Payment.count).to eq(1)
   end
 
+  it "blocks direct patient payment POST during a declared Stripe outage" do
+    hold = slot.hold_for!(patient: patient)
+    senior = create(:staff_member, practice: patient.practice,
+      staff_type: "administrator", access_level: "senior_staff_admin")
+    Payments::StripeOutageDeclaration.activate!(
+      practice: patient.practice, actor: senior, reason: "Stripe outage independently confirmed"
+    )
+
+    sign_in account, scope: :patient_account
+    expect(Stripe::PaymentIntent).not_to receive(:create)
+
+    expect {
+      post patient_portal_appointment_hold_payment_path(hold)
+    }.not_to change(Payment, :count)
+
+    expect(response).to redirect_to(patient_portal_appointment_hold_path(hold))
+    expect(Appointment.count).to eq(0)
+    expect(AppointmentHold.exists?(hold.id)).to be(true)
+  end
+
 end

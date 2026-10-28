@@ -80,8 +80,7 @@ RSpec.describe "Guest booking entry", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.parsed_body.css("ul li").map { |item| item.text.squish }).not_to include(practice.name)
   end
-  it "reuses the existing Stripe PaymentIntent when guest checkout is submitted again" do
-    allow(ENV).to receive(:fetch).with("STRIPE_PUBLISHABLE_KEY").and_return("pk_test_guest_checkout")
+  it "preserves an unresolved Stripe PaymentIntent without reopening guest checkout" do
     practice = create(:practice)
     clinician = create(:staff_member, practice: practice, staff_type: "doctor")
     create(:consultation_fee, practice: practice, clinician_type: "doctor")
@@ -103,16 +102,22 @@ RSpec.describe "Guest booking entry", type: :request do
       currency: practice.currency, amount_cents: 6_500, status: "processing",
       provider_payment_id: "pi_existing_guest", idempotency_key: SecureRandom.uuid
     )
+    original_key = payment.idempotency_key
 
     expect(Stripe::PaymentIntent).not_to receive(:create)
-    expect(Stripe::PaymentIntent).to receive(:retrieve).with("pi_existing_guest").and_return(
-      instance_double(Stripe::PaymentIntent, client_secret: "pi_existing_guest_secret")
-    )
+    expect(Stripe::PaymentIntent).not_to receive(:retrieve)
 
     expect { post guest_booking_checkout_path }.not_to change(Payment, :count)
-    expect(response).to have_http_status(:ok)
+    expect(response).to redirect_to(guest_booking_review_path)
     expect(payment.reload.provider_payment_id).to eq("pi_existing_guest")
+    expect(payment.idempotency_key).to eq(original_key)
+    expect(payment.status).to eq("processing")
     expect(Appointment.count).to eq(0)
+
+    get guest_booking_review_path
+    expect(response.body).to include("Payment verification pending")
+    expect(response.body).not_to include("Continue to secure payment")
+    expect(response.body).not_to include("Book now — pay later")
   end
 
 end

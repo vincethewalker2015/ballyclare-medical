@@ -133,4 +133,15 @@ RSpec.describe "Senior staff Stripe outage controls", type: :request do
     expect(response).to have_http_status(:forbidden)
   end
 
+  it "shows a Stripe outage navigation link only to senior administrators" do
+    get practice_appointments_path
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include('href="/practice/stripe-outage"')
+
+    staff_member.update!(access_level: "staff_admin")
+    get practice_appointments_path
+    expect(response).to have_http_status(:ok)
+    expect(response.body).not_to include('href="/practice/stripe-outage"')
+  end
+
 end

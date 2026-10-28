@@ -96,4 +96,38 @@ RSpec.describe GuestBookings::CompleteEmergencyUnpaidBooking do
     end
   end
 
+  it "rejects an expired hold without creating a patient, appointment or charge" do
+    create(:consultation_fee, practice: practice, clinician_type: "doctor")
+    Payments::StripeOutageDeclaration.activate!(
+      practice: practice, actor: administrator, reason: "Stripe outage independently confirmed"
+    )
+    hold = GuestBookings::ReserveSlot.new(guest_booking: guest).call
+    hold.update!(expires_at: 1.minute.ago)
+
+    expect {
+      expect { described_class.new(hold: hold).call }
+        .to raise_error(described_class::Unavailable, /expired/)
+    }.not_to change {
+      [Appointment.count, Patient.count, AppointmentCharge.count]
+    }
+    expect(guest.reload.status).to eq("payment_pending")
+  end
+
+  it "rejects a guest booking whose expiry has passed even if its hold is still valid" do
+    create(:consultation_fee, practice: practice, clinician_type: "doctor")
+    Payments::StripeOutageDeclaration.activate!(
+      practice: practice, actor: administrator, reason: "Stripe outage independently confirmed"
+    )
+    hold = GuestBookings::ReserveSlot.new(guest_booking: guest).call
+    guest.update!(expires_at: 1.minute.ago)
+
+    expect {
+      expect { described_class.new(hold: hold).call }
+        .to raise_error(described_class::Unavailable, /expired/)
+    }.not_to change {
+      [Appointment.count, Patient.count, AppointmentCharge.count]
+    }
+    expect(AppointmentHold.exists?(hold.id)).to be(true)
+  end
+
 end

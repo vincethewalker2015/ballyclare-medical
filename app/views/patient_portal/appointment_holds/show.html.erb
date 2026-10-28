@@ -46,8 +46,7 @@
       <div class="flex flex-wrap items-center justify-between gap-4 px-6 py-7 sm:px-8">
         <%= link_to "Choose a different time", patient_portal_appointments_path, class: "text-sm font-semibold text-medical-teal hover:underline" %>
         <% if @emergency_unpaid_available %>
-          <p class="text-sm font-semibold text-medical-navy">Book now — pay later</p>
-          <p class="text-sm text-medical-muted">Emergency booking will be available here once the secure booking action is enabled.</p>
+          <%= button_to "Book now — pay later", patient_portal_emergency_unpaid_booking_path(@hold), class: "cursor-pointer rounded-xl bg-medical-navy px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-90", data: { turbo: false } %>
         <% else %>
           <%= button_to "Continue to secure payment", patient_portal_appointment_hold_payment_path(@hold), class: "cursor-pointer rounded-xl bg-medical-navy px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-90", data: { turbo: false } %>
         <% end %>

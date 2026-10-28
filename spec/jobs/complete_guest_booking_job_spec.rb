@@ -136,4 +136,30 @@ RSpec.describe CompleteGuestBookingJob, type: :job do
     expect(payment.reload.status).to eq("succeeded")
     expect(payment.refunds.count).to eq(0)
   end
+
+  it "keeps a late successful payment marked for refund after repeated Stripe notifications" do
+    payment.update!(status: "processing", provider_payment_id: "pi_late_guest_success")
+    hold.update!(expires_at: 1.minute.ago)
+    payment_intent = instance_double(
+      Stripe::PaymentIntent,
+      id: "pi_late_guest_success",
+      amount_received: payment.amount_cents,
+      currency: payment.currency.downcase
+    )
+    allow(CompleteGuestBookingJob).to receive(:perform_later)
+
+    2.times { Payments::HandleSucceeded.new(payment_intent: payment_intent).call }
+
+    expect {
+      2.times { described_class.perform_now(payment.id) }
+    }.not_to change(Appointment, :count)
+
+    expect(payment.reload.status).to eq("requires_refund")
+    expect(payment.appointment).to be_nil
+    expect(guest.reload.patient).to be_nil
+
+    Payments::HandleSucceeded.new(payment_intent: payment_intent).call
+    expect(payment.reload.status).to eq("requires_refund")
+    expect(payment.appointment).to be_nil
+  end
 end

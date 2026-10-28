@@ -230,4 +230,26 @@ RSpec.describe "Staff unresolved booking payment review", type: :request do
     expect(payment.provider_payment_id).to be_nil
   end
 
+  it "audits unavailable Stripe verification without changing the payment" do
+    patient = create(:patient, practice: practice)
+    payment = create(:payment, appointment: nil, patient: patient,
+      status: "pending", provider_payment_id: nil)
+    allow(Stripe::PaymentIntent).to receive(:retrieve)
+      .with("pi_audit_unavailable")
+      .and_raise(Stripe::APIConnectionError.new("timeout"))
+
+    sign_in user
+    expect {
+      post verify_practice_booking_payment_reconciliation_path(payment),
+        params: { payment_intent_id: "pi_audit_unavailable" }
+    }.to change {
+      AuditEvent.where(practice: practice, auditable: payment,
+        user: user, action: "stripe_payment.verification_unavailable").count
+    }.by(1)
+
+    expect(response).to redirect_to(practice_booking_payment_reconciliations_path)
+    expect(payment.reload.status).to eq("pending")
+    expect(payment.provider_payment_id).to be_nil
+  end
+
 end

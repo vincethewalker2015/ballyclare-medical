@@ -183,4 +183,27 @@ RSpec.describe "Staff unresolved booking payment review", type: :request do
     expect(payment.reload.status).to eq("pending")
   end
 
+  it "audits a matching manual Stripe verification without changing the payment" do
+    patient = create(:patient, practice: practice)
+    payment = create(:payment, appointment: nil, patient: patient,
+      status: "pending", provider_payment_id: nil)
+    intent = instance_double(Stripe::PaymentIntent,
+      id: "pi_audit_matching", status: "requires_payment_method",
+      metadata: { "payment_id" => payment.id.to_s })
+    allow(Stripe::PaymentIntent).to receive(:retrieve)
+      .with("pi_audit_matching").and_return(intent)
+
+    sign_in user
+    expect {
+      post verify_practice_booking_payment_reconciliation_path(payment),
+        params: { payment_intent_id: "pi_audit_matching" }
+    }.to change {
+      AuditEvent.where(practice: practice, auditable: payment,
+        user: user, action: "stripe_payment.verification_matched").count
+    }.by(1)
+
+    expect(payment.reload.status).to eq("pending")
+    expect(payment.provider_payment_id).to be_nil
+  end
+
 end

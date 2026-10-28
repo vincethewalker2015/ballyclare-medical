@@ -4,7 +4,7 @@
     <%= link_to "← Back to appointment search", patient_portal_appointments_path, class: "text-sm font-semibold text-medical-teal hover:underline" %>
     <p class="mt-8 text-xs font-semibold uppercase tracking-[0.2em] text-medical-teal">Patient portal · Appointments</p>
     <h1 class="mt-3 text-3xl font-semibold tracking-tight text-medical-navy sm:text-4xl">Your appointment selection</h1>
-    <p class="mt-3 text-medical-muted">Review your selected time before continuing to secure payment.</p>
+    <p class="mt-3 text-medical-muted"><%= @emergency_unpaid_available ? "Review your selected time before emergency booking." : "Review your selected time before continuing to secure payment." %></p>
   </div>
 
   <% if @hold.expired? %>
@@ -37,11 +37,20 @@
       </div>
       <div class="mx-6 rounded-xl border border-medical-teal/30 bg-medical-teal-soft p-5 sm:mx-8">
         <p class="text-sm font-semibold text-medical-navy">Your time is reserved until <%= expires_at.strftime("%-I:%M %p") %></p>
-        <p class="mt-2 text-sm leading-6 text-medical-muted">Your appointment is not booked yet. It will be confirmed only after successful payment.</p>
+        <% if @emergency_unpaid_available %>
+          <p class="mt-2 text-sm leading-6 text-medical-muted">Stripe payments are temporarily unavailable. You may book now, but payment remains outstanding and the practice will arrange payment separately.</p>
+        <% else %>
+          <p class="mt-2 text-sm leading-6 text-medical-muted">Your appointment is not booked yet. It will be confirmed only after successful payment.</p>
+        <% end %>
       </div>
       <div class="flex flex-wrap items-center justify-between gap-4 px-6 py-7 sm:px-8">
         <%= link_to "Choose a different time", patient_portal_appointments_path, class: "text-sm font-semibold text-medical-teal hover:underline" %>
-        <%= button_to "Continue to secure payment", patient_portal_appointment_hold_payment_path(@hold), class: "cursor-pointer rounded-xl bg-medical-navy px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-90", data: { turbo: false } %>
+        <% if @emergency_unpaid_available %>
+          <p class="text-sm font-semibold text-medical-navy">Book now — pay later</p>
+          <p class="text-sm text-medical-muted">Emergency booking will be available here once the secure booking action is enabled.</p>
+        <% else %>
+          <%= button_to "Continue to secure payment", patient_portal_appointment_hold_payment_path(@hold), class: "cursor-pointer rounded-xl bg-medical-navy px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-90", data: { turbo: false } %>
+        <% end %>
       </div>
     </section>
   <% end %>

@@ -35,7 +35,7 @@ RSpec.describe "Patient portal dashboard", type: :request do
     get patient_portal_path
 
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("Welcome back, Vincent")
+    expect(response.body).to include("Welcome back Vincent")
   end
 
   it "does not reveal a revoked patient's name in the greeting" do
@@ -47,7 +47,7 @@ RSpec.describe "Patient portal dashboard", type: :request do
     get patient_portal_path
 
     expect(response.body).to include("Welcome back")
-    expect(response.body).not_to include("Welcome back, Vincent")
+    expect(response.body).not_to include("Welcome back Vincent")
     expect(response.body).to include("Patient portal access unavailable")
   end
 

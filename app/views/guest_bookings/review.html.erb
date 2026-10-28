@@ -8,9 +8,18 @@
       <p class="font-semibold text-medical-navy"><%= @guest_booking.appointment_slot.clinician.full_name %></p>
       <p class="mt-2 text-sm text-medical-muted"><%= @guest_booking.appointment_slot.starts_at.in_time_zone(@guest_booking.practice.timezone).strftime("%A %-d %B %Y, %H:%M") %></p>
     </div>
-    <p class="mt-6 text-sm text-medical-muted">Your appointment is confirmed only after successful payment. No clinical Patient record is created before payment.</p>
+    <% if @emergency_unpaid_available %>
+      <p class="mt-6 text-sm text-medical-muted">Stripe payments are temporarily unavailable. You may book now, but payment remains outstanding and the practice will arrange payment separately.</p>
+    <% else %>
+      <p class="mt-6 text-sm text-medical-muted">Your appointment is confirmed only after successful payment. No clinical Patient record is created before payment.</p>
+    <% end %>
     <% if @guest_booking.status == "draft" || @guest_booking.appointment_hold&.expires_at&.future? %>
-      <%= button_to "Continue to secure payment", guest_booking_checkout_path, class: "mt-6 rounded-xl bg-medical-navy px-6 py-3 text-sm font-semibold text-white", data: { turbo: false } %>
+      <% if @emergency_unpaid_available %>
+        <p class="mt-6 text-sm font-semibold text-medical-navy">Book now — pay later</p>
+        <p class="mt-2 text-sm text-medical-muted">Emergency booking will be available here once the secure booking action is enabled.</p>
+      <% else %>
+        <%= button_to "Continue to secure payment", guest_booking_checkout_path, class: "mt-6 rounded-xl bg-medical-navy px-6 py-3 text-sm font-semibold text-white", data: { turbo: false } %>
+      <% end %>
     <% else %>
       <p class="mt-4 text-sm text-medical-muted">Your reservation has expired. Please select another time.</p>
     <% end %>

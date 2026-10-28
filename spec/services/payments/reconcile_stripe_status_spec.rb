@@ -51,7 +51,7 @@ RSpec.describe Payments::ReconcileStripeStatus do
     expect(pending_booking_payment.appointment.appointment_charges.active.count).to eq(1)
   end
 
-  ["processing", "succeeded"].each do |initial_status|
+  [ "processing", "succeeded" ].each do |initial_status|
     it "requires a refund for a delayed Stripe success with an expired hold (#{initial_status})" do
       slot = create(:appointment_slot)
       patient = create(:patient, practice: slot.practice)

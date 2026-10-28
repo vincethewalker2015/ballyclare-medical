@@ -49,7 +49,7 @@ RSpec.describe "Patient portal hold payments", type: :request do
 
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Your reservation expires")
-    expect(response.body).to include('data-stripe-payment-expires-at-value=')
+    expect(response.body).to include("data-stripe-payment-expires-at-value=")
     expect(response.body).to include("Back to patient portal")
   end
 

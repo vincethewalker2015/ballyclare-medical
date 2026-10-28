@@ -82,4 +82,30 @@ RSpec.describe CompleteGuestBookingJob, type: :job do
       described_class.perform_now(payment.id)
     }.to change(Patient, :count).by(0)
   end
+
+  it "marks a successful guest payment for refund when its hold is missing" do
+    payment.update!(appointment_hold: nil)
+    hold.destroy!
+
+    expect {
+      described_class.perform_now(payment.id)
+    }.not_to change(Appointment, :count)
+
+    expect(payment.reload.status).to eq("requires_refund")
+    expect(payment.appointment).to be_nil
+    expect(guest.reload.patient).to be_nil
+  end
+
+  it "marks a successful guest payment for refund when availability is withdrawn" do
+    payment
+    availability_block.update!(cancelled_at: Time.current)
+
+    expect {
+      described_class.perform_now(payment.id)
+    }.not_to change(Appointment, :count)
+
+    expect(payment.reload.status).to eq("requires_refund")
+    expect(payment.appointment).to be_nil
+    expect(guest.reload.patient).to be_nil
+  end
 end

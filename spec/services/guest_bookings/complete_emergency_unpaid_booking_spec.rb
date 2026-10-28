@@ -163,4 +163,55 @@ RSpec.describe GuestBookings::CompleteEmergencyUnpaidBooking do
     expect(AppointmentHold.exists?(competing_hold.id)).to be(true)
   end
 
+  it "allows exactly one of two simultaneous guest completions for the same slot", :concurrency do
+    create(:consultation_fee, practice: practice, clinician_type: "doctor")
+    Payments::StripeOutageDeclaration.activate!(
+      practice: practice, actor: administrator, reason: "Stripe outage independently confirmed"
+    )
+    first_hold = GuestBookings::ReserveSlot.new(guest_booking: guest).call
+    other_guest = GuestBooking.create!(
+      practice: practice, appointment_slot: slot,
+      first_name: "Concurrent", last_name: "Visitor",
+      date_of_birth: Date.new(1991, 1, 1),
+      email: "concurrent@example.com", phone: "07700900125",
+      consultation_reason: "Another consultation", status: "payment_pending",
+      expires_at: 20.minutes.from_now
+    )
+    second_hold = AppointmentHold.create!(
+      appointment_slot: slot, guest_booking: other_guest,
+      expires_at: 20.minutes.from_now
+    )
+
+    ready = Queue.new
+    start = Queue.new
+    workers = [first_hold.id, second_hold.id].map do |hold_id|
+      Thread.new do
+        ActiveRecord::Base.connection_pool.with_connection do
+          ready << true
+          start.pop
+          begin
+            described_class.new(hold: AppointmentHold.find(hold_id)).call
+            :booked
+          rescue described_class::Unavailable
+            :unavailable
+          end
+        end
+      end
+    end
+
+    begin
+      2.times { ready.pop }
+      2.times { start << true }
+      expect(workers.map(&:value).sort).to eq(%i[booked unavailable].sort)
+    ensure
+      workers.each { |worker| worker.kill if worker.alive? }
+      workers.each(&:join)
+    end
+
+    expect(Appointment.where(appointment_slot: slot).count).to eq(1)
+    expect(AppointmentCharge.joins(:appointment).where(appointments: { appointment_slot_id: slot.id }).count).to eq(1)
+    expect(Patient.where(practice: practice, email: ["visitor@example.com", "concurrent@example.com"]).count).to eq(1)
+    expect(Payment.where(guest_booking: [guest, other_guest]).count).to eq(0)
+  end
+
 end

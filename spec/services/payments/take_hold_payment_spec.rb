@@ -30,6 +30,7 @@ RSpec.describe Payments::TakeHoldPayment do
   end
 
   it "preserves one payment and its Stripe idempotency key after an ambiguous API timeout" do
+    create(:consultation_fee, practice: practice, clinician_type: "doctor")
     seen_keys = []
     allow(Stripe::PaymentIntent).to receive(:create) do |_params, options|
       seen_keys << options.fetch(:idempotency_key)

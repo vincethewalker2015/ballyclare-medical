@@ -56,4 +56,40 @@ RSpec.describe "Senior staff Stripe outage controls", type: :request do
     expect(event.metadata.fetch("reason")).to eq("Stripe service restored and verified")
   end
 
+  it "rejects a blank activation reason without declaring an outage" do
+    expect {
+      post "/practice/stripe-outage", params: { reason: "   " }
+    }.not_to change(AuditEvent, :count)
+
+    expect(response).to redirect_to("/practice/stripe-outage")
+    expect(Payments::StripeOutageDeclaration.active?(practice: practice)).to be(false)
+  end
+
+  it "rejects a blank deactivation reason and keeps the outage active" do
+    Payments::StripeOutageDeclaration.activate!(
+      practice: practice, actor: staff_member, reason: "Stripe incident independently confirmed"
+    )
+
+    expect {
+      patch "/practice/stripe-outage", params: { reason: "   " }
+    }.not_to change(AuditEvent, :count)
+
+    expect(response).to redirect_to("/practice/stripe-outage")
+    expect(Payments::StripeOutageDeclaration.active?(practice: practice)).to be(true)
+  end
+
+  it "forbids ordinary staff administrators from deactivating an outage" do
+    Payments::StripeOutageDeclaration.activate!(
+      practice: practice, actor: staff_member, reason: "Stripe incident independently confirmed"
+    )
+    staff_member.update!(access_level: "staff_admin")
+
+    expect {
+      patch "/practice/stripe-outage", params: { reason: "Claimed restoration" }
+    }.not_to change(AuditEvent, :count)
+
+    expect(response).to have_http_status(:forbidden)
+    expect(Payments::StripeOutageDeclaration.active?(practice: practice)).to be(true)
+  end
+
 end

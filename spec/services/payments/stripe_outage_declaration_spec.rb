@@ -70,4 +70,43 @@ RSpec.describe Payments::StripeOutageDeclaration do
 
     expect(described_class.active?(practice: create(:practice))).to be(false)
   end
+
+  it "rejects a blank activation reason without writing an audit event" do
+    expect {
+      described_class.activate!(practice: practice, actor: administrator, reason: "  ")
+    }.to raise_error(Payments::StripeOutageDeclaration::InvalidReason)
+
+    expect(AuditEvent.where(practice: practice, action: "stripe_outage.activated")).to be_empty
+  end
+
+  it "does not let a repeated activation silently extend an active declaration" do
+    travel_to Time.zone.parse("2026-10-28 12:00:00") do
+      described_class.activate!(practice: practice, actor: administrator,
+        reason: "Stripe outage confirmed")
+
+      travel 20.minutes
+      expect {
+        described_class.activate!(practice: practice, actor: administrator,
+          reason: "Another report of the same outage")
+      }.to raise_error(Payments::StripeOutageDeclaration::AlreadyActive)
+
+      expect(AuditEvent.where(practice: practice, action: "stripe_outage.activated").count).to eq(1)
+      travel 11.minutes
+      expect(described_class.active?(practice: practice)).to be(false)
+    end
+  end
+
+  it "rejects deactivation by staff without senior administration access" do
+    ordinary_staff = create(:staff_member, practice: practice,
+      staff_type: "administrator", access_level: "staff_admin")
+    described_class.activate!(practice: practice, actor: administrator,
+      reason: "Stripe outage confirmed")
+
+    expect {
+      described_class.deactivate!(practice: practice, actor: ordinary_staff,
+        reason: "Stripe service restored")
+    }.to raise_error(Payments::StripeOutageDeclaration::Unauthorized)
+
+    expect(described_class.active?(practice: practice)).to be(true)
+  end
 end

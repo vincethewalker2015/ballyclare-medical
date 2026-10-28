@@ -237,4 +237,26 @@ RSpec.describe GuestBookings::CompleteEmergencyUnpaidBooking do
     expect(appointment.appointment_charges.sole.amount_cents).to eq(6_500)
   end
 
+  it "rejects emergency booking after a senior administrator deactivates the outage" do
+    create(:consultation_fee, practice: practice, clinician_type: "doctor")
+    Payments::StripeOutageDeclaration.activate!(
+      practice: practice, actor: administrator, reason: "Stripe outage independently confirmed"
+    )
+    hold = GuestBookings::ReserveSlot.new(guest_booking: guest).call
+    Payments::StripeOutageDeclaration.deactivate!(
+      practice: practice, actor: administrator, reason: "Stripe service restored"
+    )
+
+    expect {
+      expect { described_class.new(hold: hold).call }
+        .to raise_error(described_class::Unavailable, /not permitted/)
+    }.not_to change {
+      [Appointment.count, Patient.count, AppointmentCharge.count]
+    }
+
+    expect(guest.reload.status).to eq("payment_pending")
+    expect(AppointmentHold.exists?(hold.id)).to be(true)
+    expect(Payment.where(guest_booking: guest).count).to eq(0)
+  end
+
 end

@@ -28,9 +28,11 @@ class GuestBookingsController < ApplicationController
 
   def review
     @guest_booking = session_guest_booking
+    existing_payment = @guest_booking.payment || @guest_booking.appointment_hold&.payments&.first
+    @payment_verification_pending = existing_payment&.status.in?(%w[pending processing])
     @emergency_unpaid_available = Payments::EmergencyUnpaidBookingPolicy.new(
       practice: @guest_booking.practice,
-      payment: @guest_booking.payment || @guest_booking.appointment_hold&.payments&.first
+      payment: existing_payment
     ).allowed?
   end
 

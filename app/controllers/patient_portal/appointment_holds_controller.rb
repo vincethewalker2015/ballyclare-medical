@@ -23,6 +23,10 @@ module PatientPortal
       @hold = AppointmentHold.joins(:appointment_slot)
         .where(patient: link.patient, appointment_slots: { practice_id: link.practice_id })
         .includes(appointment_slot: :clinician).find(params[:id])
+      @emergency_unpaid_available = Payments::EmergencyUnpaidBookingPolicy.new(
+        practice: @hold.appointment_slot.practice,
+        payment: @hold.payments.order(:created_at).first
+      ).allowed?
     end
   end
 end

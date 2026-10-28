@@ -28,6 +28,10 @@ class GuestBookingsController < ApplicationController
 
   def review
     @guest_booking = session_guest_booking
+    @emergency_unpaid_available = Payments::EmergencyUnpaidBookingPolicy.new(
+      practice: @guest_booking.practice,
+      payment: @guest_booking.payment || @guest_booking.appointment_hold&.payments&.first
+    ).allowed?
   end
 
   def checkout

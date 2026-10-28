@@ -220,4 +220,25 @@ RSpec.describe "Patient portal hold payments", type: :request do
     expect(response).to have_http_status(:not_found)
     expect(Payment.count).to eq(0)
   end
+  it "resumes an existing Stripe PaymentIntent without creating or charging it again" do
+    hold = slot.hold_for!(patient: patient)
+    payment = create(:payment, appointment: nil, appointment_hold: hold,
+      patient: patient, amount_cents: 6_500, status: "processing",
+      provider_payment_id: "pi_existing_patient")
+    sign_in account, scope: :patient_account
+
+    expect(Stripe::PaymentIntent).not_to receive(:create)
+    allow(Stripe::PaymentIntent).to receive(:retrieve).with("pi_existing_patient").and_return(
+      instance_double(Stripe::PaymentIntent, client_secret: "pi_existing_secret")
+    )
+
+    expect {
+      post patient_portal_appointment_hold_payment_path(hold)
+    }.not_to change(Payment, :count)
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Pay for your appointment")
+    expect(payment.reload.provider_payment_id).to eq("pi_existing_patient")
+  end
+
 end

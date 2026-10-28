@@ -31,7 +31,7 @@ module Staff
 
       intent_id = params[:payment_intent_id].to_s.strip
       if payment.provider != "stripe" || !payment.status.in?(%w[pending processing]) ||
-          payment.appointment_id.present? || !intent_id.match?(/\\Api_[a-zA-Z0-9_]+\\z/)
+          payment.appointment_id.present? || !intent_id.match?(/\Api_[a-zA-Z0-9_]+\z/)
         redirect_to practice_booking_payment_reconciliations_path,
           alert: "Payment is not eligible for verification."
         return

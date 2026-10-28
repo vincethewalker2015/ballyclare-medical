@@ -272,4 +272,29 @@ RSpec.describe "Patient portal checkout during a declared Stripe outage", type: 
     expect(AppointmentHold.exists?(hold.id)).to be(true)
   end
 
+  it "does not retry Stripe from a direct payment POST while a patient's payment is unverified" do
+    hold = slot.hold_for!(patient: patient)
+    payment = Payment.create!(
+      appointment_hold: hold, patient: patient, provider: "stripe",
+      currency: patient.practice.currency, amount_cents: 6_500,
+      status: "pending", idempotency_key: SecureRandom.uuid
+    )
+    original_key = payment.idempotency_key
+
+    sign_in account, scope: :patient_account
+    expect(Stripe::PaymentIntent).not_to receive(:create)
+    expect(Stripe::PaymentIntent).not_to receive(:retrieve)
+
+    expect {
+      post patient_portal_appointment_hold_payment_path(hold)
+    }.not_to change(Payment, :count)
+
+    expect(response).to redirect_to(patient_portal_appointment_hold_path(hold))
+    expect(Appointment.count).to eq(0)
+    expect(AppointmentHold.exists?(hold.id)).to be(true)
+    expect(payment.reload.status).to eq("pending")
+    expect(payment.provider_payment_id).to be_nil
+    expect(payment.idempotency_key).to eq(original_key)
+  end
+
 end

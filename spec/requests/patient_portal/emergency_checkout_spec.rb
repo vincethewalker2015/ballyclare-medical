@@ -145,4 +145,29 @@ RSpec.describe "Patient portal checkout during a declared Stripe outage", type: 
     expect(AppointmentHold.exists?(hold.id)).to be(true)
   end
 
+  it "does not create another appointment or charge when emergency booking is submitted twice" do
+    hold = slot.hold_for!(patient: patient)
+    senior = create(:staff_member, practice: patient.practice,
+      staff_type: "administrator", access_level: "senior_staff_admin")
+    Payments::StripeOutageDeclaration.activate!(
+      practice: patient.practice, actor: senior, reason: "Stripe outage independently confirmed"
+    )
+
+    sign_in account, scope: :patient_account
+    expect(Stripe::PaymentIntent).not_to receive(:create)
+
+    post "/patient-portal/appointment-holds/#{hold.id}/emergency-unpaid"
+    expect(response).to have_http_status(:redirect)
+    expect(Appointment.count).to eq(1)
+    expect(AppointmentCharge.count).to eq(1)
+
+    expect {
+      post "/patient-portal/appointment-holds/#{hold.id}/emergency-unpaid"
+    }.not_to change(Appointment, :count)
+    expect(response).to have_http_status(:not_found)
+    expect(AppointmentCharge.count).to eq(1)
+    expect(Payment.count).to eq(0)
+    expect(AppointmentHold.exists?(hold.id)).to be(false)
+  end
+
 end

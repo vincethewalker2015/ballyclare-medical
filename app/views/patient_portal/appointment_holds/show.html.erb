@@ -37,7 +37,9 @@
       </div>
       <div class="mx-6 rounded-xl border border-medical-teal/30 bg-medical-teal-soft p-5 sm:mx-8">
         <p class="text-sm font-semibold text-medical-navy">Your time is reserved until <%= expires_at.strftime("%-I:%M %p") %></p>
-        <% if @emergency_unpaid_available %>
+        <% if @payment_verification_pending %>
+          <p class="mt-2 text-sm leading-6 text-medical-muted">Payment verification pending. We are checking the outcome of your previous payment attempt. Do not start another payment or booking. Please contact the practice if you need assistance.</p>
+        <% elsif @emergency_unpaid_available %>
           <p class="mt-2 text-sm leading-6 text-medical-muted">Stripe payments are temporarily unavailable. You may book now, but payment remains outstanding and the practice will arrange payment separately.</p>
         <% else %>
           <p class="mt-2 text-sm leading-6 text-medical-muted">Your appointment is not booked yet. It will be confirmed only after successful payment.</p>
@@ -45,7 +47,9 @@
       </div>
       <div class="flex flex-wrap items-center justify-between gap-4 px-6 py-7 sm:px-8">
         <%= link_to "Choose a different time", patient_portal_appointments_path, class: "text-sm font-semibold text-medical-teal hover:underline" %>
-        <% if @emergency_unpaid_available %>
+        <% if @payment_verification_pending %>
+          <span class="text-sm font-semibold text-amber-800">Payment verification pending</span>
+        <% elsif @emergency_unpaid_available %>
           <%= button_to "Book now — pay later", patient_portal_emergency_unpaid_booking_path(@hold), class: "cursor-pointer rounded-xl bg-medical-navy px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-90", data: { turbo: false } %>
         <% else %>
           <%= button_to "Continue to secure payment", patient_portal_appointment_hold_payment_path(@hold), class: "cursor-pointer rounded-xl bg-medical-navy px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-90", data: { turbo: false } %>

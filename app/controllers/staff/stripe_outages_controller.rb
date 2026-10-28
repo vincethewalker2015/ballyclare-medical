@@ -19,6 +19,17 @@ module Staff
       redirect_to practice_stripe_outage_path, alert: "A Stripe outage declaration is already active."
     end
 
+    def update
+      Payments::StripeOutageDeclaration.deactivate!(
+        practice: current_practice,
+        actor: current_staff_member,
+        reason: params[:reason]
+      )
+      redirect_to practice_stripe_outage_path, notice: "Stripe outage declaration ended."
+    rescue Payments::StripeOutageDeclaration::InvalidReason
+      redirect_to practice_stripe_outage_path, alert: "Enter a reason for ending the outage."
+    end
+
     private
 
     def require_senior_administrator

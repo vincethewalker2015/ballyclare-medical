@@ -87,6 +87,28 @@ RSpec.describe "Patient portal hold payments", type: :request do
     expect(response.body).to include("Pay for your appointment")
   end
 
+  it "does not reopen an unresolved Stripe PaymentIntent through the checkout refresh URL" do
+    hold = slot.hold_for!(patient: patient)
+    payment = create(:payment, appointment: nil, appointment_hold: hold,
+      patient: patient, amount_cents: 6_500, status: "processing",
+      provider_payment_id: "pi_patient_refresh_pending")
+    original_key = payment.idempotency_key
+    sign_in account, scope: :patient_account
+
+    expect(Stripe::PaymentIntent).not_to receive(:create)
+    expect(Stripe::PaymentIntent).not_to receive(:retrieve)
+
+    expect {
+      get patient_portal_appointment_hold_payment_path(hold)
+    }.not_to change(Payment, :count)
+
+    expect(response).to redirect_to(patient_portal_appointment_hold_path(hold))
+    expect(payment.reload.provider_payment_id).to eq("pi_patient_refresh_pending")
+    expect(payment.idempotency_key).to eq(original_key)
+    expect(payment.status).to eq("processing")
+    expect(Appointment.count).to eq(0)
+  end
+
   it "does not initiate two payments or reopen checkout for the same reservation" do
     hold = slot.hold_for!(patient: patient)
     sign_in account, scope: :patient_account

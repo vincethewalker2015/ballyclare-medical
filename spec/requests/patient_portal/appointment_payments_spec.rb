@@ -90,9 +90,9 @@ RSpec.describe "Patient portal hold payments", type: :request do
   it "does not initiate two payments for the same reservation" do
     hold = slot.hold_for!(patient: patient)
     sign_in account, scope: :patient_account
-    allow(Stripe::PaymentIntent).to receive(:create).and_return(
-      instance_double(Stripe::PaymentIntent, id: "pi_patient_test", client_secret: "pi_secret_test")
-    )
+    intent = instance_double(Stripe::PaymentIntent, id: "pi_patient_test", client_secret: "pi_secret_test")
+    expect(Stripe::PaymentIntent).to receive(:create).once.and_return(intent)
+    expect(Stripe::PaymentIntent).to receive(:retrieve).with("pi_patient_test").once.and_return(intent)
     post patient_portal_appointment_hold_payment_path(hold)
     post patient_portal_appointment_hold_payment_path(hold)
     expect(response).to have_http_status(:ok)

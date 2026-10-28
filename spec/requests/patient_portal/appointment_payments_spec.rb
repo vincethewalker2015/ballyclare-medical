@@ -67,7 +67,7 @@ RSpec.describe "Patient portal hold payments", type: :request do
     expect(response.body).to include("Find another appointment")
   end
 
-  it "allows a safe checkout refresh without creating another payment" do
+  it "redirects checkout refresh for an unresolved payment without creating another payment" do
     hold = slot.hold_for!(patient: patient)
     sign_in account, scope: :patient_account
     allow(Stripe::PaymentIntent).to receive(:create).and_return(
@@ -75,16 +75,19 @@ RSpec.describe "Patient portal hold payments", type: :request do
     )
     post patient_portal_appointment_hold_payment_path(hold)
     expect(response).to have_http_status(:ok)
-    allow(Stripe::PaymentIntent).to receive(:retrieve).with("pi_refresh_test").and_return(
-      instance_double(Stripe::PaymentIntent, client_secret: "pi_refresh_secret")
-    )
+    payment = Payment.last
+    original_key = payment.idempotency_key
 
+    expect(Stripe::PaymentIntent).not_to receive(:retrieve)
     expect {
       get patient_portal_appointment_hold_payment_path(hold)
     }.not_to change(Payment, :count)
 
-    expect(response).to have_http_status(:ok)
-    expect(response.body).to include("Pay for your appointment")
+    expect(response).to redirect_to(patient_portal_appointment_hold_path(hold))
+    expect(payment.reload.provider_payment_id).to eq("pi_refresh_test")
+    expect(payment.idempotency_key).to eq(original_key)
+    expect(payment.status).to eq("processing")
+    expect(Appointment.count).to eq(0)
   end
 
   it "does not reopen an unresolved Stripe PaymentIntent through the checkout refresh URL" do

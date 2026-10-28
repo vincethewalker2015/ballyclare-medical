@@ -92,4 +92,45 @@ RSpec.describe "Senior staff Stripe outage controls", type: :request do
     expect(Payments::StripeOutageDeclaration.active?(practice: practice)).to be(true)
   end
 
+  it "does not create a second activation or extend an active outage declaration" do
+    Payments::StripeOutageDeclaration.activate!(
+      practice: practice, actor: staff_member, reason: "Stripe incident independently confirmed"
+    )
+    original_event = AuditEvent.where(practice: practice, action: "stripe_outage.activated").sole
+
+    expect {
+      post "/practice/stripe-outage", params: { reason: "Repeat declaration" }
+    }.not_to change(AuditEvent, :count)
+
+    expect(response).to redirect_to("/practice/stripe-outage")
+    expect(AuditEvent.where(practice: practice, action: "stripe_outage.activated").sole.id).to eq(original_event.id)
+    expect(Payments::StripeOutageDeclaration.active?(practice: practice)).to be(true)
+  end
+
+  it "shows the declaration form when the outage is inactive and the end control when active" do
+    get "/practice/stripe-outage"
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Emergency unpaid online booking is inactive")
+    expect(response.body).to include("Declare Stripe outage for 30 minutes")
+    expect(response.body).not_to include("End Stripe outage now")
+
+    Payments::StripeOutageDeclaration.activate!(
+      practice: practice, actor: staff_member, reason: "Stripe incident independently confirmed"
+    )
+
+    get "/practice/stripe-outage"
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Emergency unpaid online booking is active")
+    expect(response.body).to include("End Stripe outage now")
+    expect(response.body).not_to include("Declare Stripe outage for 30 minutes")
+  end
+
+  it "forbids non-senior administrators from viewing the outage controls" do
+    staff_member.update!(access_level: "staff_admin")
+
+    get "/practice/stripe-outage"
+
+    expect(response).to have_http_status(:forbidden)
+  end
+
 end

@@ -2,7 +2,9 @@ class RecoverPendingRefundsJob < ApplicationJob
   queue_as :default
 
   def perform
-    Refund.where(status: "pending").find_each do |refund|
+    Refund.where(status: "pending")
+      .where("created_at > ?", 24.hours.ago)
+      .find_each do |refund|
       begin
         ProcessRefundJob.perform_later(refund.id)
       rescue StandardError => error

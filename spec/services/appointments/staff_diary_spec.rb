@@ -22,11 +22,12 @@ RSpec.describe Appointments::StaffDiary do
       availability_block: cancelled_block, starts_at: cancelled_start,
       ends_at: cancelled_start + 20.minutes)
     cancelled = create(:appointment, practice: practice, clinician: clinician,
-      patient: patient, appointment_slot: cancelled_slot, status: "cancelled")
+      patient: patient, appointment_slot: cancelled_slot, status: "booked")
     Billing::CreateCharge.new(
       appointment: cancelled, description: "Appointment",
       charge_type: "appointment", amount_cents: 6_500
     ).call
+    cancelled.update!(status: "cancelled")
 
     diary = described_class.new(
       practice: practice, staff_member: administrator, view: "payment_due",

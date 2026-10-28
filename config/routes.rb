@@ -27,6 +27,8 @@ Rails.application.routes.draw do
   get "/patient-portal/payments/:id", to: "patient_portal/appointment_payments#show", as: :patient_portal_payment
   get "/patient-portal/appointment-holds/:appointment_hold_id/payment", to: "patient_portal/appointment_payments#checkout"
   post "/patient-portal/appointment-holds/:appointment_hold_id/payment", to: "patient_portal/appointment_payments#create", as: :patient_portal_appointment_hold_payment
+  post "/patient-portal/appointment-holds/:appointment_hold_id/emergency-unpaid", to: "patient_portal/emergency_bookings#create", as: :patient_portal_emergency_unpaid_booking
+  get "/patient-portal/emergency-bookings/:id", to: "patient_portal/emergency_bookings#show", as: :patient_portal_emergency_booking
   resources :patient_portal_appointment_holds, path: "/patient-portal/appointment-holds", module: :patient_portal, controller: :appointment_holds, only: %i[create show]
 
   get "/staff/invitation/accept", to: "staff/invitations#edit", as: :edit_staff_invitation

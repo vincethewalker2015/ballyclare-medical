@@ -385,6 +385,65 @@ RSpec.describe "Patient account requests", type: :request do
       .to eq(existing_patient)
   end
 
+  describe "revoking an approved patient account link" do
+    let(:account) { create(:patient_account, confirmed_at: Time.current) }
+    let(:patient) { create(:patient, practice: practice) }
+    let!(:link) do
+      PatientAccountLink.create!(
+        practice: practice, patient: patient, patient_account: account,
+        status: "approved", verified_by: membership,
+        verification_method: "in_person", verified_at: Time.current,
+        approved_at: Time.current
+      )
+    end
+
+    it "allows a senior administrator to revoke an approved link and audits the action" do
+      membership.update!(access_level: "senior_staff_admin")
+      sign_in admin
+
+      expect {
+        patch revoke_practice_patient_account_request_path(link)
+      }.to change(AuditEvent, :count).by(1)
+
+      expect(link.reload.status).to eq("revoked")
+      expect(response).to redirect_to(practice_patient_account_requests_path)
+      expect(AuditEvent.order(:created_at).last.action).to eq("patient_account.link_revoked")
+    end
+
+    it "forbids a regular staff administrator from revoking a link" do
+      sign_in admin
+
+      expect {
+        patch revoke_practice_patient_account_request_path(link)
+      }.not_to change(AuditEvent, :count)
+
+      expect(response).to have_http_status(:forbidden)
+      expect(link.reload.status).to eq("approved")
+    end
+
+    it "does not allow revocation of a link belonging to another practice" do
+      membership.update!(access_level: "senior_staff_admin")
+      foreign_practice = create(:practice)
+      foreign_admin = create(:staff_member, practice: foreign_practice,
+        staff_type: "administrator", access_level: "staff_admin")
+      foreign_account = create(:patient_account, confirmed_at: Time.current)
+      foreign_link = PatientAccountLink.create!(
+        practice: foreign_practice, patient: create(:patient, practice: foreign_practice),
+        patient_account: foreign_account, status: "approved",
+        verified_by: foreign_admin, verification_method: "in_person",
+        verified_at: Time.current, approved_at: Time.current
+      )
+      sign_in admin
+
+      expect {
+        patch revoke_practice_patient_account_request_path(foreign_link)
+      }.not_to change(AuditEvent, :count)
+
+      expect(response).to have_http_status(:not_found)
+      expect(foreign_link.reload.status).to eq("approved")
+    end
+  end
+
   it "does not provide a route for creating an assignment" do
     sign_in admin
     expect {

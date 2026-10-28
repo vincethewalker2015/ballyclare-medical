@@ -118,4 +118,69 @@ RSpec.describe "Staff unresolved booking payment review", type: :request do
     expect(payment.provider_payment_id).to be_nil
   end
 
+  it "verifies a matching Stripe reference without marking the payment paid or booking" do
+    patient = create(:patient, practice: practice)
+    payment = create(:payment, appointment: nil, patient: patient,
+      status: "pending", provider_payment_id: nil)
+    intent = instance_double(Stripe::PaymentIntent,
+      id: "pi_matching", status: "requires_payment_method",
+      metadata: { "payment_id" => payment.id.to_s })
+    allow(Stripe::PaymentIntent).to receive(:retrieve).with("pi_matching").and_return(intent)
+
+    sign_in user
+    expect {
+      post verify_practice_booking_payment_reconciliation_path(payment),
+        params: { payment_intent_id: "pi_matching" }
+    }.not_to change(Appointment, :count)
+
+    expect(response).to redirect_to(practice_booking_payment_reconciliations_path)
+    expect(payment.reload.status).to eq("pending")
+    expect(payment.provider_payment_id).to be_nil
+  end
+
+  it "preserves the payment when Stripe verification is unavailable" do
+    patient = create(:patient, practice: practice)
+    payment = create(:payment, appointment: nil, patient: patient,
+      status: "pending", provider_payment_id: nil)
+    allow(Stripe::PaymentIntent).to receive(:retrieve)
+      .with("pi_unavailable").and_raise(Stripe::APIConnectionError.new("timeout"))
+
+    sign_in user
+    post verify_practice_booking_payment_reconciliation_path(payment),
+      params: { payment_intent_id: "pi_unavailable" }
+
+    expect(response).to redirect_to(practice_booking_payment_reconciliations_path)
+    expect(payment.reload.status).to eq("pending")
+    expect(payment.provider_payment_id).to be_nil
+  end
+
+  it "forbids basic staff from verifying a payment" do
+    patient = create(:patient, practice: practice)
+    payment = create(:payment, appointment: nil, patient: patient,
+      status: "pending", provider_payment_id: nil)
+    membership.update!(access_level: "staff")
+    sign_in user
+
+    expect(Stripe::PaymentIntent).not_to receive(:retrieve)
+    post verify_practice_booking_payment_reconciliation_path(payment),
+      params: { payment_intent_id: "pi_forbidden" }
+
+    expect(response).to have_http_status(:forbidden)
+    expect(payment.reload.status).to eq("pending")
+  end
+
+  it "does not retrieve a Stripe intent for another practice's payment" do
+    patient = create(:patient, practice: create(:practice))
+    payment = create(:payment, appointment: nil, patient: patient,
+      status: "pending", provider_payment_id: nil)
+    sign_in user
+
+    expect(Stripe::PaymentIntent).not_to receive(:retrieve)
+    post verify_practice_booking_payment_reconciliation_path(payment),
+      params: { payment_intent_id: "pi_foreign" }
+
+    expect(response).to have_http_status(:not_found)
+    expect(payment.reload.status).to eq("pending")
+  end
+
 end

@@ -67,4 +67,33 @@ RSpec.describe GuestBookings::CompleteEmergencyUnpaidBooking do
     expect(Appointment.where(appointment_slot: slot).sole.id).to eq(appointment.id)
   end
 
+  %w[pending processing succeeded failed cancelled requires_refund].each do |status|
+    it "rejects emergency booking when a #{status} Stripe payment already exists" do
+      create(:consultation_fee, practice: practice, clinician_type: "doctor")
+      Payments::StripeOutageDeclaration.activate!(
+        practice: practice, actor: administrator, reason: "Stripe outage independently confirmed"
+      )
+      hold = GuestBookings::ReserveSlot.new(guest_booking: guest).call
+      Payment.create!(
+        appointment_hold: hold,
+        guest_booking: guest,
+        provider: "stripe",
+        currency: "GBP",
+        amount_cents: 6_500,
+        status: status,
+        idempotency_key: SecureRandom.uuid
+      )
+
+      expect {
+        expect { described_class.new(hold: hold).call }
+          .to raise_error(described_class::Unavailable, /not permitted/)
+      }.not_to change {
+        [Appointment.count, Patient.count, AppointmentCharge.count]
+      }
+
+      expect(guest.reload.status).to eq("payment_pending")
+      expect(AppointmentHold.exists?(hold.id)).to be(true)
+    end
+  end
+
 end

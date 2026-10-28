@@ -109,4 +109,39 @@ RSpec.describe Payments::StripeOutageDeclaration do
 
     expect(described_class.active?(practice: practice)).to be(true)
   end
+
+  it "accepts only one of two simultaneous activations", :concurrency do
+    practice
+    administrator
+
+    ready = Queue.new
+    start = Queue.new
+    workers = 2.times.map do
+      Thread.new do
+        ActiveRecord::Base.connection_pool.with_connection do
+          ready << true
+          start.pop
+          begin
+            described_class.activate!(practice: practice, actor: administrator,
+              reason: "Stripe outage confirmed")
+            :activated
+          rescue described_class::AlreadyActive
+            :already_active
+          end
+        end
+      end
+    end
+
+    begin
+      2.times { ready.pop }
+      2.times { start << true }
+      expect(workers.map(&:value).sort).to eq(%i[activated already_active].sort)
+    ensure
+      workers.each { |worker| worker.kill if worker.alive? }
+      workers.each(&:join)
+    end
+
+    expect(AuditEvent.where(practice: practice, action: "stripe_outage.activated").count).to eq(1)
+    expect(described_class.active?(practice: practice)).to be(true)
+  end
 end

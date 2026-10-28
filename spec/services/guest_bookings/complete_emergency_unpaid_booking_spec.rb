@@ -49,4 +49,22 @@ RSpec.describe GuestBookings::CompleteEmergencyUnpaidBooking do
     expect(guest.reload.status).to eq("completed")
     expect(AppointmentHold.exists?(hold.id)).to be(false)
   end
+  it "rejects a repeated completion without creating another appointment, patient or charge" do
+    create(:consultation_fee, practice: practice, clinician_type: "doctor")
+    Payments::StripeOutageDeclaration.activate!(
+      practice: practice, actor: administrator, reason: "Stripe outage independently confirmed"
+    )
+    hold = GuestBookings::ReserveSlot.new(guest_booking: guest).call
+    appointment = described_class.new(hold: hold).call
+
+    expect {
+      expect { described_class.new(hold: hold).call }
+        .to raise_error(described_class::Unavailable)
+    }.not_to change {
+      [Appointment.count, Patient.count, AppointmentCharge.count]
+    }
+
+    expect(Appointment.where(appointment_slot: slot).sole.id).to eq(appointment.id)
+  end
+
 end

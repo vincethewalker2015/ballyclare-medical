@@ -68,7 +68,17 @@ module Staff
 
       redirect_to practice_booking_payment_reconciliations_path,
         notice: "Stripe reference verified. No payment changes were made."
-    rescue Stripe::StripeError
+    rescue Stripe::StripeError => error
+      AuditEvent.create!(
+        practice: current_practice,
+        user: current_user,
+        auditable: payment,
+        action: "stripe_payment.verification_unavailable",
+        metadata: {
+          payment_intent_id: intent_id,
+          error_class: error.class.name
+        }
+      )
       redirect_to practice_booking_payment_reconciliations_path,
         alert: "Stripe verification is unavailable. No payment changes were made."
     end

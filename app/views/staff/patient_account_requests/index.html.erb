@@ -25,5 +25,30 @@
       <p class="px-5 py-8 text-medical-muted">No confirmed registration requests for this practice.</p>
     <% end %>
   </div>
+  <div class="mt-10 rounded-2xl border border-medical-border bg-white p-6">
+    <h2 class="text-xl font-semibold text-medical-navy">Approved patient account links</h2>
+    <p class="mt-2 text-sm text-medical-muted">Revoking a link immediately removes patient portal access to the connected clinical record. The patient account and clinical record are retained.</p>
+    <% if @approved_links.any? %>
+      <div class="mt-5 space-y-4">
+        <% @approved_links.each do |link| %>
+          <div class="flex flex-wrap items-center justify-between gap-4 border-t border-medical-border pt-4">
+            <div class="text-sm">
+              <p class="font-semibold text-medical-navy"><%= link.patient.first_name %> <%= link.patient.last_name %> — <%= link.patient.patient_number %></p>
+              <p class="mt-1 text-medical-muted"><%= link.patient_account.email %></p>
+            </div>
+            <% if @current_staff_member.senior_administration_access? %>
+              <%= button_to "Revoke patient portal access", revoke_practice_patient_account_request_path(link), method: :patch,
+                form: { data: { turbo_confirm: "Revoke this patient account link? The patient will immediately lose access to their clinical record through the portal." } },
+                class: "cursor-pointer rounded-full border border-red-300 px-5 py-2 text-sm font-semibold text-red-800 hover:bg-red-50" %>
+            <% else %>
+              <span class="text-sm text-medical-muted">Senior Staff Admin required to revoke</span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="mt-4 text-sm text-medical-muted">No approved patient account links.</p>
+    <% end %>
+  </div>
   <p class="mt-5 text-sm text-medical-muted">Identity verification is required before Senior Staff Admin approval. No accounts are linked by email address alone.</p>
 </div>

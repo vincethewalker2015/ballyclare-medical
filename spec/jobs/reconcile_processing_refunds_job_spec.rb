@@ -2,6 +2,45 @@ require "rails_helper"
 
 RSpec.describe ReconcileProcessingRefundsJob, type: :job do
   describe "#perform" do
+    it "reconciles a successful Stripe refund without an appointment" do
+      payment = create(:payment,
+        appointment: nil,
+        patient: create(:patient),
+        status: "requires_refund",
+        provider: "stripe",
+        provider_payment_id: "pi_expired_patient_hold",
+        amount_cents: 4000,
+        currency: "GBP")
+
+      refund = create(:refund,
+        payment: payment,
+        amount_cents: 4000,
+        currency: "GBP",
+        status: "processing",
+        provider_refund_id: "re_expired_patient_hold")
+      refund.update_columns(updated_at: 20.minutes.ago)
+
+      stripe_refund = Stripe::Refund.construct_from(
+        id: "re_expired_patient_hold",
+        object: "refund",
+        amount: 4000,
+        currency: "gbp",
+        status: "succeeded",
+        payment_intent: "pi_expired_patient_hold"
+      )
+
+      expect(Stripe::Refund).to receive(:retrieve)
+        .with("re_expired_patient_hold")
+        .and_return(stripe_refund)
+      expect(Stripe::Refund).not_to receive(:create)
+
+      described_class.perform_now
+
+      expect(refund.reload.status).to eq("succeeded")
+      expect(refund.refunded_at).to be_present
+      expect(payment.reload.appointment_id).to be_nil
+    end
+
     it "reconciles a processing refund older than 15 minutes" do
       payment = create(
         :payment,

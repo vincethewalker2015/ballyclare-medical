@@ -41,6 +41,7 @@ Rails.application.routes.draw do
 
   scope "/practice", module: "staff", as: "practice" do
   resource :consultation_fees, only: %i[edit update], controller: "consultation_fees"
+  resources :refunds, only: %i[index]
   resources :patients, only: %i[index show new create edit update]
   resources :patient_account_requests, only: %i[index show] do
     member do

@@ -185,4 +185,34 @@ RSpec.describe "Guest checkout during a declared Stripe outage", type: :request 
     end
   end
 
+  it "does not create a second patient, appointment, charge, or payment on a duplicate emergency POST" do
+    create(:consultation_fee, practice: practice, clinician_type: "doctor")
+    starts_at = 3.days.from_now.change(hour: 10, min: 0)
+    block = create(:availability_block, practice: practice, clinician: clinician,
+      starts_at: starts_at - 1.hour, ends_at: starts_at + 1.hour, bookable_online: true)
+    slot = create(:appointment_slot, practice: practice, clinician: clinician,
+      availability_block: block, starts_at: starts_at, ends_at: starts_at + 20.minutes)
+
+    post guest_booking_details_path, params: { guest_booking: {
+      appointment_slot_id: slot.id, first_name: "Guest", last_name: "Visitor",
+      date_of_birth: "1990-01-01", email: "visitor@example.com",
+      phone: "07700900123", consultation_reason: "Consultation"
+    } }
+
+    Payments::StripeOutageDeclaration.activate!(
+      practice: practice, actor: administrator, reason: "Stripe outage confirmed"
+    )
+
+    expect(Stripe::PaymentIntent).not_to receive(:create)
+    post guest_booking_emergency_unpaid_path
+    expect(response).to redirect_to(guest_booking_emergency_confirmation_path)
+
+    counts = [Patient.count, Appointment.count, AppointmentCharge.count, Payment.count]
+    expect {
+      post guest_booking_emergency_unpaid_path
+    }.to raise_error(ActiveRecord::RecordNotFound)
+
+    expect([Patient.count, Appointment.count, AppointmentCharge.count, Payment.count]).to eq(counts)
+  end
+
 end

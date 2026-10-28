@@ -47,7 +47,11 @@ Rails.application.routes.draw do
   resource :stripe_outage, path: "stripe-outage", only: %i[show create update], controller: "stripe_outages"
   resource :consultation_fees, only: %i[edit update], controller: "consultation_fees"
   resources :refunds, only: %i[index]
-  resources :booking_payment_reconciliations, only: %i[index]
+  resources :booking_payment_reconciliations, only: %i[index] do
+    member do
+      post :verify
+    end
+  end
   resources :patients, only: %i[index show new create edit update]
   resources :patient_account_requests, only: %i[index show] do
     member do

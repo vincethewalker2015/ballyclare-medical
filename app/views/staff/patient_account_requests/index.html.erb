@@ -4,6 +4,11 @@
   <h1 class="text-3xl font-semibold text-medical-navy">Patient account requests</h1>
   <p class="mt-3 text-medical-muted">Patients have selected this practice during registration. This is an unverified request, not evidence of identity or a connection to a clinical record.</p>
 
+  <%= form_with url: practice_patient_account_requests_path, method: :get, class: "mt-7 flex flex-wrap gap-3", role: "search" do |form| %>
+    <%= form.search_field :request_search, value: @request_search, placeholder: "Search by applicant name or email", aria: { label: "Search registration requests" }, class: "min-w-0 flex-1 rounded-xl border border-medical-border bg-white px-4 py-3 text-sm" %>
+    <%= form.submit "Search", class: "cursor-pointer rounded-full bg-medical-navy px-6 py-3 text-sm font-semibold text-white" %>
+    <% if @request_search.present? %><%= link_to "Clear", practice_patient_account_requests_path, class: "self-center text-sm font-semibold text-medical-teal-dark" %><% end %>
+  <% end %>
   <div class="mt-8 overflow-hidden rounded-2xl border border-medical-border bg-white">
     <% if @registration_requests.any? %>
       <table class="w-full text-left text-sm">
@@ -25,30 +30,12 @@
       <p class="px-5 py-8 text-medical-muted">No confirmed registration requests for this practice.</p>
     <% end %>
   </div>
-  <div class="mt-10 rounded-2xl border border-medical-border bg-white p-6">
-    <h2 class="text-xl font-semibold text-medical-navy">Approved patient account links</h2>
-    <p class="mt-2 text-sm text-medical-muted">Revoking a link immediately removes patient portal access to the connected clinical record. The patient account and clinical record are retained.</p>
-    <% if @approved_links.any? %>
-      <div class="mt-5 space-y-4">
-        <% @approved_links.each do |link| %>
-          <div class="flex flex-wrap items-center justify-between gap-4 border-t border-medical-border pt-4">
-            <div class="text-sm">
-              <p class="font-semibold text-medical-navy"><%= link.patient.first_name %> <%= link.patient.last_name %> — <%= link.patient.patient_number %></p>
-              <p class="mt-1 text-medical-muted"><%= link.patient_account.email %></p>
-            </div>
-            <% if @current_staff_member.senior_administration_access? %>
-              <%= button_to "Revoke patient portal access", revoke_practice_patient_account_request_path(link), method: :patch,
-                form: { data: { turbo_confirm: "Revoke this patient account link? The patient will immediately lose access to their clinical record through the portal." } },
-                class: "cursor-pointer rounded-full border border-red-300 px-5 py-2 text-sm font-semibold text-red-800 hover:bg-red-50" %>
-            <% else %>
-              <span class="text-sm text-medical-muted">Senior Staff Admin required to revoke</span>
-            <% end %>
-          </div>
-        <% end %>
-      </div>
-    <% else %>
-      <p class="mt-4 text-sm text-medical-muted">No approved patient account links.</p>
-    <% end %>
-  </div>
+  <nav aria-label="Registration request pages" class="mt-5 flex items-center justify-between gap-4 text-sm">
+    <span class="text-medical-muted"><%= @request_count %> matching requests · Page <%= @page %> of <%= @total_pages %></span>
+    <div class="flex gap-4">
+      <% if @page > 1 %><%= link_to "Previous", practice_patient_account_requests_path(page: @page - 1, request_search: @request_search), class: "font-semibold text-medical-teal-dark" %><% end %>
+      <% if @page < @total_pages %><%= link_to "Next", practice_patient_account_requests_path(page: @page + 1, request_search: @request_search), class: "font-semibold text-medical-teal-dark" %><% end %>
+    </div>
+  </nav>
   <p class="mt-5 text-sm text-medical-muted">Identity verification is required before Senior Staff Admin approval. No accounts are linked by email address alone.</p>
 </div>

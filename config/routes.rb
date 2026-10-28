@@ -6,6 +6,8 @@ Rails.application.routes.draw do
   get "/book/details", to: "guest_bookings#new", as: :new_guest_booking
   get "/book/review", to: "guest_bookings#review", as: :guest_booking_review
   post "/book/checkout", to: "guest_bookings#checkout", as: :guest_booking_checkout
+  post "/book/emergency-unpaid", to: "guest_bookings#emergency_unpaid", as: :guest_booking_emergency_unpaid
+  get "/book/emergency-confirmation", to: "guest_bookings#emergency_confirmation", as: :guest_booking_emergency_confirmation
   get "/book/payments/:id", to: "guest_bookings#payment_status", as: :guest_booking_payment
   post "/book/details", to: "guest_bookings#create", as: :guest_booking_details
 

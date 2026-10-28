@@ -48,6 +48,26 @@ class GuestBookingsController < ApplicationController
     redirect_to guest_booking_review_path, alert: "Secure payment could not be started. Please try again."
   end
 
+  def emergency_unpaid
+    guest = session_guest_booking
+    hold = guest.appointment_hold || GuestBookings::ReserveSlot.new(guest_booking: guest).call
+    appointment = GuestBookings::CompleteEmergencyUnpaidBooking.new(hold: hold).call
+    session[:guest_emergency_appointment_id] = appointment.id
+    redirect_to guest_booking_emergency_confirmation_path
+  rescue GuestBookings::ReserveSlot::Unavailable,
+         GuestBookings::CompleteEmergencyUnpaidBooking::Unavailable,
+         Billing::ConsultationPrice::Unavailable
+    redirect_to guest_booking_review_path, alert: "Emergency booking is unavailable. Please review your reservation or contact the practice."
+  end
+
+  def emergency_confirmation
+    @appointment = Appointment.joins(:patient).find_by!(
+      id: session[:guest_emergency_appointment_id],
+      patients: { id: GuestBooking.where(id: session[:guest_booking_id], status: "completed").select(:patient_id) }
+    )
+    @charge = @appointment.appointment_charges.active.first!
+  end
+
   def payment_status
     guest = GuestBooking.find_by!(id: session[:guest_booking_id])
     @payment = Payment.find_by!(guest_booking: guest, id: params[:id])

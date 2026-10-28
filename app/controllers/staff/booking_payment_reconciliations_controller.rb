@@ -19,6 +19,39 @@ module Staff
         .limit(100)
     end
 
+
+    def verify
+      payment = Payment.where(
+        patient_id: current_practice.patients.select(:id)
+      ).or(
+        Payment.where(
+          guest_booking_id: GuestBooking.where(practice_id: current_practice.id).select(:id)
+        )
+      ).find(params[:id])
+
+      intent_id = params[:payment_intent_id].to_s.strip
+      if payment.provider != "stripe" || !payment.status.in?(%w[pending processing]) ||
+          payment.appointment_id.present? || !intent_id.match?(/\\Api_[a-zA-Z0-9_]+\\z/)
+        redirect_to practice_booking_payment_reconciliations_path,
+          alert: "Payment is not eligible for verification."
+        return
+      end
+
+      intent = Stripe::PaymentIntent.retrieve(intent_id)
+      if intent.metadata&.[]("payment_id").to_s != payment.id.to_s ||
+          (payment.provider_payment_id.present? && payment.provider_payment_id != intent.id)
+        redirect_to practice_booking_payment_reconciliations_path,
+          alert: "Stripe PaymentIntent does not match this payment."
+        return
+      end
+
+      redirect_to practice_booking_payment_reconciliations_path,
+        notice: "Stripe reference verified. No payment changes were made."
+    rescue Stripe::StripeError
+      redirect_to practice_booking_payment_reconciliations_path,
+        alert: "Stripe verification is unavailable. No payment changes were made."
+    end
+
     private
 
     def require_staff_administrator

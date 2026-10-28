@@ -38,6 +38,10 @@ class GuestBookingsController < ApplicationController
 
   def checkout
     guest = session_guest_booking
+    if Payments::StripeOutageDeclaration.active?(practice: guest.practice)
+      return redirect_to guest_booking_review_path, alert: "Secure payment is temporarily unavailable. Please review your booking options."
+    end
+
     hold = guest.appointment_hold || GuestBookings::ReserveSlot.new(guest_booking: guest).call
     result = Payments::TakeHoldPayment.new(hold: hold).call
     @payment = result.payment

@@ -6,6 +6,10 @@ module PaymentProviders
       end
 
       def call
+        if payment.provider_payment_id.present?
+          return Stripe::PaymentIntent.retrieve(payment.provider_payment_id)
+        end
+
         payment_intent = Stripe::PaymentIntent.create(
           {
             amount: payment.amount_cents,

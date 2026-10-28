@@ -1,6 +1,8 @@
 require "rails_helper"
+require "active_support/testing/time_helpers"
 
 RSpec.describe GuestBookings::CompleteEmergencyUnpaidBooking do
+  include ActiveSupport::Testing::TimeHelpers
   let(:practice) { create(:practice) }
   let(:clinician) { create(:staff_member, practice: practice, staff_type: "doctor") }
   let(:administrator) do
@@ -257,6 +259,28 @@ RSpec.describe GuestBookings::CompleteEmergencyUnpaidBooking do
     expect(guest.reload.status).to eq("payment_pending")
     expect(AppointmentHold.exists?(hold.id)).to be(true)
     expect(Payment.where(guest_booking: guest).count).to eq(0)
+  end
+
+  it "rejects emergency booking after the 30-minute outage declaration expires" do
+    create(:consultation_fee, practice: practice, clinician_type: "doctor")
+    hold = GuestBookings::ReserveSlot.new(guest_booking: guest).call
+
+    travel_to Time.current.change(usec: 0) do
+      Payments::StripeOutageDeclaration.activate!(
+        practice: practice, actor: administrator, reason: "Stripe outage independently confirmed"
+      )
+      travel 31.minutes
+
+      expect {
+        expect { described_class.new(hold: hold).call }
+          .to raise_error(described_class::Unavailable, /not permitted/)
+      }.not_to change {
+        [Appointment.count, Patient.count, AppointmentCharge.count]
+      }
+    end
+
+    expect(guest.reload.status).to eq("payment_pending")
+    expect(AppointmentHold.exists?(hold.id)).to be(true)
   end
 
 end

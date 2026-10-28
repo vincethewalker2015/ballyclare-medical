@@ -17,6 +17,7 @@ class ProcessRefundJob < ApplicationJob
         refund = Refund.find(refund_id)
 
         return unless refund.status == "pending"
+        return if refund.created_at <= 24.hours.ago
 
         PaymentProviders::StripeProvider::CreateRefund.new(
           refund: refund

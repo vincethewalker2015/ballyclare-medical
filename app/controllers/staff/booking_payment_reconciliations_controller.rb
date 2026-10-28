@@ -84,6 +84,20 @@ module Staff
         redirect_to practice_booking_payment_reconciliations_path,
           notice: "Stripe reference verified. No payment changes were made."
       end
+    rescue Payments::HandleSucceeded::AmountMismatch,
+           Payments::HandleSucceeded::CurrencyMismatch => error
+      AuditEvent.create!(
+        practice: current_practice,
+        user: current_user,
+        auditable: payment,
+        action: "stripe_payment.verification_rejected",
+        metadata: {
+          payment_intent_id: intent_id,
+          reason: error.class.name
+        }
+      )
+      redirect_to practice_booking_payment_reconciliations_path,
+        alert: "Stripe payment amount or currency does not match. No booking or payment changes were made."
     rescue Stripe::StripeError => error
       AuditEvent.create!(
         practice: current_practice,

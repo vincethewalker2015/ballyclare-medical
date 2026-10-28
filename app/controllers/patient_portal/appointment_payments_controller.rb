@@ -4,6 +4,11 @@ module PatientPortal
     before_action :set_hold, only: %i[create checkout]
 
     def create
+      if Payments::StripeOutageDeclaration.active?(practice: @hold.appointment_slot.practice)
+        return redirect_to patient_portal_appointment_hold_path(@hold),
+          alert: "Secure payment is temporarily unavailable. Please review your booking options."
+      end
+
       result = Payments::TakeHoldPayment.new(hold: @hold).call
       @payment = result.payment
       @client_secret = result.payment_intent.client_secret

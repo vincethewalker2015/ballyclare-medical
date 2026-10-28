@@ -236,4 +236,20 @@ RSpec.describe "Patient portal checkout during a declared Stripe outage", type: 
     end
   end
 
+  it "shows payment verification pending instead of offering another checkout after an ambiguous Stripe attempt" do
+    hold = slot.hold_for!(patient: patient)
+    create(:payment, appointment: nil, appointment_hold: hold, patient: patient,
+      status: "pending", amount_cents: 6_500)
+
+    sign_in account, scope: :patient_account
+    get patient_portal_appointment_hold_path(hold)
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Payment verification pending")
+    expect(response.body).not_to include("Continue to secure payment")
+    expect(response.body).not_to include("Book now — pay later")
+    expect(Appointment.count).to eq(0)
+    expect(Payment.count).to eq(1)
+  end
+
 end

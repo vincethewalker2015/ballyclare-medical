@@ -3,21 +3,25 @@ module Staff
     before_action :require_staff_administrator
 
     def index
-      @registration_requests = current_practice.patient_registration_requests
+      @request_search = params[:request_search].to_s.strip.first(100)
+      @page = [params[:page].to_i, 1].max
+      requests = current_practice.patient_registration_requests
         .joins(:patient_account)
         .where.not(patient_accounts: { confirmed_at: nil })
-        .includes(:patient_account)
-        .order(:created_at)
-
-      @approved_links = current_practice.patient_account_links
-        .where(status: "approved")
-        .includes(:patient_account, :patient)
-        .order(:created_at)
-
-      @links = current_practice.patient_account_links
-        .includes(:patient_account, :patient)
-        .where(status: "pending")
-        .order(:created_at)
+      if @request_search.present?
+        term = "%#{ActiveRecord::Base.sanitize_sql_like(@request_search)}%"
+        requests = requests.where(
+          "patient_registration_requests.first_name ILIKE :term OR " \
+          "patient_registration_requests.last_name ILIKE :term OR " \
+          "CONCAT_WS(' ', patient_registration_requests.first_name, patient_registration_requests.last_name) ILIKE :term OR " \
+          "patient_accounts.email ILIKE :term", term: term
+        )
+      end
+      @request_count = requests.count
+      @total_pages = [(@request_count / 5.0).ceil, 1].max
+      @page = [@page, @total_pages].min
+      @registration_requests = requests.includes(:patient_account)
+        .order(created_at: :desc, id: :desc).offset((@page - 1) * 5).limit(5)
     end
 
     def show

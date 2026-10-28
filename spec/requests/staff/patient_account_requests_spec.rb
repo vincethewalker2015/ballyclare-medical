@@ -385,6 +385,32 @@ RSpec.describe "Patient account requests", type: :request do
       .to eq(existing_patient)
   end
 
+  it "distinguishes completed registration from revoked portal access on both pages" do
+    membership.update!(access_level: "senior_staff_admin")
+    account = create(:patient_account, confirmed_at: Time.current)
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account, review_status: "completed"
+    )
+    patient = create(:patient, practice: practice)
+    PatientAccountLink.create!(
+      practice: practice, patient: patient, patient_account: account,
+      status: "revoked", verified_by: membership,
+      verification_method: "in_person", verified_at: 2.days.ago,
+      approved_at: 2.days.ago
+    )
+    sign_in admin
+
+    get practice_patient_account_requests_path
+    expect(response.body).to include("Registration status")
+    expect(response.body).to include("Portal access")
+    expect(response.body).to include("Revoked")
+
+    get practice_patient_account_request_path(request_record)
+    expect(response.body).to include("Registration status")
+    expect(response.body).to include("Portal access status")
+    expect(response.body).to include("Revoked")
+  end
+
   describe "scalable registration review" do
     it "shows only five confirmed requests per page and supports searching by applicant name" do
       6.times do |i|

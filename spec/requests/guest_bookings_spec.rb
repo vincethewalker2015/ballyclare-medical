@@ -81,6 +81,7 @@ RSpec.describe "Guest booking entry", type: :request do
     expect(response.parsed_body.css("ul li").map { |item| item.text.squish }).not_to include(practice.name)
   end
   it "reuses the existing Stripe PaymentIntent when guest checkout is submitted again" do
+    allow(ENV).to receive(:fetch).with("STRIPE_PUBLISHABLE_KEY").and_return("pk_test_guest_checkout")
     practice = create(:practice)
     clinician = create(:staff_member, practice: practice, staff_type: "doctor")
     create(:consultation_fee, practice: practice, clinician_type: "doctor")

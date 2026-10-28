@@ -92,4 +92,30 @@ RSpec.describe "Staff unresolved booking payment review", type: :request do
     expect(response).to have_http_status(:forbidden)
   end
 
+  it "refuses to reconcile a Stripe intent belonging to another payment" do
+    patient = create(:patient, practice: practice)
+    payment = create(:payment, appointment: nil, patient: patient,
+      status: "pending", provider_payment_id: nil)
+    payment.update_columns(updated_at: 20.minutes.ago)
+
+    stripe_intent = instance_double(Stripe::PaymentIntent,
+      id: "pi_unrelated", status: "succeeded",
+      metadata: { "payment_id" => "some-other-payment" },
+      amount_received: payment.amount_cents,
+      currency: payment.currency.downcase)
+    allow(Stripe::PaymentIntent).to receive(:retrieve)
+      .with("pi_unrelated").and_return(stripe_intent)
+
+    sign_in user
+
+    expect {
+      post verify_practice_booking_payment_reconciliation_path(payment),
+        params: { payment_intent_id: "pi_unrelated" }
+    }.not_to change(Appointment, :count)
+
+    expect(response).to redirect_to(practice_booking_payment_reconciliations_path)
+    expect(payment.reload.status).to eq("pending")
+    expect(payment.provider_payment_id).to be_nil
+  end
+
 end

@@ -92,4 +92,35 @@ RSpec.describe "Patient portal checkout during a declared Stripe outage", type: 
     expect(AppointmentHold.exists?(hold.id)).to be(true)
   end
 
+  Payment::STATUSES.each do |payment_status|
+    it "blocks emergency unpaid booking when an existing Stripe payment is #{payment_status}" do
+      hold = slot.hold_for!(patient: patient)
+      senior = create(:staff_member, practice: patient.practice,
+        staff_type: "administrator", access_level: "senior_staff_admin")
+      Payments::StripeOutageDeclaration.activate!(
+        practice: patient.practice, actor: senior, reason: "Stripe outage independently confirmed"
+      )
+      payment = Payment.create!(
+        appointment_hold: hold, patient: patient, provider: "stripe",
+        currency: patient.practice.currency, amount_cents: 6_500,
+        idempotency_key: SecureRandom.uuid, status: payment_status
+      )
+
+      sign_in account, scope: :patient_account
+      expect(Stripe::PaymentIntent).not_to receive(:create)
+
+      expect {
+        post "/patient-portal/appointment-holds/#{hold.id}/emergency-unpaid"
+      }.not_to change(Appointment, :count)
+      expect(response).to redirect_to(patient_portal_appointment_hold_path(hold))
+      expect(AppointmentCharge.count).to eq(0)
+      expect(Payment.count).to eq(1)
+      expect(payment.reload.status).to eq(payment_status)
+      expect(AppointmentHold.exists?(hold.id)).to be(true)
+
+      get patient_portal_appointment_hold_path(hold)
+      expect(response.body).not_to include("Book now — pay later")
+    end
+  end
+
 end

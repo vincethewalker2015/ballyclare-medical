@@ -1,16 +1,16 @@
 module Payments
   class EmergencyUnpaidBookingPolicy
-    def initialize(outage_confirmed:, payment:)
-      @outage_confirmed = outage_confirmed
+    def initialize(practice:, payment:)
+      @practice = practice
       @payment = payment
     end
 
     def allowed?
-      outage_confirmed == true && payment.nil?
+      payment.nil? && Payments::StripeOutageDeclaration.active?(practice: practice)
     end
 
     private
 
-    attr_reader :outage_confirmed, :payment
+    attr_reader :practice, :payment
   end
 end

@@ -3,7 +3,7 @@
   <header class="flex flex-wrap items-start justify-between gap-6">
     <div>
       <p class="text-xs font-semibold uppercase tracking-[0.2em] text-medical-teal">Patient portal</p>
-      <h1 class="mt-3 text-4xl font-semibold tracking-tight text-medical-navy sm:text-5xl">Welcome back</h1>
+      <h1 class="mt-3 text-4xl font-semibold tracking-tight text-medical-navy sm:text-5xl">Welcome back<%= ", #{@dashboard.patient.first_name}" if @dashboard.patient %></h1>
       <p class="mt-3 text-medical-muted">Your appointments and balances in one place.</p>
     </div>
     <%= button_to destroy_patient_account_session_path, method: :delete,

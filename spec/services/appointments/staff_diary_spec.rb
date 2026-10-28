@@ -15,7 +15,12 @@ RSpec.describe Appointments::StaffDiary do
       charge_type: "appointment", amount_cents: 6_500
     ).call
 
-    cancelled_slot = create(:appointment_slot, practice: practice, clinician: clinician)
+    cancelled_start = 2.days.from_now.change(hour: 10, min: 0)
+    cancelled_block = create(:availability_block, practice: practice, clinician: clinician,
+      starts_at: cancelled_start - 1.hour, ends_at: cancelled_start + 1.hour)
+    cancelled_slot = create(:appointment_slot, practice: practice, clinician: clinician,
+      availability_block: cancelled_block, starts_at: cancelled_start,
+      ends_at: cancelled_start + 20.minutes)
     cancelled = create(:appointment, practice: practice, clinician: clinician,
       patient: patient, appointment_slot: cancelled_slot, status: "cancelled")
     Billing::CreateCharge.new(

@@ -42,6 +42,12 @@ class GuestBookingsController < ApplicationController
       return redirect_to guest_booking_review_path, alert: "Secure payment is temporarily unavailable. Please review your booking options."
     end
 
+    existing_payment = guest.payment || guest.appointment_hold&.payments&.order(:created_at)&.first
+    if existing_payment&.status.in?(%w[pending processing])
+      return redirect_to guest_booking_review_path,
+        alert: "Payment verification pending. Please wait for your previous payment attempt to be reconciled."
+    end
+
     hold = guest.appointment_hold || GuestBookings::ReserveSlot.new(guest_booking: guest).call
     result = Payments::TakeHoldPayment.new(hold: hold).call
     @payment = result.payment

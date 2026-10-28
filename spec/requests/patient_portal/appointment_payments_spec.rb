@@ -111,15 +111,23 @@ RSpec.describe "Patient portal hold payments", type: :request do
       intent
     end
 
-    post patient_portal_appointment_hold_payment_path(hold)
+    expect {
+      post patient_portal_appointment_hold_payment_path(hold)
+    }.not_to change(Appointment, :count)
     expect(response).to redirect_to(patient_portal_appointment_hold_path(hold))
     payment = Payment.last
     expect(payment.status).to eq("pending")
+    expect(payment.appointment_id).to be_nil
+    expect(AppointmentHold.exists?(hold.id)).to be(true)
 
-    post patient_portal_appointment_hold_payment_path(hold)
+    expect {
+      post patient_portal_appointment_hold_payment_path(hold)
+    }.not_to change(Appointment, :count)
     expect(response).to have_http_status(:ok)
     expect(Payment.count).to eq(1)
     expect(payment.reload.provider_payment_id).to eq("pi_patient_retry")
+    expect(payment.status).to eq("processing")
+    expect(payment.appointment_id).to be_nil
   end
 
   it "refuses to charge an expired hold" do

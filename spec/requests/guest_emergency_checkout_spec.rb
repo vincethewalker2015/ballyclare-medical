@@ -145,4 +145,44 @@ RSpec.describe "Guest checkout during a declared Stripe outage", type: :request 
     expect(guest.reload.status).to eq("payment_pending")
   end
 
+  %w[processing succeeded failed cancelled requires_refund].each do |payment_status|
+    it "rejects emergency unpaid booking when an existing Stripe payment is #{payment_status}" do
+      create(:consultation_fee, practice: practice, clinician_type: "doctor")
+      starts_at = 3.days.from_now.change(hour: 10, min: 0)
+      block = create(:availability_block, practice: practice, clinician: clinician,
+        starts_at: starts_at - 1.hour, ends_at: starts_at + 1.hour, bookable_online: true)
+      slot = create(:appointment_slot, practice: practice, clinician: clinician,
+        availability_block: block, starts_at: starts_at, ends_at: starts_at + 20.minutes)
+
+      post guest_booking_details_path, params: { guest_booking: {
+        appointment_slot_id: slot.id, first_name: "Guest", last_name: "Visitor",
+        date_of_birth: "1990-01-01", email: "visitor@example.com",
+        phone: "07700900123", consultation_reason: "Consultation"
+      } }
+      guest = GuestBooking.order(:id).last
+      hold = GuestBookings::ReserveSlot.new(guest_booking: guest).call
+      payment = Payment.create!(
+        appointment_hold: hold, guest_booking: guest, provider: "stripe",
+        currency: "GBP", amount_cents: 6_500, status: payment_status,
+        idempotency_key: SecureRandom.uuid
+      )
+
+      Payments::StripeOutageDeclaration.activate!(
+        practice: practice, actor: administrator, reason: "Stripe outage confirmed"
+      )
+
+      get guest_booking_review_path
+      expect(response.body).not_to include("Book now — pay later")
+
+      expect(Stripe::PaymentIntent).not_to receive(:create)
+      expect {
+        post guest_booking_emergency_unpaid_path
+      }.not_to change(Appointment, :count)
+
+      expect(response).to redirect_to(guest_booking_review_path)
+      expect(Payment.where(guest_booking: guest).pluck(:id)).to eq([payment.id])
+      expect(payment.reload.status).to eq(payment_status)
+    end
+  end
+
 end

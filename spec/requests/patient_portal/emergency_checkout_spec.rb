@@ -71,4 +71,25 @@ RSpec.describe "Patient portal checkout during a declared Stripe outage", type: 
     expect(response.body).to include("payment remains outstanding")
   end
 
+  it "rejects emergency booking if the approved patient link was revoked after reserving" do
+    hold = slot.hold_for!(patient: patient)
+    senior = create(:staff_member, practice: patient.practice,
+      staff_type: "administrator", access_level: "senior_staff_admin")
+    Payments::StripeOutageDeclaration.activate!(
+      practice: patient.practice, actor: senior, reason: "Stripe outage independently confirmed"
+    )
+
+    account.patient_account_links.first.update!(status: "revoked")
+    sign_in account, scope: :patient_account
+    expect(Stripe::PaymentIntent).not_to receive(:create)
+
+    expect {
+      post "/patient-portal/appointment-holds/#{hold.id}/emergency-unpaid"
+    }.not_to change(Appointment, :count)
+    expect(response).to have_http_status(:forbidden)
+    expect(AppointmentCharge.count).to eq(0)
+    expect(Payment.count).to eq(0)
+    expect(AppointmentHold.exists?(hold.id)).to be(true)
+  end
+
 end

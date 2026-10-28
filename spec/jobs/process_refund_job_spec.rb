@@ -2,6 +2,50 @@ require "rails_helper"
 
 RSpec.describe ProcessRefundJob, type: :job do
   describe "#perform" do
+
+    it "reuses the original Stripe idempotency key after an ambiguous refund timeout" do
+      payment = create(:payment, status: "succeeded",
+        provider_payment_id: "pi_ambiguous_refund_timeout",
+        amount_cents: 5000, currency: "GBP", paid_at: Time.current)
+      refund = create(:refund, payment: payment, status: "pending",
+        amount_cents: 2000, currency: "GBP", provider_refund_id: nil)
+      original_key = refund.idempotency_key
+      requests = []
+
+      allow(Stripe::Refund).to receive(:create) do |params, options|
+        requests << [params, options]
+        if requests.length == 1
+          raise Stripe::APIConnectionError.new("Response lost after request")
+        end
+
+        Stripe::Refund.construct_from(
+          id: "re_accepted_before_timeout", object: "refund",
+          amount: 2000, currency: "gbp", status: "pending"
+        )
+      end
+
+      expect {
+        described_class.new.perform(refund.id)
+      }.to raise_error(Stripe::APIConnectionError)
+
+      expect(refund.reload.status).to eq("pending")
+      expect(refund.provider_refund_id).to be_nil
+      expect(refund.idempotency_key).to eq(original_key)
+
+      described_class.new.perform(refund.id)
+
+      expect(requests.length).to eq(2)
+      expect(requests.map { |params, _| params[:payment_intent] })
+        .to eq([payment.provider_payment_id, payment.provider_payment_id])
+      expect(requests.map { |params, _| params[:amount] }).to eq([2000, 2000])
+      expect(requests.map { |_, options| options[:idempotency_key] })
+        .to eq([original_key, original_key])
+      expect(refund.reload.status).to eq("processing")
+      expect(refund.provider_refund_id).to eq("re_accepted_before_timeout")
+      expect(refund.idempotency_key).to eq(original_key)
+      expect(Refund.where(payment_id: payment.id).count).to eq(1)
+    end
+
     it "does not submit an already processing refund to Stripe" do
       payment = create(
         :payment,

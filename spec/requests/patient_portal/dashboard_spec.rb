@@ -27,6 +27,30 @@ RSpec.describe "Patient portal dashboard", type: :request do
     expect(response.body).not_to include("Outstanding balances")
   end
 
+  it "greets the approved clinical patient by first name" do
+    patient = create(:patient, first_name: "Vincent", last_name: "Walker")
+    approved_link(account: account, patient: patient)
+
+    sign_in account, scope: :patient_account
+    get patient_portal_path
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Welcome back, Vincent")
+  end
+
+  it "does not reveal a revoked patient's name in the greeting" do
+    patient = create(:patient, first_name: "Vincent", last_name: "Walker")
+    link = approved_link(account: account, patient: patient)
+    link.update!(status: "revoked")
+
+    sign_in account, scope: :patient_account
+    get patient_portal_path
+
+    expect(response.body).to include("Welcome back")
+    expect(response.body).not_to include("Welcome back, Vincent")
+    expect(response.body).to include("Patient portal access unavailable")
+  end
+
   it "shows only the approved patient's upcoming appointments" do
     patient = create(:patient)
     other_patient = create(:patient, practice: patient.practice)

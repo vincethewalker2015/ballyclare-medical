@@ -208,9 +208,8 @@ RSpec.describe "Guest checkout during a declared Stripe outage", type: :request 
     expect(response).to redirect_to(guest_booking_emergency_confirmation_path)
 
     counts = [Patient.count, Appointment.count, AppointmentCharge.count, Payment.count]
-    expect {
-      post guest_booking_emergency_unpaid_path
-    }.to raise_error(ActiveRecord::RecordNotFound)
+    post guest_booking_emergency_unpaid_path
+    expect(response).to have_http_status(:not_found)
 
     expect([Patient.count, Appointment.count, AppointmentCharge.count, Payment.count]).to eq(counts)
   end

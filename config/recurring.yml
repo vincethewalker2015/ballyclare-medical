@@ -21,6 +21,10 @@ production:
     class: RecoverGuestRefundsJob
     schedule: every 5 minutes
 
+  recover_patient_refunds:
+    class: RecoverPatientRefundsJob
+    schedule: every 5 minutes
+
   recover_pending_refunds:
     class: RecoverPendingRefundsJob
     schedule: every 5 minutes

@@ -30,7 +30,7 @@
           fetchpriority="high">
         <div aria-hidden="true" class="absolute inset-0 bg-gradient-to-r from-white via-white/95 to-white/25 lg:via-white/85 lg:to-transparent"></div>
         <div class="relative w-full px-7 py-20 sm:px-12 lg:px-16">
-          <div class="max-w-[680px]">
+          <div class="max-w-[1000px]">
             <p class="mb-5 text-xs font-bold uppercase tracking-[0.25em] text-medical-teal-dark">Welcome to Ballyclare Medical</p>
             <h1 id="hero-heading" class="font-sans font-semibold text-5xl leading-[1.08] tracking-tight text-medical-navy sm:text-6xl lg:text-7xl">
               Care for every <span class="text-medical-teal-dark">stage of life</span>
@@ -38,12 +38,13 @@
             <p class="mt-7 max-w-xl text-lg leading-relaxed text-medical-muted sm:text-xl">
               Thoughtful, personalised healthcare with a focus on listening, understanding and helping you feel at ease.
             </p>
-            <div class="mt-9 flex flex-wrap gap-3">
-              <%= link_to guest_booking_path, class: "inline-flex items-center justify-center rounded-full bg-medical-navy px-7 py-4 text-sm font-semibold text-white shadow-sm transition hover:bg-medical-navy-deep" do %>
-                Book an appointment <span aria-hidden="true" class="ml-3">→</span>
+            <div class="mt-9 flex flex-wrap items-center gap-2 lg:flex-nowrap">
+              <%= link_to new_patient_account_registration_path, class: "inline-flex items-center justify-center rounded-full bg-medical-navy px-5 py-3 text-sm font-semibold whitespace-nowrap text-white shadow-sm transition hover:bg-medical-navy-deep" do %>
+                Join a practice <span aria-hidden="true" class="ml-3">→</span>
               <% end %>
-              <%= link_to "Explore our services", "#services", class: "inline-flex items-center justify-center rounded-full border border-medical-border bg-white px-7 py-4 text-sm font-semibold text-medical-navy transition hover:bg-medical-teal-soft" %>
-              <%= link_to "Existing patient? Sign in", new_patient_account_session_path, class: "inline-flex items-center justify-center rounded-full border border-medical-border bg-white px-7 py-4 text-sm font-semibold text-medical-navy transition hover:bg-medical-teal-soft" %>
+              <%= link_to "Book as a guest", guest_booking_path, class: "inline-flex items-center justify-center rounded-full border border-medical-border bg-white px-5 py-3 text-sm font-semibold whitespace-nowrap text-medical-navy transition hover:bg-medical-teal-soft" %>
+              <%= link_to "Explore our services", "#services", class: "inline-flex items-center justify-center rounded-full border border-medical-border bg-white px-5 py-3 text-sm font-semibold whitespace-nowrap text-medical-navy transition hover:bg-medical-teal-soft" %>
+              <%= link_to "Existing patient? Sign in", new_patient_account_session_path, class: "inline-flex items-center justify-center rounded-full border border-medical-border bg-white px-5 py-3 text-sm font-semibold whitespace-nowrap text-medical-navy transition hover:bg-medical-teal-soft" %>
             </div>
           </div>
         </div>
@@ -102,9 +103,9 @@
             <div>
               <p class="text-xs font-bold uppercase tracking-[0.2em] text-[#a5d9d3]">Appointments</p>
               <h2 id="appointments-heading" class="mt-3 font-sans font-semibold text-3xl sm:text-4xl">How appointments work</h2>
-              <p class="mt-4 max-w-2xl leading-7 text-white/80">Online patient booking isn't available through this website yet. Appointment arrangements and contact details will be published here when confirmed.</p>
+              <p class="mt-4 max-w-2xl leading-7 text-white/80">To book as a registered patient, create an account, confirm your email and complete practice identity verification and approval. Guest booking is a separate option.</p>
             </div>
-            <%= link_to "Find an appointment", guest_booking_path, class: "inline-flex items-center justify-center rounded-full border border-white/40 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10" %>
+            <%= link_to "Book an appointment as a guest", guest_booking_path, class: "inline-flex items-center justify-center rounded-full border border-white/40 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10" %>
           </div>
         </div>
       </section>

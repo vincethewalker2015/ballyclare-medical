@@ -27,6 +27,7 @@ class Refund < ApplicationRecord
   private
 
   def broadcast_appointment_refresh
-    broadcast_refresh_later_to(payment.appointment)
+    appointment = payment.appointment
+    broadcast_refresh_later_to(appointment) if appointment
   end
 end

@@ -1,7 +1,7 @@
 module PatientPortal
   class AppointmentPaymentsController < BaseController
     before_action :set_link
-    before_action :set_hold, only: :create
+    before_action :set_hold, only: %i[create checkout]
 
     def create
       result = Payments::TakeHoldPayment.new(hold: @hold).call
@@ -16,6 +16,21 @@ module PatientPortal
       redirect_to patient_portal_appointment_hold_path(@hold), alert: "Consultation pricing is currently unavailable."
     rescue Stripe::StripeError
       redirect_to patient_portal_appointment_hold_path(@hold), alert: "Payment could not be started. Please contact the practice if you need assistance."
+    end
+
+    def checkout
+      if @hold.expired?
+        return redirect_to patient_portal_appointment_hold_path(@hold), alert: "Your reservation has expired."
+      end
+
+      @payment = @hold.payments.where(patient: @link.patient).order(:created_at).first
+      return redirect_to patient_portal_appointment_hold_path(@hold), alert: "Payment has not been started." unless @payment&.provider_payment_id.present?
+      return redirect_to patient_portal_payment_path(@payment) unless @payment.status.in?(%w[pending processing])
+
+      @client_secret = Stripe::PaymentIntent.retrieve(@payment.provider_payment_id).client_secret
+      render :confirm
+    rescue Stripe::StripeError
+      redirect_to patient_portal_appointment_hold_path(@hold), alert: "Payment service is temporarily unavailable."
     end
 
     def show

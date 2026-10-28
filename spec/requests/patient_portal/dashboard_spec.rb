@@ -27,6 +27,30 @@ RSpec.describe "Patient portal dashboard", type: :request do
     expect(response.body).not_to include("Outstanding balances")
   end
 
+  it "greets the approved clinical patient by first name" do
+    patient = create(:patient, first_name: "Vincent", last_name: "Walker")
+    approved_link(account: account, patient: patient)
+
+    sign_in account, scope: :patient_account
+    get patient_portal_path
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Welcome back Vincent")
+  end
+
+  it "does not reveal a revoked patient's name in the greeting" do
+    patient = create(:patient, first_name: "Vincent", last_name: "Walker")
+    link = approved_link(account: account, patient: patient)
+    link.update!(status: "revoked")
+
+    sign_in account, scope: :patient_account
+    get patient_portal_path
+
+    expect(response.body).to include("Welcome back")
+    expect(response.body).not_to include("Welcome back Vincent")
+    expect(response.body).to include("Patient portal access unavailable")
+  end
+
   it "shows only the approved patient's upcoming appointments" do
     patient = create(:patient)
     other_patient = create(:patient, practice: patient.practice)
@@ -56,9 +80,34 @@ RSpec.describe "Patient portal dashboard", type: :request do
 
     link.update!(status: "revoked")
     get patient_portal_path
-    expect(response.body).to include("Account verification pending")
+    expect(response.body).to include("Patient portal access unavailable")
+    expect(response.body).to include("contact your practice")
     expect(response.body).not_to include("£65.00")
     expect(response.body).not_to include("Upcoming appointments")
+  end
+
+  it "blocks appointment, hold and payment access immediately after link revocation" do
+    patient = create(:patient)
+    link = approved_link(account: account, patient: patient)
+    appointment = create(:appointment, patient: patient, practice: patient.practice)
+    hold = create(:appointment_hold, patient: patient, appointment_slot: appointment.appointment_slot,
+      expires_at: 10.minutes.from_now)
+    payment = create(:payment, appointment: appointment, patient: patient)
+
+    sign_in account, scope: :patient_account
+    get patient_portal_appointments_path
+    expect(response).to have_http_status(:ok)
+    get patient_portal_appointment_hold_path(hold)
+    expect(response).to have_http_status(:ok)
+
+    link.update!(status: "revoked")
+
+    get patient_portal_appointments_path
+    expect(response).to have_http_status(:forbidden)
+    get patient_portal_appointment_hold_path(hold)
+    expect(response).to have_http_status(:forbidden)
+    get patient_portal_payment_path(payment)
+    expect(response).to have_http_status(:forbidden)
   end
 
   it "excludes cancelled and completed appointments from upcoming visits" do

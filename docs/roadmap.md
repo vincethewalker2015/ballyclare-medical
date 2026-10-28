@@ -464,6 +464,41 @@ it is a separate anonymous workflow and does **not** complete Phase 5.
 Existing routes and controllers establish implementation progress, **not**
 proof that every workflow or acceptance criterion is complete.
 
+### Agreed Phase 5 completion sequence (October 2026)
+
+Complete and accept each work package before moving to the next. Existing
+implementation is not, by itself, evidence that acceptance is complete.
+
+1. **P0 — Core workflow acceptance:** Verify registration, email confirmation,
+   identity verification, senior approval and secure patient-record linking;
+   appointment holds, payment, Stripe webhook/reconciliation and booking
+   completion; privacy, practice isolation and failure/retry behaviour.
+2. **P1 — Appointment history:** Provide upcoming and historical appointments,
+   including completed and cancelled records, with patient-scoped access and
+   practice-local date/time presentation.
+3. **P1 — Payment history and receipts:** Display patient-scoped transactions,
+   statuses, refunds and receipts using authoritative financial records and
+   the practice's configured currency.
+4. **P1 — Later payment of outstanding balances:** Allow authenticated patients
+   to pay existing charges safely, reusing payment services, idempotency and
+   balance reconciliation rather than duplicating billing logic.
+5. **P2 — Cancellation and rescheduling:** Implement patient-initiated and
+   authorised staff-initiated changes after agreeing cancellation, fee,
+   refund and replacement-slot policies. **Neither patients nor staff may
+   reschedule an appointment occurring on the current calendar day in the
+   practice's configured timezone.** Validate replacement availability and
+   practice membership under authoritative concurrency controls; audit the
+   actor, original slot and replacement slot. Confirm any additional advance
+   cutoff before implementation.
+6. **P2 — Profile management:** Permit updates to explicitly approved patient
+   details with suitable identity protections, permissions and auditing.
+7. **P3 — Approved documents and communications:** Provide access only to
+   explicitly approved patient documents and appropriately scoped messages;
+   verify production email delivery before relying on notifications.
+8. **Final Phase 5 acceptance:** Complete request/system regression, security,
+   accessibility, cross-practice isolation, permissions and operational
+   checks. Sign off Phase 5 **before beginning Phase 6**.
+
 ### Patient registration and secure record linking
 
 - Patients can create a login, verify their email and complete a patient

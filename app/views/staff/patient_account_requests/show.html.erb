@@ -18,23 +18,57 @@
     <p class="mt-2 text-lg text-medical-navy"><%= @registration_request.patient_account.email %></p>
     <p class="mt-5 text-sm font-semibold text-medical-muted">Email confirmed</p>
     <p class="mt-2"><%= l(@registration_request.patient_account.confirmed_at, format: :long) %></p>
-    <p class="mt-5 text-sm font-semibold text-medical-muted">Status</p>
+    <p class="mt-5 text-sm font-semibold text-medical-muted">Registration status</p>
     <p class="mt-2"><%= @registration_request.review_status.humanize %></p>
     <% if @registration_request.review_status == "completed" %>
-      <% approved_link = @registration_request.patient_account.patient_account_links
-        .where(practice: @registration_request.practice, status: "approved")
-        .includes(:patient).first %>
-      <% if approved_link %>
+      <% if @account_link %>
         <div class="mt-5 rounded-xl border border-medical-border bg-medical-teal-soft p-4">
           <p class="font-semibold text-medical-navy">Clinical patient record created or connected</p>
-          <p class="mt-2 text-sm text-medical-ink">Patient number: <strong><%= approved_link.patient.patient_number %></strong></p>
-          <%= link_to "View clinical patient record", practice_patient_path(approved_link.patient),
+          <p class="mt-2 text-sm text-medical-ink">Patient number: <strong><%= @account_link.patient.patient_number %></strong></p>
+          <%= link_to "View clinical patient record", practice_patient_path(@account_link.patient),
             class: "mt-3 inline-block text-sm font-semibold text-medical-teal-dark underline" %>
         </div>
       <% end %>
     <% end %>
 
   </div>
+
+  <% if @account_link %>
+    <section class="mt-8 rounded-2xl border border-medical-border bg-white p-8">
+      <h2 class="text-xl font-semibold text-medical-navy">Patient portal access</h2>
+      <p class="mt-2 text-sm text-medical-muted">Portal access status: <strong><%= @account_link.status.humanize %></strong></p>
+      <p class="mt-2 text-sm text-medical-muted">Clinical record: <%= @account_link.patient.patient_number %></p>
+      <% if @current_staff_member.senior_administration_access? && @account_link.approved? %>
+        <%= button_to "Revoke patient portal access", revoke_practice_patient_account_request_path(@account_link),
+          method: :patch, form: { data: { turbo_confirm: "Revoke this patient's access to their clinical record through the portal?" } },
+          class: "mt-5 cursor-pointer rounded-full border border-red-300 px-5 py-3 text-sm font-semibold text-red-800" %>
+      <% elsif @current_staff_member.senior_administration_access? && @account_link.status == "revoked" %>
+        <p class="mt-4 text-sm text-medical-muted">Before reinstating access, independently verify the patient's identity and ownership of this account using an approved practice procedure.</p>
+        <%= form_with url: reinstate_practice_patient_account_request_path(@account_link), method: :patch, class: "mt-5 space-y-4" do |form| %>
+          <div>
+            <%= form.label :verification_method, "Fresh identity verification method", class: "block text-sm font-semibold text-medical-navy" %>
+            <%= form.select :verification_method, [["In person", "in_person"], ["Approved remote procedure", "approved_remote"]], { prompt: "Select method" }, { required: true, class: "mt-2 w-full rounded-xl border border-medical-border px-4 py-3" } %>
+          </div>
+          <div>
+            <%= form.label :reinstatement_reason, "Reason for reinstatement", class: "block text-sm font-semibold text-medical-navy" %>
+            <%= form.text_area :reinstatement_reason, required: true, minlength: 10, rows: 3, class: "mt-2 w-full rounded-xl border border-medical-border px-4 py-3" %>
+          </div>
+          <label class="flex items-start gap-3 text-sm text-medical-navy">
+            <%= form.check_box :identity_checked, required: true %>
+            <span>I have freshly verified the patient's identity and confirmed ownership of this patient account.</span>
+          </label>
+          <%= form.submit "Reinstate patient portal access", data: { turbo_confirm: "Reinstate access to the linked clinical record?" }, class: "cursor-pointer rounded-full bg-medical-navy px-6 py-3 font-semibold text-white" %>
+        <% end %>
+      <% else %>
+        <p class="mt-4 text-sm text-medical-muted">Only a Senior Staff Admin can change patient portal access.</p>
+      <% end %>
+    </section>
+  <% elsif @registration_request.review_status == "completed" %>
+    <section class="mt-8 rounded-2xl border border-medical-border bg-white p-8">
+      <h2 class="text-xl font-semibold text-medical-navy">Patient portal access</h2>
+      <p class="mt-2 text-sm text-medical-muted">Portal access status: <strong>Not linked</strong></p>
+    </section>
+  <% end %>
 
   <div class="mt-8 rounded-2xl border border-medical-border bg-white p-8">
     <h2 class="text-xl font-semibold text-medical-navy">Identity verification</h2>

@@ -111,6 +111,12 @@
                         class: "flex items-center rounded-xl px-4 py-3 text-sm font-semibold #{controller_name == 'consultation_fees' ? 'bg-medical-teal-soft text-medical-navy' : 'text-medical-muted hover:bg-medical-teal-soft hover:text-medical-navy'}" %>
           <% end %>
 
+          <% if @current_staff_member&.staff_administration_access? %>
+            <%= link_to "Refund review", practice_refunds_path,
+                        class: "flex items-center rounded-xl px-4 py-3 text-sm font-semibold #{controller_name == 'refunds' ? 'bg-medical-teal-soft text-medical-navy' : 'text-medical-muted hover:bg-medical-teal-soft hover:text-medical-navy'}",
+                        aria: { current: (controller_name == "refunds" ? "page" : nil) } %>
+          <% end %>
+
           <% placeholder_items = ["Administration"] %>
           <% placeholder_items << "Payments" if @current_staff_member&.operational_access? %>
           <% placeholder_items << "Clinical" if @current_staff_member&.clinical_access? %>

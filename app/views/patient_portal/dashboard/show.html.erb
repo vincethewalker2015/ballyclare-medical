@@ -3,7 +3,7 @@
   <header class="flex flex-wrap items-start justify-between gap-6">
     <div>
       <p class="text-xs font-semibold uppercase tracking-[0.2em] text-medical-teal">Patient portal</p>
-      <h1 class="mt-3 text-4xl font-semibold tracking-tight text-medical-navy sm:text-5xl">Welcome back</h1>
+      <h1 class="mt-3 text-4xl font-semibold tracking-tight text-medical-navy sm:text-5xl">Welcome back<%= " #{@dashboard.patient.first_name}" if @dashboard.patient %></h1>
       <p class="mt-3 text-medical-muted">Your appointments and balances in one place.</p>
     </div>
     <%= button_to destroy_patient_account_session_path, method: :delete,
@@ -14,8 +14,13 @@
 
   <% unless @dashboard.patient %>
     <section class="mt-10 rounded-2xl border border-medical-border bg-white p-8 shadow-sm">
-      <h2 class="text-xl font-semibold text-medical-navy">Account verification pending</h2>
-      <p class="mt-3 max-w-2xl text-medical-muted">Your account must be securely linked to a patient record before appointments or balances can be displayed. Please contact your practice to complete a quick security check and verify your identity.</p>
+      <% if @revoked_access %>
+        <h2 class="text-xl font-semibold text-medical-navy">Patient portal access unavailable</h2>
+        <p class="mt-3 max-w-2xl text-medical-muted">Access to your patient record through the online portal has been disabled. Your patient account remains active, but appointments and account information cannot currently be displayed. Please contact your practice if you believe this is incorrect or would like to request access again.</p>
+      <% else %>
+        <h2 class="text-xl font-semibold text-medical-navy">Account verification pending</h2>
+        <p class="mt-3 max-w-2xl text-medical-muted">Your account must be securely linked to a patient record before appointments or balances can be displayed. Please contact your practice to complete a quick security check and verify your identity.</p>
+      <% end %>
     </section>
   <% else %>
     <nav aria-label="Patient portal actions" class="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

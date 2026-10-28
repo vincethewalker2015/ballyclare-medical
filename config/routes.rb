@@ -23,6 +23,7 @@ Rails.application.routes.draw do
   get "/patient-portal", to: "patient_portal/dashboard#show", as: :patient_portal
   get "/patient-portal/appointments", to: "patient_portal/appointments#index", as: :patient_portal_appointments
   get "/patient-portal/payments/:id", to: "patient_portal/appointment_payments#show", as: :patient_portal_payment
+  get "/patient-portal/appointment-holds/:appointment_hold_id/payment", to: "patient_portal/appointment_payments#checkout"
   post "/patient-portal/appointment-holds/:appointment_hold_id/payment", to: "patient_portal/appointment_payments#create", as: :patient_portal_appointment_hold_payment
   resources :patient_portal_appointment_holds, path: "/patient-portal/appointment-holds", module: :patient_portal, controller: :appointment_holds, only: %i[create show]
 
@@ -40,11 +41,14 @@ Rails.application.routes.draw do
 
   scope "/practice", module: "staff", as: "practice" do
   resource :consultation_fees, only: %i[edit update], controller: "consultation_fees"
+  resources :refunds, only: %i[index]
   resources :patients, only: %i[index show new create edit update]
   resources :patient_account_requests, only: %i[index show] do
     member do
       post :verify
       post :approve
+      patch :revoke
+      patch :reinstate
     end
   end
   resources :staff_members, only: %i[index new create edit update] do

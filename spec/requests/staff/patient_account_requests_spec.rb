@@ -217,6 +217,407 @@ RSpec.describe "Patient account requests", type: :request do
     expect(response.body).to include(practice_patient_path(PatientAccountLink.last.patient))
   end
 
+  it "does not complete an approved registration if email confirmation is missing" do
+    membership.update!(access_level: "senior_staff_admin")
+    account = create(:patient_account)
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice,
+      patient_account: account,
+      review_status: "approved",
+      patient_route: "new_patient",
+      first_name: "Unconfirmed",
+      last_name: "Applicant",
+      date_of_birth: Date.new(1980, 1, 1),
+      reviewed_by: membership,
+      approved_by: membership,
+      approved_at: Time.current,
+      identity_verified_at: Time.current,
+      verification_method: "in_person"
+    )
+
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.not_to change(Patient, :count)
+
+    expect(PatientAccountLink.where(patient_account: account)).to be_empty
+    expect(request_record.reload.review_status).to eq("approved")
+  end
+
+  it "links a verified existing patient only after senior approval without creating a duplicate patient" do
+    membership.update!(access_level: "senior_staff_admin")
+    account = create(:patient_account)
+    account.confirm
+    existing_patient = create(:patient, practice: practice)
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account
+    )
+    sign_in admin
+
+    post verify_practice_patient_account_request_path(request_record),
+      params: {
+        patient_route: "existing_patient",
+        patient_id: existing_patient.id,
+        verification_method: "in_person",
+        identity_checked: "1"
+      }
+
+    expect(request_record.reload.review_status).to eq("verified")
+    expect(request_record.selected_patient).to eq(existing_patient)
+    expect(PatientAccountLink.where(patient_account: account)).to be_empty
+
+    post approve_practice_patient_account_request_path(request_record)
+    expect(request_record.reload.review_status).to eq("approved")
+
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.not_to change(Patient, :count)
+
+    link = PatientAccountLink.find_by!(patient_account: account)
+    expect(link.patient).to eq(existing_patient)
+    expect(link.practice).to eq(practice)
+    expect(link.status).to eq("approved")
+    expect(PatientAccountLink.where(patient_account: account).count).to eq(1)
+    expect(request_record.reload.review_status).to eq("completed")
+  end
+
+  it "does not grant a second account access to an already linked patient" do
+    membership.update!(access_level: "senior_staff_admin")
+    existing_patient = create(:patient, practice: practice)
+    original_account = create(:patient_account)
+    original_account.confirm
+    original_link = PatientAccountLink.create!(
+      practice: practice,
+      patient: existing_patient,
+      patient_account: original_account,
+      status: "approved",
+      verified_by: membership,
+      verification_method: "in_person",
+      verified_at: Time.current,
+      approved_at: Time.current
+    )
+    second_account = create(:patient_account)
+    second_account.confirm
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice,
+      patient_account: second_account,
+      review_status: "approved",
+      patient_route: "existing_patient",
+      selected_patient: existing_patient,
+      reviewed_by: membership,
+      approved_by: membership,
+      approved_at: Time.current,
+      identity_verified_at: Time.current,
+      verification_method: "in_person"
+    )
+
+    expect {
+      begin
+        CompletePatientRegistrationJob.perform_now(request_record.id)
+      rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique
+        # A rejected duplicate must not leave a partially completed registration.
+      end
+    }.not_to change(PatientAccountLink, :count)
+
+    expect(original_link.reload).to have_attributes(
+      patient: existing_patient,
+      patient_account: original_account,
+      status: "approved"
+    )
+    expect(PatientAccountLink.where(patient_account: second_account)).to be_empty
+    expect(request_record.reload.review_status).not_to eq("completed")
+  end
+
+  it "handles a database uniqueness conflict after link prechecks" do
+    membership.update!(access_level: "senior_staff_admin")
+    account = create(:patient_account)
+    account.confirm
+    patient = create(:patient, practice: practice)
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account,
+      review_status: "approved", patient_route: "existing_patient",
+      selected_patient: patient, reviewed_by: membership,
+      approved_by: membership, approved_at: Time.current,
+      identity_verified_at: Time.current, verification_method: "in_person"
+    )
+
+    allow(PatientAccountLink).to receive(:create!)
+      .and_raise(ActiveRecord::RecordNotUnique)
+
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.not_to change(PatientAccountLink, :count)
+
+    expect(request_record.reload.review_status).to eq("failed")
+    expect(request_record.processed_at).to be_present
+    expect(PatientAccountLink.where(patient_account: account)).to be_empty
+  end
+
+  it "records a failed registration when the selected patient is already linked" do
+    membership.update!(access_level: "senior_staff_admin")
+    existing_patient = create(:patient, practice: practice)
+    original_account = create(:patient_account)
+    original_account.confirm
+    PatientAccountLink.create!(
+      practice: practice, patient: existing_patient,
+      patient_account: original_account, status: "approved",
+      verified_by: membership, verification_method: "in_person",
+      verified_at: Time.current, approved_at: Time.current
+    )
+
+    second_account = create(:patient_account)
+    second_account.confirm
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: second_account,
+      review_status: "approved", patient_route: "existing_patient",
+      selected_patient: existing_patient, reviewed_by: membership,
+      approved_by: membership, approved_at: Time.current,
+      identity_verified_at: Time.current, verification_method: "in_person"
+    )
+
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.not_to change(PatientAccountLink, :count)
+
+    expect(request_record.reload.review_status).to eq("failed")
+    expect(PatientAccountLink.find_by(patient_account: second_account)).to be_nil
+    expect(PatientAccountLink.find_by!(patient_account: original_account).patient)
+      .to eq(existing_patient)
+  end
+
+  it "distinguishes completed registration from revoked portal access on both pages" do
+    membership.update!(access_level: "senior_staff_admin")
+    account = create(:patient_account, confirmed_at: Time.current)
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account, review_status: "completed"
+    )
+    patient = create(:patient, practice: practice)
+    PatientAccountLink.create!(
+      practice: practice, patient: patient, patient_account: account,
+      status: "revoked", verified_by: membership,
+      verification_method: "in_person", verified_at: 2.days.ago,
+      approved_at: 2.days.ago
+    )
+    sign_in admin
+
+    get practice_patient_account_requests_path
+    expect(response.body).to include("Registration status")
+    expect(response.body).to include("Portal access")
+    expect(response.body).to include("Revoked")
+
+    get practice_patient_account_request_path(request_record)
+    expect(response.body).to include("Registration status")
+    expect(response.body).to include("Portal access status")
+    expect(response.body).to include("Revoked")
+  end
+
+  describe "scalable registration review" do
+    it "shows only five confirmed requests per page and supports searching by applicant name" do
+      6.times do |i|
+        account = create(:patient_account, confirmed_at: Time.current)
+        PatientRegistrationRequest.create!(
+          practice: practice, patient_account: account,
+          first_name: "Applicant#{i}", last_name: "Searchable"
+        )
+      end
+      sign_in admin
+
+      get practice_patient_account_requests_path
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body.css("a[href^='/practice/patient_account_requests/']").length).to eq(5)
+      expect(response.body).to include("Next")
+
+      get practice_patient_account_requests_path, params: { request_search: "Applicant5" }
+      expect(response.body).to include("Applicant5")
+      expect(response.body).not_to include("Applicant0")
+    end
+
+    it "keeps approved-link actions on the individual registration review, not the queue" do
+      account = create(:patient_account, confirmed_at: Time.current)
+      request_record = PatientRegistrationRequest.create!(practice: practice,
+        patient_account: account, review_status: "completed")
+      patient = create(:patient, practice: practice)
+      link = PatientAccountLink.create!(
+        practice: practice, patient: patient, patient_account: account,
+        status: "approved", verified_by: membership,
+        verification_method: "in_person", verified_at: Time.current,
+        approved_at: Time.current
+      )
+      membership.update!(access_level: "senior_staff_admin")
+      sign_in admin
+
+      get practice_patient_account_requests_path
+      expect(response.body).not_to include("Approved patient account links")
+
+      get practice_patient_account_request_path(request_record)
+      expect(response.body).to include(revoke_practice_patient_account_request_path(link))
+    end
+  end
+
+  describe "secure reinstatement of revoked patient access" do
+    it "requires a senior administrator and fresh identity attestation, and audits reinstatement" do
+      membership.update!(access_level: "senior_staff_admin")
+      account = create(:patient_account, confirmed_at: Time.current)
+      patient = create(:patient, practice: practice)
+      link = PatientAccountLink.create!(
+        practice: practice, patient: patient, patient_account: account,
+        status: "revoked", verified_by: membership,
+        verification_method: "in_person", verified_at: 3.days.ago,
+        approved_at: 3.days.ago
+      )
+      sign_in admin
+
+      expect {
+        patch reinstate_practice_patient_account_request_path(link),
+          params: { identity_checked: "1", verification_method: "in_person",
+                    reinstatement_reason: "Identity rechecked with patient" }
+      }.to change(AuditEvent, :count).by(1)
+
+      expect(link.reload.status).to eq("approved")
+      expect(link.verified_at).to be_within(1.minute).of(Time.current)
+      expect(AuditEvent.order(:created_at).last.action).to eq("patient_account.link_reinstated")
+    end
+  end
+
+  describe "reinstatement security boundaries" do
+    let(:account) { create(:patient_account, confirmed_at: Time.current) }
+    let(:patient) { create(:patient, practice: practice) }
+    let!(:revoked_link) do
+      PatientAccountLink.create!(
+        practice: practice, patient: patient, patient_account: account,
+        status: "revoked", verified_by: membership,
+        verification_method: "in_person", verified_at: 2.days.ago,
+        approved_at: 2.days.ago
+      )
+    end
+    let(:reinstatement_params) do
+      { identity_checked: "1", verification_method: "in_person",
+        reinstatement_reason: "Identity rechecked with patient" }
+    end
+
+    it "forbids a regular staff administrator from reinstating access" do
+      sign_in admin
+      expect {
+        patch reinstate_practice_patient_account_request_path(revoked_link),
+          params: reinstatement_params
+      }.not_to change(AuditEvent, :count)
+
+      expect(response).to have_http_status(:forbidden)
+      expect(revoked_link.reload.status).to eq("revoked")
+    end
+
+    it "cannot reinstate a link from another practice" do
+      membership.update!(access_level: "senior_staff_admin")
+      foreign_practice = create(:practice)
+      foreign_staff = create(:staff_member, practice: foreign_practice,
+        staff_type: "administrator", access_level: "staff_admin")
+      foreign_link = PatientAccountLink.create!(
+        practice: foreign_practice,
+        patient: create(:patient, practice: foreign_practice),
+        patient_account: create(:patient_account, confirmed_at: Time.current),
+        status: "revoked", verified_by: foreign_staff,
+        verification_method: "in_person", verified_at: 2.days.ago,
+        approved_at: 2.days.ago
+      )
+      sign_in admin
+
+      expect {
+        patch reinstate_practice_patient_account_request_path(foreign_link),
+          params: reinstatement_params
+      }.not_to change(AuditEvent, :count)
+
+      expect(response).to have_http_status(:not_found)
+      expect(foreign_link.reload.status).to eq("revoked")
+    end
+
+    it "rejects reinstatement without fresh identity attestation" do
+      membership.update!(access_level: "senior_staff_admin")
+      sign_in admin
+
+      expect {
+        patch reinstate_practice_patient_account_request_path(revoked_link),
+          params: reinstatement_params.except(:identity_checked)
+      }.not_to change(AuditEvent, :count)
+
+      expect(revoked_link.reload.status).to eq("revoked")
+    end
+
+    it "does not audit or approve reinstatement a second time" do
+      membership.update!(access_level: "senior_staff_admin")
+      sign_in admin
+
+      patch reinstate_practice_patient_account_request_path(revoked_link),
+        params: reinstatement_params
+      expect(revoked_link.reload.status).to eq("approved")
+
+      expect {
+        patch reinstate_practice_patient_account_request_path(revoked_link),
+          params: reinstatement_params
+      }.not_to change(AuditEvent, :count)
+
+      expect(revoked_link.reload.status).to eq("approved")
+    end
+  end
+
+  describe "revoking an approved patient account link" do
+    let(:account) { create(:patient_account, confirmed_at: Time.current) }
+    let(:patient) { create(:patient, practice: practice) }
+    let!(:link) do
+      PatientAccountLink.create!(
+        practice: practice, patient: patient, patient_account: account,
+        status: "approved", verified_by: membership,
+        verification_method: "in_person", verified_at: Time.current,
+        approved_at: Time.current
+      )
+    end
+
+    it "allows a senior administrator to revoke an approved link and audits the action" do
+      membership.update!(access_level: "senior_staff_admin")
+      sign_in admin
+
+      expect {
+        patch revoke_practice_patient_account_request_path(link)
+      }.to change(AuditEvent, :count).by(1)
+
+      expect(link.reload.status).to eq("revoked")
+      expect(response).to redirect_to(practice_patient_account_requests_path)
+      expect(AuditEvent.order(:created_at).last.action).to eq("patient_account.link_revoked")
+    end
+
+    it "forbids a regular staff administrator from revoking a link" do
+      sign_in admin
+
+      expect {
+        patch revoke_practice_patient_account_request_path(link)
+      }.not_to change(AuditEvent, :count)
+
+      expect(response).to have_http_status(:forbidden)
+      expect(link.reload.status).to eq("approved")
+    end
+
+    it "does not allow revocation of a link belonging to another practice" do
+      membership.update!(access_level: "senior_staff_admin")
+      foreign_practice = create(:practice)
+      foreign_admin = create(:staff_member, practice: foreign_practice,
+        staff_type: "administrator", access_level: "staff_admin")
+      foreign_account = create(:patient_account, confirmed_at: Time.current)
+      foreign_link = PatientAccountLink.create!(
+        practice: foreign_practice, patient: create(:patient, practice: foreign_practice),
+        patient_account: foreign_account, status: "approved",
+        verified_by: foreign_admin, verification_method: "in_person",
+        verified_at: Time.current, approved_at: Time.current
+      )
+      sign_in admin
+
+      expect {
+        patch revoke_practice_patient_account_request_path(foreign_link)
+      }.not_to change(AuditEvent, :count)
+
+      expect(response).to have_http_status(:not_found)
+      expect(foreign_link.reload.status).to eq("approved")
+    end
+  end
+
   it "does not provide a route for creating an assignment" do
     sign_in admin
     expect {

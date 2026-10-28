@@ -6,9 +6,12 @@ module Payments
 
     def call
       return payment unless payment.provider == "stripe" &&
-        payment.status == "processing" &&
         payment.provider_payment_id.present? &&
-        payment.updated_at <= 5.seconds.ago
+        payment.updated_at <= 5.seconds.ago &&
+        (payment.status == "processing" ||
+          (payment.status == "succeeded" &&
+            payment.appointment_id.nil? &&
+            payment.appointment_hold_id.present?))
 
       intent = Stripe::PaymentIntent.retrieve(payment.provider_payment_id)
       case intent.status

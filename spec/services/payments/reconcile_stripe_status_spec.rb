@@ -17,6 +17,82 @@ RSpec.describe Payments::ReconcileStripeStatus do
     described_class.new(payment: payment).call
   end
 
+  it "recovers a succeeded hold payment that has not completed its appointment" do
+    slot = create(:appointment_slot)
+    patient = create(:patient, practice: slot.practice)
+    hold = slot.hold_for!(patient: patient)
+    pending_booking_payment = Payment.create!(
+      appointment_hold: hold,
+      patient: patient,
+      provider: "stripe",
+      provider_payment_id: "pi_unfinished_booking",
+      amount_cents: 5000,
+      currency: slot.practice.currency,
+      status: "succeeded",
+      paid_at: 1.minute.ago,
+      idempotency_key: SecureRandom.uuid
+    )
+    pending_booking_payment.update_columns(updated_at: 10.seconds.ago)
+    intent = instance_double(
+      Stripe::PaymentIntent,
+      id: "pi_unfinished_booking",
+      status: "succeeded",
+      amount_received: 5000,
+      currency: slot.practice.currency.downcase
+    )
+    allow(Stripe::PaymentIntent).to receive(:retrieve)
+      .with("pi_unfinished_booking").and_return(intent)
+
+    expect {
+      described_class.new(payment: pending_booking_payment).call
+    }.to change(Appointment, :count).by(1)
+
+    expect(pending_booking_payment.reload.appointment).to be_present
+    expect(pending_booking_payment.appointment.appointment_charges.active.count).to eq(1)
+  end
+
+  [ "processing", "succeeded" ].each do |initial_status|
+    it "requires a refund for a delayed Stripe success with an expired hold (#{initial_status})" do
+      slot = create(:appointment_slot)
+      patient = create(:patient, practice: slot.practice)
+      hold = slot.hold_for!(patient: patient)
+      hold.update!(expires_at: 1.minute.ago)
+      delayed_payment = Payment.create!(
+        appointment_hold: hold,
+        patient: patient,
+        provider: "stripe",
+        provider_payment_id: "pi_delayed_#{initial_status}",
+        amount_cents: 5000,
+        currency: slot.practice.currency,
+        status: initial_status,
+        paid_at: (1.minute.ago if initial_status == "succeeded"),
+        idempotency_key: SecureRandom.uuid
+      )
+      delayed_payment.update_columns(updated_at: 10.seconds.ago)
+      intent = instance_double(
+        Stripe::PaymentIntent,
+        id: delayed_payment.provider_payment_id,
+        status: "succeeded",
+        amount_received: 5000,
+        currency: slot.practice.currency.downcase
+      )
+      allow(Stripe::PaymentIntent).to receive(:retrieve)
+        .with(delayed_payment.provider_payment_id).and_return(intent)
+
+      expect {
+        described_class.new(payment: delayed_payment).call
+      }.not_to change(Appointment, :count)
+
+      expect(delayed_payment.reload.status).to eq("requires_refund")
+      expect(delayed_payment.appointment).to be_nil
+      expect(AppointmentHold.exists?(hold.id)).to be(true)
+
+      expect(Stripe::PaymentIntent).not_to receive(:retrieve)
+      described_class.new(payment: delayed_payment).call
+      expect(delayed_payment.reload.status).to eq("requires_refund")
+    end
+  end
+
   it "does not contact Stripe for payments that are not processing" do
     payment.update!(status: "succeeded")
     expect(Stripe::PaymentIntent).not_to receive(:retrieve)

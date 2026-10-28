@@ -285,4 +285,28 @@ RSpec.describe GuestBookings::CompleteEmergencyUnpaidBooking do
     expect(AppointmentHold.exists?(hold.id)).to be(true)
   end
 
+  it "rolls back patient and appointment creation when the outstanding charge cannot be created" do
+    create(:consultation_fee, practice: practice, clinician_type: "doctor")
+    Payments::StripeOutageDeclaration.activate!(
+      practice: practice, actor: administrator, reason: "Stripe outage independently confirmed"
+    )
+    hold = GuestBookings::ReserveSlot.new(guest_booking: guest).call
+
+    allow_any_instance_of(Billing::CreateCharge).to receive(:call)
+      .and_raise(ActiveRecord::RecordInvalid.new(AppointmentCharge.new))
+
+    expect {
+      expect { described_class.new(hold: hold).call }
+        .to raise_error(ActiveRecord::RecordInvalid)
+    }.not_to change {
+      [Appointment.count, Patient.count, AppointmentCharge.count]
+    }
+
+    expect(guest.reload.status).to eq("payment_pending")
+    expect(guest.patient).to be_nil
+    expect(guest.first_name).to eq("Guest")
+    expect(AppointmentHold.exists?(hold.id)).to be(true)
+    expect(Payment.where(guest_booking: guest).count).to eq(0)
+  end
+
 end

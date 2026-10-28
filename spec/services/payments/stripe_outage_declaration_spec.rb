@@ -144,4 +144,53 @@ RSpec.describe Payments::StripeOutageDeclaration do
     expect(AuditEvent.where(practice: practice, action: "stripe_outage.activated").count).to eq(1)
     expect(described_class.active?(practice: practice)).to be(true)
   end
+
+  it "keeps the final outage state consistent when activation races deactivation", :concurrency do
+    practice
+    administrator
+    described_class.activate!(practice: practice, actor: administrator,
+      reason: "Original outage confirmed")
+
+    ready = Queue.new
+    start = Queue.new
+    actions = [
+      -> { described_class.deactivate!(practice: practice, actor: administrator,
+        reason: "Service restored") },
+      -> {
+        begin
+          described_class.activate!(practice: practice, actor: administrator,
+            reason: "New outage confirmed")
+        rescue described_class::AlreadyActive
+          :already_active
+        end
+      }
+    ]
+
+    workers = actions.map do |action|
+      Thread.new do
+        ActiveRecord::Base.connection_pool.with_connection do
+          ready << true
+          start.pop
+          action.call
+        end
+      end
+    end
+
+    begin
+      2.times { ready.pop }
+      2.times { start << true }
+      workers.each(&:value)
+    ensure
+      workers.each { |worker| worker.kill if worker.alive? }
+      workers.each(&:join)
+    end
+
+    events = AuditEvent.where(practice: practice, auditable: practice,
+      action: Payments::StripeOutageDeclaration::ACTIONS).order(:created_at, :id).to_a
+
+    expect(events.count).to be_between(2, 3)
+    expect(events.count { |event| event.action == "stripe_outage.deactivated" }).to eq(1)
+    expect(described_class.active?(practice: practice))
+      .to eq(events.last.action == "stripe_outage.activated")
+  end
 end

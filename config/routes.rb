@@ -46,6 +46,7 @@ Rails.application.routes.draw do
     member do
       post :verify
       post :approve
+      patch :revoke
     end
   end
   resources :staff_members, only: %i[index new create edit update] do

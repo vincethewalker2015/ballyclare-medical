@@ -45,6 +45,17 @@ module Staff
         return
       end
 
+      AuditEvent.create!(
+        practice: current_practice,
+        user: current_user,
+        auditable: payment,
+        action: "stripe_payment.verification_matched",
+        metadata: {
+          payment_intent_id: intent.id,
+          stripe_status: intent.status
+        }
+      )
+
       redirect_to practice_booking_payment_reconciliations_path,
         notice: "Stripe reference verified. No payment changes were made."
     rescue Stripe::StripeError

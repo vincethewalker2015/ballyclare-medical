@@ -22,6 +22,9 @@ module Staff
       @page = [@page, @total_pages].min
       @registration_requests = requests.includes(:patient_account)
         .order(created_at: :desc, id: :desc).offset((@page - 1) * 5).limit(5)
+      @links_by_account_id = current_practice.patient_account_links
+        .where(patient_account_id: @registration_requests.map(&:patient_account_id))
+        .index_by(&:patient_account_id)
     end
 
     def show

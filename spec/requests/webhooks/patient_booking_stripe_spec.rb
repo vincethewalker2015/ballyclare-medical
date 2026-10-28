@@ -50,4 +50,24 @@ RSpec.describe "Patient booking Stripe webhook", type: :request do
     expect { deliver_event }.not_to change(Appointment, :count)
     expect(payment.reload.status).to eq("requires_refund")
   end
+  it "recovers a successful Stripe webhook when the PaymentIntent ID was never saved" do
+    payment.update!(provider_payment_id: nil, status: "pending")
+    recovered_intent = instance_double(Stripe::PaymentIntent,
+      id: "pi_patient_webhook",
+      amount_received: 6500,
+      currency: slot.practice.currency.downcase,
+      metadata: { "payment_id" => payment.id.to_s })
+    event = instance_double(Stripe::Event, type: "payment_intent.succeeded",
+      data: double(object: recovered_intent))
+    allow(Stripe::Webhook).to receive(:construct_event).and_return(event)
+
+    expect { deliver_event }.to change(Appointment, :count).by(1)
+      .and change(AppointmentCharge, :count).by(1)
+
+    expect(payment.reload.status).to eq("succeeded")
+    expect(payment.provider_payment_id).to eq("pi_patient_webhook")
+    expect { deliver_event }.not_to change(Appointment, :count)
+    expect(payment.reload.appointment.appointment_charges.count).to eq(1)
+  end
+
 end

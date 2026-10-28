@@ -1,6 +1,8 @@
 require "rails_helper"
+require "active_support/testing/time_helpers"
 
 RSpec.describe "Patient portal checkout during a declared Stripe outage", type: :request do
+  include ActiveSupport::Testing::TimeHelpers
   let(:account) { create(:patient_account, confirmed_at: Time.current) }
   let(:patient) { create(:patient) }
   let(:slot) do

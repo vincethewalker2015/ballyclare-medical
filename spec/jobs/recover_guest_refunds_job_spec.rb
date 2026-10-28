@@ -59,4 +59,34 @@ RSpec.describe RecoverGuestRefundsJob, type: :job do
 
     expect { described_class.perform_now }.not_to change(Refund, :count)
   end
+
+  it "creates only one refund when two recovery workers run concurrently", :concurrency do
+    payment
+    allow(ProcessRefundJob).to receive(:perform_later)
+
+    ready = Queue.new
+    start = Queue.new
+
+    workers = 2.times.map do
+      Thread.new do
+        ActiveRecord::Base.connection_pool.with_connection do
+          ready << true
+          start.pop
+          described_class.perform_now
+        end
+      end
+    end
+
+    begin
+      2.times { ready.pop }
+      2.times { start << true }
+      workers.each(&:value)
+    ensure
+      workers.each { |worker| worker.kill if worker.alive? }
+      workers.each(&:join)
+    end
+
+    expect(payment.refunds.count).to eq(1)
+    expect(payment.refunds.sole.amount_cents).to eq(4000)
+  end
 end

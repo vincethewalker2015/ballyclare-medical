@@ -111,6 +111,12 @@
                         class: "flex items-center rounded-xl px-4 py-3 text-sm font-semibold #{controller_name == 'consultation_fees' ? 'bg-medical-teal-soft text-medical-navy' : 'text-medical-muted hover:bg-medical-teal-soft hover:text-medical-navy'}" %>
           <% end %>
 
+          <% if @current_staff_member&.senior_administration_access? %>
+            <%= link_to "Stripe outage", practice_stripe_outage_path,
+                        class: "flex items-center rounded-xl px-4 py-3 text-sm font-semibold #{controller_name == 'stripe_outages' ? 'bg-medical-teal-soft text-medical-navy' : 'text-medical-muted hover:bg-medical-teal-soft hover:text-medical-navy'}",
+                        aria: { current: (controller_name == "stripe_outages" ? "page" : nil) } %>
+          <% end %>
+
           <% if @current_staff_member&.staff_administration_access? %>
             <%= link_to "Refund review", practice_refunds_path,
                         class: "flex items-center rounded-xl px-4 py-3 text-sm font-semibold #{controller_name == 'refunds' ? 'bg-medical-teal-soft text-medical-navy' : 'text-medical-muted hover:bg-medical-teal-soft hover:text-medical-navy'}",

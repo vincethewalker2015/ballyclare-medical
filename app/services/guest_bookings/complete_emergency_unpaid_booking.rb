@@ -61,6 +61,7 @@ module GuestBookings
           ).call
 
           guest.update!(patient: patient, status: "completed")
+          guest.update!(GuestBookings::ClearCompletedDetails::SENSITIVE_ATTRIBUTES.index_with { nil })
           hold.destroy!
           appointment
         end

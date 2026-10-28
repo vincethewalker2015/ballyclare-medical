@@ -160,4 +160,24 @@ RSpec.describe "Patient portal dashboard", type: :request do
     expect(response.body).not_to include("£98.76")
     expect(response.body).not_to include(other_appointment.appointment_slot.starts_at.in_time_zone(other_patient.practice.timezone).strftime("%-d %B %Y"))
   end
+  it "labels booked appointments with an outstanding balance as Booked — Unpaid without labelling fully paid bookings unpaid" do
+    patient = create(:patient)
+    approved_link(account: account, patient: patient)
+    unpaid = create(:appointment, patient: patient, practice: patient.practice, status: "booked")
+    paid = create(:appointment, patient: patient, practice: patient.practice, status: "booked")
+    unpaid.appointment_slot.update!(starts_at: 3.days.from_now, ends_at: 3.days.from_now + 20.minutes)
+    paid.appointment_slot.update!(starts_at: 4.days.from_now, ends_at: 4.days.from_now + 20.minutes)
+    create(:appointment_charge, appointment: unpaid, amount_cents: 6500)
+    create(:appointment_charge, appointment: paid, amount_cents: 6500)
+    create(:payment, appointment: paid, patient: patient, amount_cents: 6500, status: "succeeded")
+
+    sign_in account, scope: :patient_account
+    get patient_portal_path
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Booked — Unpaid")
+    expect(response.body).to include("£65.00")
+    expect(response.body.scan("Booked — Unpaid").size).to eq(1)
+  end
+
 end

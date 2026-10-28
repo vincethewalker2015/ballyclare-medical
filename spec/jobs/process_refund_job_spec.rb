@@ -3,6 +3,24 @@ require "rails_helper"
 RSpec.describe ProcessRefundJob, type: :job do
   describe "#perform" do
 
+    it "does not submit an aged pending refund from a delayed job" do
+      payment = create(:payment, status: "succeeded",
+        provider_payment_id: "pi_delayed_refund_job",
+        amount_cents: 5000, currency: "GBP", paid_at: Time.current)
+      refund = create(:refund, payment: payment, status: "pending",
+        amount_cents: 2000, currency: "GBP", provider_refund_id: nil,
+        requested_at: 48.hours.ago)
+      refund.update_columns(created_at: 48.hours.ago, updated_at: 48.hours.ago)
+
+      expect(Stripe::Refund).not_to receive(:create)
+
+      described_class.new.perform(refund.id)
+
+      expect(refund.reload.status).to eq("pending")
+      expect(refund.provider_refund_id).to be_nil
+    end
+
+
     it "reuses the original Stripe idempotency key after an ambiguous refund timeout" do
       payment = create(:payment, status: "succeeded",
         provider_payment_id: "pi_ambiguous_refund_timeout",

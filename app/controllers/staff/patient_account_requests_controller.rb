@@ -31,6 +31,9 @@ module Staff
 
       return head :not_found unless @registration_request.patient_account.confirmed?
 
+      @account_link = current_practice.patient_account_links
+        .where(patient_account_id: @registration_request.patient_account_id).first
+
       @patient_search = params[:patient_search].to_s.strip.first(100)
       @matching_patients = []
       if @patient_search.present?
@@ -119,6 +122,44 @@ module Staff
       CompletePatientRegistrationJob.perform_later(request_record.id)
       redirect_to practice_patient_account_request_path(request_record),
         notice: "Registration approved. Clinical record processing has been queued."
+    end
+
+    def reinstate
+      return head :forbidden unless current_staff_member.senior_administration_access?
+
+      link = current_practice.patient_account_links.find(params[:id])
+      method = params[:verification_method].to_s
+      reason = params[:reinstatement_reason].to_s.strip.first(500)
+      unless params[:identity_checked] == "1" &&
+          PatientAccountLink::VERIFICATION_METHODS.include?(method) &&
+          reason.length >= 10
+        return redirect_to practice_patient_account_requests_path,
+          alert: "Fresh identity verification and a reason of at least 10 characters are required."
+      end
+
+      reinstated = false
+      link.with_lock do
+        if link.status == "revoked" && link.patient_account.confirmed? &&
+            link.patient.practice_id == current_practice.id
+          link.update!(
+            status: "approved", verification_method: method,
+            verified_at: Time.current, verified_by: current_staff_member,
+            approved_at: Time.current
+          )
+          AuditEvent.create!(
+            practice: current_practice, user: current_user, auditable: link,
+            action: "patient_account.link_reinstated",
+            metadata: { staff_member_id: current_staff_member.id,
+                        patient_id: link.patient_id, patient_account_id: link.patient_account_id,
+                        verification_method: method, reason: reason }
+          )
+          reinstated = true
+        end
+      end
+
+      redirect_to practice_patient_account_requests_path,
+        (reinstated ? { notice: "Patient portal access reinstated." } :
+          { alert: "This patient account link cannot be reinstated." })
     end
 
     def revoke

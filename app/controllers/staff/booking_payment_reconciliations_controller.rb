@@ -20,6 +20,57 @@ module Staff
     end
 
 
+    def cancel
+      payment = Payment.where(
+        patient_id: current_practice.patients.select(:id)
+      ).or(
+        Payment.where(
+          guest_booking_id: GuestBooking.where(practice_id: current_practice.id).select(:id)
+        )
+      ).find(params[:id])
+
+      intent_id = params[:payment_intent_id].to_s.strip
+      unless payment.provider == "stripe" && payment.status.in?(%w[pending processing]) &&
+          payment.appointment_id.nil? && payment.provider_payment_id == intent_id &&
+          intent_id.match?(/\Api_[a-zA-Z0-9_]+\z/)
+        return redirect_to practice_booking_payment_reconciliations_path,
+          alert: "Payment is not eligible for cancellation."
+      end
+
+      intent = Stripe::PaymentIntent.retrieve(intent_id)
+      unless intent.metadata&.[]("payment_id").to_s == payment.id.to_s &&
+          intent.amount == payment.amount_cents &&
+          intent.currency.casecmp?(payment.currency) &&
+          intent.status == "requires_payment_method"
+        return redirect_to practice_booking_payment_reconciliations_path,
+          alert: "Stripe payment could not be safely cancelled. No changes were made."
+      end
+
+      cancelled_intent = Stripe::PaymentIntent.cancel(intent_id)
+      unless cancelled_intent.id == intent_id && cancelled_intent.status == "canceled" &&
+          cancelled_intent.metadata&.[]("payment_id").to_s == payment.id.to_s &&
+          cancelled_intent.amount == payment.amount_cents &&
+          cancelled_intent.currency.casecmp?(payment.currency)
+        return redirect_to practice_booking_payment_reconciliations_path,
+          alert: "Stripe cancellation was not confirmed. Manual review required."
+      end
+
+      Payments::HandleFailed.new(payment_intent: cancelled_intent).call
+      AuditEvent.create!(
+        practice: current_practice,
+        user: current_user,
+        auditable: payment,
+        action: "stripe_payment.abandoned_cancelled",
+        metadata: { payment_intent_id: intent_id, payment_status: payment.reload.status }
+      )
+      redirect_to practice_booking_payment_reconciliations_path,
+        notice: "Stripe PaymentIntent cancelled and payment outcome reconciled."
+    rescue Stripe::StripeError => error
+      Rails.logger.warn("Stripe payment cancellation unavailable: #{error.class}")
+      redirect_to practice_booking_payment_reconciliations_path,
+        alert: "Stripe cancellation could not be confirmed. Payment requires review."
+    end
+
     def verify
       payment = Payment.where(
         patient_id: current_practice.patients.select(:id)

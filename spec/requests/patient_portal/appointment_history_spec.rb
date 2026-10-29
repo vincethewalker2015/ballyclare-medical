@@ -31,7 +31,7 @@ RSpec.describe "Patient portal appointment history", type: :request do
     cancelled = create(:appointment, patient: patient, practice: patient.practice, status: "cancelled")
     other = create(:appointment, patient: create(:patient, practice: patient.practice),
       practice: patient.practice, status: "booked")
-    [ [upcoming, 3], [completed, -3], [cancelled, 5], [other, 8] ].each do |appointment, days|
+    [ [ upcoming, 3 ], [ completed, -3 ], [ cancelled, 5 ], [ other, 8 ] ].each do |appointment, days|
       starts_at = days.days.from_now
       appointment.appointment_slot.update!(starts_at: starts_at, ends_at: starts_at + 20.minutes)
     end

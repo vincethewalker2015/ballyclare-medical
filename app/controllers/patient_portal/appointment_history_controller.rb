@@ -3,7 +3,7 @@ module PatientPortal
     def index
       link = current_patient_account.patient_account_links.approved
         .includes(:patient, :practice).first
-      return head :forbidden unless link && link.patient.practice_id == link.practice_id
+      return render_access_unavailable unless link && link.patient.practice_id == link.practice_id
 
       @patient = link.patient
       @practice = link.practice

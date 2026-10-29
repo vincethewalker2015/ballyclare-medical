@@ -11,10 +11,32 @@ module Staff
         )
       )
 
+      @payment_search = params[:payment_search].to_s.strip.first(100)
+
       @payments = Payment
         .where(id: practice_payment_ids.select(:id))
         .where(appointment_id: nil, provider: "stripe", status: %w[pending processing])
         .where("payments.updated_at <= ?", 15.minutes.ago)
+
+      if @payment_search.present?
+        term = "%#{ActiveRecord::Base.sanitize_sql_like(@payment_search)}%"
+        matching_patients = current_practice.patients.where(
+          "first_name ILIKE :term OR last_name ILIKE :term OR CONCAT_WS(' ', first_name, last_name) ILIKE :term",
+          term: term
+        ).select(:id)
+        matching_guests = GuestBooking.where(practice_id: current_practice.id).where(
+          "first_name ILIKE :term OR last_name ILIKE :term OR CONCAT_WS(' ', first_name, last_name) ILIKE :term",
+          term: term
+        ).select(:id)
+
+        @payments = @payments.where(
+          "payments.id::text ILIKE :term OR payments.provider_payment_id ILIKE :term OR " \
+          "payments.patient_id IN (:patient_ids) OR payments.guest_booking_id IN (:guest_ids)",
+          term: term, patient_ids: matching_patients, guest_ids: matching_guests
+        )
+      end
+
+      @payments = @payments
         .includes(:patient, :guest_booking)
         .order(updated_at: :asc, id: :asc)
         .limit(100)

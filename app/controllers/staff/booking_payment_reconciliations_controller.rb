@@ -69,8 +69,7 @@ module Staff
       unless payment.provider == "stripe" && payment.status.in?(%w[pending processing]) &&
           payment.appointment_id.nil? && payment.provider_payment_id == intent_id &&
           intent_id.match?(/\Api_[a-zA-Z0-9_]+\z/)
-        return respond_with_reconciliation,
-          alert: "Payment is not eligible for cancellation."
+        return respond_with_reconciliation(alert: "Payment is not eligible for cancellation.")
       end
 
       intent = Stripe::PaymentIntent.retrieve(intent_id)
@@ -78,8 +77,7 @@ module Staff
           intent.amount == payment.amount_cents &&
           intent.currency.casecmp?(payment.currency) &&
           intent.status == "requires_payment_method"
-        return respond_with_reconciliation,
-          alert: "Stripe payment could not be safely cancelled. No changes were made."
+        return respond_with_reconciliation(alert: "Stripe payment could not be safely cancelled. No changes were made.")
       end
 
       cancelled_intent = Stripe::PaymentIntent.cancel(intent_id)
@@ -87,8 +85,7 @@ module Staff
           cancelled_intent.metadata&.[]("payment_id").to_s == payment.id.to_s &&
           cancelled_intent.amount == payment.amount_cents &&
           cancelled_intent.currency.casecmp?(payment.currency)
-        return respond_with_reconciliation,
-          alert: "Stripe cancellation was not confirmed. Manual review required."
+        return respond_with_reconciliation(alert: "Stripe cancellation was not confirmed. Manual review required.")
       end
 
       begin
@@ -101,13 +98,11 @@ module Staff
           action: "stripe_payment.cancellation_reconciliation_failed",
           metadata: { payment_intent_id: intent_id, error_class: error.class.name }
         )
-        return respond_with_reconciliation,
-          alert: "Stripe cancellation confirmed, but local reconciliation failed. Manual review required."
+        return respond_with_reconciliation(alert: "Stripe cancellation confirmed, but local reconciliation failed. Manual review required.")
       end
 
       unless payment.reload.status == "failed"
-        return respond_with_reconciliation,
-          alert: "Payment was not closed as abandoned. Review the current payment outcome."
+        return respond_with_reconciliation(alert: "Payment was not closed as abandoned. Review the current payment outcome.")
       end
 
       AuditEvent.create!(
@@ -117,12 +112,10 @@ module Staff
         action: "stripe_payment.abandoned_cancelled",
         metadata: { payment_intent_id: intent_id, payment_status: payment.reload.status }
       )
-      respond_with_reconciliation,
-        notice: "Stripe PaymentIntent cancelled and payment outcome reconciled."
+      respond_with_reconciliation(notice: "Stripe PaymentIntent cancelled and payment outcome reconciled.")
     rescue Stripe::StripeError => error
       Rails.logger.warn("Stripe payment cancellation unavailable: #{error.class}")
-      respond_with_reconciliation,
-        alert: "Stripe cancellation could not be confirmed. Payment requires review."
+      respond_with_reconciliation(alert: "Stripe cancellation could not be confirmed. Payment requires review.")
     end
 
     def verify
@@ -137,8 +130,7 @@ module Staff
       intent_id = params[:payment_intent_id].to_s.strip
       if payment.provider != "stripe" || !payment.status.in?(%w[pending processing]) ||
           payment.appointment_id.present? || !intent_id.match?(/\Api_[a-zA-Z0-9_]+\z/)
-        respond_with_reconciliation,
-          alert: "Payment is not eligible for verification."
+        respond_with_reconciliation(alert: "Payment is not eligible for verification.")
         return
       end
 
@@ -155,8 +147,7 @@ module Staff
             reason: "payment_reference_mismatch"
           }
         )
-        respond_with_reconciliation,
-          alert: "Stripe PaymentIntent does not match this payment."
+        respond_with_reconciliation(alert: "Stripe PaymentIntent does not match this payment.")
         return
       end
 
@@ -183,11 +174,9 @@ module Staff
             payment_status: payment.reload.status
           }
         )
-        respond_with_reconciliation,
-          notice: "Stripe payment recovered and booking outcome reconciled."
+        respond_with_reconciliation(notice: "Stripe payment recovered and booking outcome reconciled.")
       else
-        respond_with_reconciliation,
-          notice: "Stripe reference verified. No payment changes were made."
+        respond_with_reconciliation(notice: "Stripe reference verified. No payment changes were made.")
       end
     rescue Payments::HandleSucceeded::AmountMismatch,
            Payments::HandleSucceeded::CurrencyMismatch => error
@@ -201,8 +190,7 @@ module Staff
           reason: error.class.name
         }
       )
-      respond_with_reconciliation,
-        alert: "Stripe payment amount or currency does not match. No booking or payment changes were made."
+      respond_with_reconciliation(alert: "Stripe payment amount or currency does not match. No booking or payment changes were made.")
     rescue Stripe::StripeError => error
       AuditEvent.create!(
         practice: current_practice,
@@ -214,8 +202,7 @@ module Staff
           error_class: error.class.name
         }
       )
-      respond_with_reconciliation,
-        alert: "Stripe verification is unavailable. No payment changes were made."
+      respond_with_reconciliation(alert: "Stripe verification is unavailable. No payment changes were made.")
     end
 
     private

@@ -20,9 +20,11 @@ RSpec.describe "Patient portal outstanding payments", type: :request do
     sign_in account, scope: :patient_account
     get patient_portal_outstanding_payment_path(appointment)
     expect(response).to have_http_status(:forbidden)
+    expect(response.body).to include("Patient portal access unavailable")
     expect(Stripe::PaymentIntent).not_to receive(:create)
     post patient_portal_outstanding_payment_path(appointment)
     expect(response).to have_http_status(:forbidden)
+    expect(response.body).to include("Patient portal access unavailable")
   end
 
   it "pays the current outstanding charge using the existing Stripe service" do

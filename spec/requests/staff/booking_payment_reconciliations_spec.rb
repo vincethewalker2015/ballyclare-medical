@@ -310,7 +310,7 @@ RSpec.describe "Staff unresolved booking payment review", type: :request do
     )
     expect(cancel_form).to be_present
     expect(cancel_form.at_css("input[name='payment_intent_id'][value='pi_abandoned_ui']")).to be_present
-    expect(cancel_form.text).to include("Cancel abandoned payment")
+    expect(cancel_form.at_css("input[type='submit'][value='Cancel abandoned payment']")).to be_present
     expect(document.at_css(
       "form[action='#{verify_practice_booking_payment_reconciliation_path(payment)}']"
     )).to be_present

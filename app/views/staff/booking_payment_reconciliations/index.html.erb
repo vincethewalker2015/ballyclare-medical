@@ -72,8 +72,7 @@
                     <%= form.submit "Verify payment with Stripe", class: "cursor-pointer rounded-xl bg-medical-navy px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90" %>
                   </div>
                 <% end %>
-              </td>
-              <div class="mt-4 border-t border-medical-border pt-3">
+                <div class="mt-4 border-t border-medical-border pt-3">
                 <% if payment.provider_payment_id.present? %>
                   <p class="mb-2 text-xs text-medical-muted">Only cancel after confirming this payment was abandoned. Cancellation prevents further payment attempts using this Stripe PaymentIntent and cannot be undone.</p>
                   <%= form_with url: cancel_practice_booking_payment_reconciliation_path(payment), method: :post, local: true do |form| %>

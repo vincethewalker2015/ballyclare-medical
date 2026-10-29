@@ -9,6 +9,34 @@ RSpec.describe "Staff unresolved booking payment review", type: :request do
       active: true, access_level: "staff_admin")
   end
 
+  it "keeps an abandoned payment unresolved when Stripe cancellation times out" do
+    patient = create(:patient, practice: practice)
+    payment = create(:payment, appointment: nil, patient: patient,
+      status: "processing", provider_payment_id: "pi_cancel_timeout")
+    payment.update_columns(updated_at: 20.minutes.ago)
+
+    intent = instance_double(Stripe::PaymentIntent,
+      id: "pi_cancel_timeout", status: "requires_payment_method",
+      amount: payment.amount_cents, currency: payment.currency.downcase,
+      metadata: { "payment_id" => payment.id.to_s })
+    allow(Stripe::PaymentIntent).to receive(:retrieve)
+      .with("pi_cancel_timeout").and_return(intent)
+    allow(Stripe::PaymentIntent).to receive(:cancel)
+      .with("pi_cancel_timeout")
+      .and_raise(Stripe::APIConnectionError.new("Stripe cancellation timed out"))
+
+    sign_in user
+    expect {
+      post "/practice/booking_payment_reconciliations/#{payment.id}/cancel",
+        params: { payment_intent_id: "pi_cancel_timeout" }
+    }.not_to change(Appointment, :count)
+
+    expect(response).to redirect_to(practice_booking_payment_reconciliations_path)
+    expect(payment.reload.status).to eq("processing")
+    expect(AuditEvent.where(practice: practice, auditable: payment,
+      action: "stripe_payment.abandoned_cancelled")).to be_empty
+  end
+
   it "refuses cancellation when Stripe has already succeeded" do
     patient = create(:patient, practice: practice)
     payment = create(:payment, appointment: nil, patient: patient,

@@ -17,8 +17,6 @@ module Staff
         .order(created_at: :desc, id: :desc)
         .limit(100)
 
-      Payments::ReconcileProcessingRefunds.new(refunds: @refunds).call
-      @refunds.each(&:reload)
     end
 
     private

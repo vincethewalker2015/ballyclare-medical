@@ -11,7 +11,7 @@
     <% else %>
       <ul class="divide-y divide-medical-border">
         <% @payments.each do |payment| %>
-          <% local_date = payment.created_at.in_time_zone(@practice.timezone) %>
+          <% local_date = (payment.paid_at || payment.created_at).in_time_zone(@practice.timezone) %>
           <% successful_refunds = payment.refunds.select { |refund| refund.status == "succeeded" } %>
           <% amount = number_to_currency(payment.amount_cents / 100.0, unit: payment.currency == "GBP" ? "£" : "#{payment.currency} ") %>
           <li class="flex flex-wrap items-start justify-between gap-4 py-5">

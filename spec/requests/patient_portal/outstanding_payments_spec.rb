@@ -52,6 +52,25 @@ RSpec.describe "Patient portal outstanding payments", type: :request do
     expect(Payment.count).to eq(1)
   end
 
+  it "recovers a pending payment with the original Stripe idempotency key" do
+    create(:appointment_charge, appointment: appointment, patient: patient, practice: patient.practice,
+      amount_cents: 6_500)
+    pending = create(:payment, appointment: appointment, patient: patient,
+      amount_cents: 6_500, status: "pending", provider_payment_id: nil)
+    pending.update_columns(updated_at: 1.minute.ago)
+    intent = instance_double(Stripe::PaymentIntent, id: "pi_recovered",
+      client_secret: "pi_recovered_secret", status: "requires_payment_method")
+    expect(Stripe::PaymentIntent).to receive(:create).with(
+      hash_including(amount: 6_500), hash_including(idempotency_key: pending.idempotency_key)
+    ).once.and_return(intent)
+    sign_in account, scope: :patient_account
+
+    expect { post patient_portal_outstanding_payment_path(appointment) }.not_to change(Payment, :count)
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("pi_recovered_secret")
+    expect(pending.reload.provider_payment_id).to eq("pi_recovered")
+  end
+
   it "rejects another patient's and another practice's appointments before Stripe" do
     other = create(:appointment, patient: create(:patient, practice: patient.practice), practice: patient.practice)
     foreign_patient = create(:patient, practice: create(:practice))

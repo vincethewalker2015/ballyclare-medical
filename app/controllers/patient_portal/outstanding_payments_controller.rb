@@ -20,6 +20,32 @@ module PatientPortal
       return redirect_to patient_portal_outstanding_payment_path(@appointment),
         alert: "There is no outstanding balance." unless balance[:balance_cents].positive?
 
+      # Reuse the original Stripe idempotency key after a lost API response.
+      pending = @appointment.payments.where(status: "pending", provider_payment_id: nil)
+        .order(:created_at).first
+      if pending
+        return redirect_to patient_portal_outstanding_payment_path(@appointment),
+          alert: "Payment verification pending. Please try again shortly." if pending.updated_at > 30.seconds.ago
+
+        intent = PaymentProviders::StripeProvider::CreatePayment.new(payment: pending).call
+        if intent.status == "succeeded"
+          Payments::HandleSucceeded.new(payment_intent: intent).call
+          return redirect_to patient_portal_payment_path(pending)
+        end
+        if intent.status == "canceled"
+          Payments::ReconcileAppointmentPayment.new(payment: pending).call
+          return redirect_to patient_portal_outstanding_payment_path(@appointment),
+            alert: "The previous payment was cancelled. Please retry."
+        end
+        unless intent.status.in?(%w[requires_payment_method requires_confirmation requires_action])
+          return redirect_to patient_portal_outstanding_payment_path(@appointment),
+            alert: "Payment verification pending. Please check back shortly."
+        end
+        @payment = pending
+        @client_secret = intent.client_secret
+        return render :confirm
+      end
+
       result = Payments::TakeAppointmentPayment.new(
         appointment: @appointment, amount_cents: balance[:balance_cents]
       ).call

@@ -7,7 +7,7 @@
     <h2 class="text-xl font-semibold text-medical-navy"><%= @practice.name %></h2>
     <dl class="mt-5 grid gap-4">
       <div><dt class="text-sm text-medical-muted">Payment reference</dt><dd class="font-semibold text-medical-navy"><%= @payment.id %></dd></div>
-      <div><dt class="text-sm text-medical-muted">Payment date</dt><dd class="font-semibold text-medical-navy"><%= @payment.created_at.in_time_zone(@practice.timezone).strftime("%-d %B %Y, %-I:%M %p") %></dd></div>
+      <div><dt class="text-sm text-medical-muted">Payment date</dt><dd class="font-semibold text-medical-navy"><%= (@payment.paid_at || @payment.created_at).in_time_zone(@practice.timezone).strftime("%-d %B %Y, %-I:%M %p") %></dd></div>
       <div><dt class="text-sm text-medical-muted">Status</dt><dd class="font-semibold text-medical-navy"><%= @payment.status.humanize %></dd></div>
       <div><dt class="text-sm text-medical-muted">Amount paid</dt><dd class="font-semibold text-medical-navy"><%= number_to_currency(@payment.amount_cents / 100.0, unit: @payment.currency == "GBP" ? "£" : "#{@payment.currency} ") %></dd></div>
       <% @payment.refunds.sort_by(&:requested_at).each do |refund| %>
@@ -18,6 +18,6 @@
   </section>
   <div class="mt-6 flex flex-wrap gap-5">
     <%= link_to "Back to payment history", patient_portal_payment_history_path, class: "font-semibold text-medical-teal underline" %>
-    <button type="button" onclick="window.print()" class="font-semibold text-medical-teal underline">Print receipt</button>
+    <button type="button" data-controller="print-receipt" data-action="click->print-receipt#print" class="font-semibold text-medical-teal underline">Print receipt</button>
   </div>
 </main>

@@ -37,10 +37,6 @@ module Staff
         return head :forbidden
       end
 
-      refunds = Refund.joins(:payment).where(payments: { appointment_id: @appointment.id })
-        .where(status: "processing").to_a
-      Payments::ReconcileProcessingRefunds.new(refunds: refunds).call
-
       details = Appointments::StaffDetails.new(
         appointment: @appointment, payment_return: params[:payment_return]
       ).call

@@ -18,6 +18,7 @@ RSpec.describe "Patient portal payment history", type: :request do
     sign_in account, scope: :patient_account
     get patient_portal_payment_history_path
     expect(response).to have_http_status(:forbidden)
+    expect(response.body).to include("Patient portal access unavailable")
   end
 
   it "lists the patient's transactions and refunds without exposing other patients or practices" do
@@ -65,7 +66,9 @@ RSpec.describe "Patient portal payment history", type: :request do
     link.update!(status: "revoked")
     get patient_portal_payment_history_path
     expect(response).to have_http_status(:forbidden)
+    expect(response.body).to include("Patient portal access unavailable")
     get patient_portal_payment_receipt_path(payment)
     expect(response).to have_http_status(:forbidden)
+    expect(response.body).to include("Patient portal access unavailable")
   end
 end

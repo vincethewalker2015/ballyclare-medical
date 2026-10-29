@@ -9,6 +9,42 @@ RSpec.describe "Staff unresolved booking payment review", type: :request do
       active: true, access_level: "staff_admin")
   end
 
+  it "records confirmed Stripe cancellation for recovery when local reconciliation fails" do
+    patient = create(:patient, practice: practice)
+    payment = create(:payment, appointment: nil, patient: patient,
+      status: "processing", provider_payment_id: "pi_cancel_local_failure")
+    payment.update_columns(updated_at: 20.minutes.ago)
+
+    intent = instance_double(Stripe::PaymentIntent,
+      id: "pi_cancel_local_failure", status: "requires_payment_method",
+      amount: payment.amount_cents, currency: payment.currency.downcase,
+      metadata: { "payment_id" => payment.id.to_s })
+    cancelled_intent = instance_double(Stripe::PaymentIntent,
+      id: "pi_cancel_local_failure", status: "canceled",
+      amount: payment.amount_cents, currency: payment.currency.downcase,
+      metadata: { "payment_id" => payment.id.to_s })
+    allow(Stripe::PaymentIntent).to receive(:retrieve)
+      .with("pi_cancel_local_failure").and_return(intent)
+    allow(Stripe::PaymentIntent).to receive(:cancel)
+      .with("pi_cancel_local_failure").and_return(cancelled_intent)
+    allow_any_instance_of(Payments::HandleFailed).to receive(:call)
+      .and_raise(ActiveRecord::RecordNotSaved, "local reconciliation unavailable")
+
+    sign_in user
+    expect {
+      post "/practice/booking_payment_reconciliations/#{payment.id}/cancel",
+        params: { payment_intent_id: "pi_cancel_local_failure" }
+    }.to change {
+      AuditEvent.where(practice: practice, auditable: payment,
+        action: "stripe_payment.cancellation_reconciliation_failed").count
+    }.by(1)
+
+    expect(response).to redirect_to(practice_booking_payment_reconciliations_path)
+    expect(payment.reload.status).to eq("processing")
+    expect(AuditEvent.where(practice: practice, auditable: payment,
+      action: "stripe_payment.abandoned_cancelled")).to be_empty
+  end
+
   it "refuses abandoned cancellation when the Stripe currency differs" do
     patient = create(:patient, practice: practice)
     payment = create(:payment, appointment: nil, patient: patient,

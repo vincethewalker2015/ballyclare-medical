@@ -5,6 +5,7 @@ module PatientPortal
         .includes(:patient, :practice).first
       return head :forbidden unless link && link.patient.practice_id == link.practice_id
 
+      @patient = link.patient
       @practice = link.practice
       appointments = @practice.appointments.where(patient_id: link.patient_id)
         .joins(:appointment_slot).includes(:clinician, :appointment_slot)

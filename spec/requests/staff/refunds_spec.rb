@@ -87,6 +87,28 @@ RSpec.describe "Staff refund review", type: :request do
     expect(response.body).not_to include(foreign_refund.id)
   end
 
+  it "reconciles an older processing refund with Stripe when staff refreshes" do
+    patient = create(:patient, practice: practice)
+    payment = create(:payment, patient: patient, appointment: nil,
+      status: "succeeded", provider_payment_id: "pi_refund_review")
+    refund = create(:refund, payment: payment, status: "processing",
+      provider_refund_id: "re_refund_review")
+    refund.update_columns(updated_at: 1.minute.ago)
+    stripe_refund = Stripe::Refund.construct_from(
+      id: "re_refund_review", object: "refund",
+      amount: refund.amount_cents, currency: refund.currency.downcase,
+      status: "succeeded", payment_intent: "pi_refund_review"
+    )
+    expect(Stripe::Refund).to receive(:retrieve).with("re_refund_review").and_return(stripe_refund)
+
+    sign_in user
+    get practice_refunds_path
+
+    expect(response).to have_http_status(:ok)
+    expect(refund.reload.status).to eq("succeeded")
+    expect(response.body).to include("Completed")
+  end
+
   it "does not allow basic staff to review refunds" do
     membership.update!(access_level: "staff")
     sign_in user

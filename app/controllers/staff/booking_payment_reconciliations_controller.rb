@@ -226,7 +226,7 @@ module Staff
         flash.now[:notice] = response_options[:notice]
         flash.now[:alert] = response_options[:alert]
         return render turbo_stream: [
-          turbo_stream.replace("booking-payment-reconciliation-content",
+          turbo_stream.update("booking-payment-reconciliation-content",
             partial: "staff/booking_payment_reconciliations/content"),
           turbo_stream.update("booking-payment-reconciliation-flash",
             partial: "staff/booking_payment_reconciliations/flash")

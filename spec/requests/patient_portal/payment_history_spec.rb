@@ -33,6 +33,7 @@ RSpec.describe "Patient portal payment history", type: :request do
 
     get patient_portal_payment_history_path
     expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Patient portal · #{patient.first_name} #{patient.last_name}")
     expect(response.body).to include("£65.00", "£10.00", "£55.00", "View receipt")
     expect(response.body).not_to include("£98.76", "£87.65")
     get patient_portal_payment_receipt_path(own)

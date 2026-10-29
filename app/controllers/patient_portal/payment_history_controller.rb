@@ -3,6 +3,7 @@ module PatientPortal
     before_action :set_link
 
     def index
+      @patient = @link.patient
       @practice = @link.practice
       @payments = scoped_payments.includes(:refunds, appointment: :appointment_slot,
         appointment_hold: :appointment_slot).order(created_at: :desc, id: :desc)

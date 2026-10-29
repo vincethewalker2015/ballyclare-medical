@@ -20,6 +20,7 @@ RSpec.describe "Patient portal appointment history", type: :request do
     sign_in account, scope: :patient_account
     get patient_portal_appointment_history_path
     expect(response).to have_http_status(:forbidden)
+    expect(response.body).to include("Patient portal access unavailable")
   end
 
   it "shows upcoming, completed and cancelled visits but not another patient's records" do
@@ -59,6 +60,7 @@ RSpec.describe "Patient portal appointment history", type: :request do
     link.update!(status: "revoked")
     get patient_portal_appointment_history_path
     expect(response).to have_http_status(:forbidden)
+    expect(response.body).to include("Patient portal access unavailable")
   end
 
   it "does not expose appointments in another practice" do

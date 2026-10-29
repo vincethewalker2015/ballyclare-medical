@@ -37,6 +37,12 @@ module PaymentProviders
           end
         end
 
+        # Stripe can confirm success in the create response before any webhook arrives.
+        # Reuse the validated, idempotent success handler rather than leaving it processing.
+        if stripe_refund.status == "succeeded"
+          Payments::HandleRefundSucceeded.new(stripe_refund: stripe_refund).call
+        end
+
         stripe_refund
       end
 

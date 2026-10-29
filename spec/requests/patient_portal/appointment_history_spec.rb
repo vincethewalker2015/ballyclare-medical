@@ -35,6 +35,7 @@ RSpec.describe "Patient portal appointment history", type: :request do
       appointment.appointment_slot.update!(starts_at: starts_at, ends_at: starts_at + 20.minutes)
     end
 
+    sign_in account, scope: :patient_account
     get patient_portal_appointment_history_path
     expect(response).to have_http_status(:ok)
     [ upcoming, completed, cancelled ].each do |appointment|

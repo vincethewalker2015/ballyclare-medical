@@ -50,6 +50,7 @@ Rails.application.routes.draw do
   resources :booking_payment_reconciliations, only: %i[index] do
     member do
       post :verify
+      post :cancel
     end
   end
   resources :patients, only: %i[index show new create edit update]

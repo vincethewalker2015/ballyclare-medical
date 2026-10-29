@@ -64,6 +64,21 @@ RSpec.describe PaymentProviders::StripeProvider::CreateRefund do
     expect(refund.status).to eq("processing")
   end
 
+  it "records success immediately when Stripe returns a completed refund" do
+    completed = Stripe::Refund.construct_from(
+      id: "re_test_123", object: "refund", amount: 2000,
+      currency: "gbp", status: "succeeded",
+      payment_intent: "pi_test_123"
+    )
+    allow(Stripe::Refund).to receive(:create).and_return(completed)
+
+    described_class.new(refund: refund).call
+
+    expect(refund.reload.status).to eq("succeeded")
+    expect(refund.refunded_at).to be_present
+    expect(refund.provider_refund_id).to eq("re_test_123")
+  end
+
   it "does not update the local refund when Stripe fails" do
     allow(Stripe::Refund)
       .to receive(:create)

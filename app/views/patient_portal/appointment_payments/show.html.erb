@@ -4,6 +4,7 @@
   <h1 class="mt-3 text-3xl font-semibold tracking-tight text-medical-navy sm:text-4xl">Appointment payment status</h1>
   <p class="mt-3 text-medical-muted">Your appointment and payment information.</p>
 
+  <% balance_payment = @payment.appointment.present? && @payment.appointment_hold.nil? %>
   <% booked = @payment.appointment.present? && @payment.status == "succeeded" %>
   <% refund_required = @payment.status == "requires_refund" %>
   <% processing = @payment.status.in?(%w[ pending processing ]) %>
@@ -11,8 +12,8 @@
     <div class="border-b border-medical-border bg-sky-50/70 px-6 py-6 sm:px-8">
       <% if booked %>
         <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">Payment successful</span>
-        <h2 id="payment-result-heading" class="mt-4 text-2xl font-semibold text-medical-navy">Your appointment is booked</h2>
-        <p class="mt-2 text-medical-muted">Your payment succeeded and your appointment is confirmed.</p>
+        <h2 id="payment-result-heading" class="mt-4 text-2xl font-semibold text-medical-navy"><%= balance_payment ? "Your balance payment was successful" : "Your appointment is booked" %></h2>
+        <p class="mt-2 text-medical-muted"><%= balance_payment ? "Your payment was received for an existing appointment." : "Your payment succeeded and your appointment is confirmed." %></p>
       <% elsif refund_required %>
         <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">Action required</span>
         <h2 id="payment-result-heading" class="mt-4 text-2xl font-semibold text-medical-navy">We couldn't complete your booking</h2>
@@ -20,11 +21,11 @@
       <% elsif processing %>
         <span class="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-900">Processing</span>
         <h2 id="payment-result-heading" class="mt-4 text-2xl font-semibold text-medical-navy">Your payment is being processed</h2>
-        <p class="mt-2 text-medical-muted">Your appointment is not confirmed yet. Please check back shortly.</p>
+        <p class="mt-2 text-medical-muted"><%= balance_payment ? "Your balance payment is awaiting verification. Please check back shortly." : "Your appointment is not confirmed yet. Please check back shortly." %></p>
       <% else %>
         <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">Payment not completed</span>
-        <h2 id="payment-result-heading" class="mt-4 text-2xl font-semibold text-medical-navy">Your appointment has not been booked</h2>
-        <p class="mt-2 text-medical-muted">Payment was not completed. You can search for another available appointment.</p>
+        <h2 id="payment-result-heading" class="mt-4 text-2xl font-semibold text-medical-navy"><%= balance_payment ? "Your balance payment was not completed" : "Your appointment has not been booked" %></h2>
+        <p class="mt-2 text-medical-muted"><%= balance_payment ? "No new payment was recorded. Please contact the practice if you need help." : "Payment was not completed. You can search for another available appointment." %></p>
       <% end %>
     </div>
     <div class="p-6 sm:p-8">
@@ -50,7 +51,7 @@
       <% end %>
       <div class="mt-7 flex flex-wrap gap-3">
         <%= link_to "Back to patient portal", patient_portal_path, class: "inline-block rounded-xl bg-medical-navy px-6 py-3 text-sm font-semibold text-white hover:opacity-90" %>
-        <% unless booked || processing %>
+        <% unless booked || processing || balance_payment %>
           <%= link_to "Find an appointment", patient_portal_appointments_path, class: "inline-block rounded-xl border border-medical-border px-6 py-3 text-sm font-semibold text-medical-navy hover:bg-medical-cream" %>
         <% end %>
       </div>

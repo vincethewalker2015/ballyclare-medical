@@ -1,0 +1,17 @@
+<% content_for :title, "Pay outstanding balance | Ballyclare Medical" %>
+<main class="mx-auto max-w-3xl px-6 py-10 lg:py-12">
+  <h1 class="text-3xl font-semibold text-medical-navy">Pay outstanding balance</h1>
+  <p class="mt-3 text-medical-muted">Appointment: <%= @appointment.appointment_slot.starts_at.in_time_zone(@link.practice.timezone).strftime("%-d %B %Y") %></p>
+  <p class="mt-4 text-2xl font-semibold text-medical-navy">Outstanding: <%= number_to_currency(@balance[:balance_cents] / 100.0, unit: @balance[:currency] == "GBP" ? "£" : "#{@balance[:currency]} ") %></p>
+  <% if @in_progress %>
+    <p class="mt-5 text-medical-muted" role="status">A payment is already in progress. Please wait for confirmation or contact the practice.</p>
+  <% elsif @appointment.status == "cancelled" %>
+    <p class="mt-5 text-medical-muted">Online payment is unavailable for a cancelled appointment. Contact the practice.</p>
+  <% elsif @balance[:balance_cents].positive? %>
+    <%= button_to "Pay outstanding balance securely", patient_portal_outstanding_payment_path(@appointment),
+      method: :post, class: "mt-6 rounded-full bg-medical-navy px-6 py-3 font-semibold text-white" %>
+  <% else %>
+    <p class="mt-5 text-medical-muted">This appointment has no outstanding balance.</p>
+  <% end %>
+  <%= link_to "Back to patient portal", patient_portal_path, class: "mt-6 inline-block font-semibold text-medical-teal underline" %>
+</main>

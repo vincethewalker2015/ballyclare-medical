@@ -1,0 +1,5 @@
+<% content_for :title, "Patient portal access unavailable | Ballyclare Medical" %>
+<main class="mx-auto max-w-5xl px-6 py-10 lg:py-12">
+  <p class="text-xs font-semibold uppercase tracking-[0.2em] text-medical-teal">Patient portal</p>
+  <%= render "patient_portal/shared/access_status", revoked: current_patient_account.patient_account_links.where(status: "revoked").exists?, standalone: true %>
+</main>

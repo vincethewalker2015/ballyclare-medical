@@ -21,7 +21,7 @@ RSpec.describe "Concurrent Stripe refund processing", :concurrency do
       stripe_calls << [ params, options ]
       stripe_started << true
       release_stripe.pop
-      double(id: "re_concurrent_refund")
+      double(id: "re_concurrent_refund", status: "pending")
     end
 
     begin

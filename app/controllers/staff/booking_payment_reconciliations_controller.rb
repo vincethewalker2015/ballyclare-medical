@@ -56,6 +56,11 @@ module Staff
       end
 
       Payments::HandleFailed.new(payment_intent: cancelled_intent).call
+      unless payment.reload.status == "failed"
+        return redirect_to practice_booking_payment_reconciliations_path,
+          alert: "Payment was not closed as abandoned. Review the current payment outcome."
+      end
+
       AuditEvent.create!(
         practice: current_practice,
         user: current_user,

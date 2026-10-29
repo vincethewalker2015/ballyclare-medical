@@ -25,6 +25,8 @@ Rails.application.routes.draw do
   get "/patient-portal", to: "patient_portal/dashboard#show", as: :patient_portal
   get "/patient-portal/appointment-history", to: "patient_portal/appointment_history#index", as: :patient_portal_appointment_history
   get "/patient-portal/appointments", to: "patient_portal/appointments#index", as: :patient_portal_appointments
+  get "/patient-portal/payment-history", to: "patient_portal/payment_history#index", as: :patient_portal_payment_history
+  get "/patient-portal/payment-history/:id/receipt", to: "patient_portal/payment_history#show", as: :patient_portal_payment_receipt
   get "/patient-portal/payments/:id", to: "patient_portal/appointment_payments#show", as: :patient_portal_payment
   get "/patient-portal/appointment-holds/:appointment_hold_id/payment", to: "patient_portal/appointment_payments#checkout"
   post "/patient-portal/appointment-holds/:appointment_hold_id/payment", to: "patient_portal/appointment_payments#create", as: :patient_portal_appointment_hold_payment

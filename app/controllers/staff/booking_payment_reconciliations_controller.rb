@@ -15,6 +15,7 @@ module Staff
         .where(id: practice_payment_ids.select(:id))
         .where(appointment_id: nil, provider: "stripe", status: %w[pending processing])
         .where("payments.updated_at <= ?", 15.minutes.ago)
+        .includes(:patient, :guest_booking)
         .order(updated_at: :asc, id: :asc)
         .limit(100)
 

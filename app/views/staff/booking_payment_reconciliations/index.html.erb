@@ -15,6 +15,7 @@
             <th scope="col" class="px-5 py-4">Last updated</th>
             <th scope="col" class="px-5 py-4">Stripe PaymentIntent</th>
             <th scope="col" class="px-5 py-4">Verify with Stripe</th>
+            <th scope="col" class="px-5 py-4">Resolve abandoned payment</th>
           </tr>
         </thead>
         <tbody>
@@ -35,6 +36,17 @@
                     <%= form.text_field :payment_intent_id, value: payment.provider_payment_id, required: true, pattern: "pi_[a-zA-Z0-9_]+", autocomplete: "off", placeholder: "pi_...", class: "w-full rounded-xl border border-medical-border bg-white px-3 py-2 text-sm text-medical-navy focus:border-medical-teal focus:outline-none focus:ring-2 focus:ring-medical-teal/20" %>
                     <%= form.submit "Verify payment with Stripe", class: "cursor-pointer rounded-xl bg-medical-navy px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90" %>
                   </div>
+                <% end %>
+              </td>
+              <td class="min-w-56 px-5 py-5">
+                <% if payment.provider_payment_id.present? %>
+                  <p class="mb-3 text-xs text-medical-muted">Only use after confirming the payment is abandoned. Stripe must confirm cancellation before it can be closed.</p>
+                  <%= form_with url: cancel_practice_booking_payment_reconciliation_path(payment), method: :post, local: true do |form| %>
+                    <%= form.hidden_field :payment_intent_id, value: payment.provider_payment_id %>
+                    <%= form.submit "Cancel abandoned payment", data: { turbo_confirm: "Cancel this abandoned Stripe PaymentIntent? This cannot be undone." }, class: "cursor-pointer rounded-xl border border-amber-600 px-4 py-2.5 text-sm font-semibold text-amber-900 hover:bg-amber-50" %>
+                  <% end %>
+                <% else %>
+                  <span class="text-xs text-medical-muted">Verify the Stripe reference first.</span>
                 <% end %>
               </td>
             </tr>

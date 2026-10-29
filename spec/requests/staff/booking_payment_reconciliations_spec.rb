@@ -9,6 +9,24 @@ RSpec.describe "Staff unresolved booking payment review", type: :request do
       active: true, access_level: "staff_admin")
   end
 
+  it "shows an actionable Stripe verification form for an eligible unresolved payment" do
+    patient = create(:patient, practice: practice)
+    payment = create(:payment, appointment: nil, patient: patient,
+      status: "pending", provider_payment_id: nil)
+    payment.update_columns(updated_at: 20.minutes.ago)
+
+    sign_in user
+    get practice_booking_payment_reconciliations_path
+
+    expect(response).to have_http_status(:ok)
+    form = Nokogiri::HTML(response.body).at_css(
+      "form[action='#{verify_practice_booking_payment_reconciliation_path(payment)}'][method='post']"
+    )
+    expect(form).to be_present
+    expect(form.at_css("input[name='payment_intent_id']")).to be_present
+    expect(form.at_css("button[type='submit'], input[type='submit']")).to be_present
+  end
+
   it "lists stale unresolved booking payments without Stripe IDs only for the staff member's practice" do
     own_patient = create(:patient, practice: practice)
     other_patient = create(:patient, practice: create(:practice))

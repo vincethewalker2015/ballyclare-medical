@@ -1,6 +1,6 @@
 <h1>Booking payments requiring reconciliation</h1>
 
-<p>These booking payments have remained pending or processing for at least 15 minutes. Verify their outcome with Stripe before taking any further payment or booking action. This page is read-only.</p>
+<p>These booking payments have remained pending or processing for at least 15 minutes. Verify their outcome with Stripe before taking any further payment or booking action. Use the Stripe PaymentIntent reference from Stripe to verify a payment. Verification is audited and does not initiate a new charge.</p>
 
 <% if @payments.empty? %>
   <p>No unresolved booking payments currently require review.</p>
@@ -12,6 +12,7 @@
         <th scope="col">Status</th>
         <th scope="col">Last updated</th>
         <th scope="col">Stripe PaymentIntent</th>
+        <th scope="col">Verify with Stripe</th>
       </tr>
     </thead>
     <tbody>
@@ -21,6 +22,13 @@
           <td><%= payment.status %></td>
           <td><%= l(payment.updated_at, format: :long) %></td>
           <td><%= payment.provider_payment_id.presence || "Not recorded — manual verification required" %></td>
+          <td>
+            <%= form_with url: verify_practice_booking_payment_reconciliation_path(payment), method: :post, local: true do |form| %>
+              <%= form.label :payment_intent_id, "Stripe PaymentIntent ID" %>
+              <%= form.text_field :payment_intent_id, value: payment.provider_payment_id, required: true, pattern: "pi_[a-zA-Z0-9_]+", autocomplete: "off" %>
+              <%= form.submit "Verify payment with Stripe" %>
+            <% end %>
+          </td>
         </tr>
       <% end %>
     </tbody>

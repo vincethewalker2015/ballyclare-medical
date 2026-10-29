@@ -9,6 +9,52 @@ RSpec.describe "Staff unresolved booking payment review", type: :request do
       active: true, access_level: "staff_admin")
   end
 
+  it "does not record an abandoned cancellation if a success webhook wins the race" do
+    slot = create(:appointment_slot, practice: practice)
+    patient = create(:patient, practice: practice)
+    hold = slot.hold_for!(patient: patient)
+    payment = Payment.create!(
+      appointment_hold: hold, patient: patient, provider: "stripe",
+      amount_cents: 6500, currency: practice.currency,
+      status: "processing", provider_payment_id: "pi_cancel_race",
+      idempotency_key: SecureRandom.uuid
+    )
+    payment.update_columns(updated_at: 20.minutes.ago)
+
+    pending_intent = instance_double(Stripe::PaymentIntent,
+      id: "pi_cancel_race", status: "requires_payment_method",
+      amount: payment.amount_cents, currency: payment.currency.downcase,
+      metadata: { "payment_id" => payment.id.to_s })
+    succeeded_intent = instance_double(Stripe::PaymentIntent,
+      id: "pi_cancel_race", status: "succeeded",
+      amount_received: payment.amount_cents, currency: payment.currency.downcase,
+      metadata: { "payment_id" => payment.id.to_s })
+    cancelled_intent = instance_double(Stripe::PaymentIntent,
+      id: "pi_cancel_race", status: "canceled",
+      amount: payment.amount_cents, currency: payment.currency.downcase,
+      metadata: { "payment_id" => payment.id.to_s })
+
+    allow(Stripe::PaymentIntent).to receive(:retrieve)
+      .with("pi_cancel_race").and_return(pending_intent)
+    allow(Stripe::PaymentIntent).to receive(:cancel)
+      .with("pi_cancel_race") do
+        Payments::HandleSucceeded.new(payment_intent: succeeded_intent).call
+        cancelled_intent
+      end
+
+    sign_in user
+    expect {
+      post "/practice/booking_payment_reconciliations/#{payment.id}/cancel",
+        params: { payment_intent_id: "pi_cancel_race" }
+    }.to change(Appointment, :count).by(1)
+
+    expect(response).to redirect_to(practice_booking_payment_reconciliations_path)
+    expect(payment.reload.status).to eq("succeeded")
+    expect(payment.appointment).to be_present
+    expect(AuditEvent.where(practice: practice, auditable: payment,
+      action: "stripe_payment.abandoned_cancelled")).to be_empty
+  end
+
   it "keeps an abandoned payment unresolved when Stripe cancellation times out" do
     patient = create(:patient, practice: practice)
     payment = create(:payment, appointment: nil, patient: patient,

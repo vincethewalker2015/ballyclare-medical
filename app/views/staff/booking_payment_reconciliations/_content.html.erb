@@ -63,7 +63,7 @@
                 <%= payment.provider_payment_id.presence || "Not recorded — manual verification required" %>
               </td>
               <td class="min-w-60 px-4 py-5">
-                <%= form_with url: verify_practice_booking_payment_reconciliation_path(payment), method: :post, local: true, data: { turbo_stream: true } do |form| %>
+                <%= form_with url: verify_practice_booking_payment_reconciliation_path(payment), method: :post, data: { turbo: true, turbo_stream: true, turbo_frame: "_top" } do |form| %>
                   <div class="flex flex-col gap-2">
                     <%= form.label :payment_intent_id, "Stripe PaymentIntent ID", class: "text-xs font-semibold text-medical-navy" %>
                     <%= form.text_field :payment_intent_id, value: payment.provider_payment_id, required: true, pattern: "pi_[a-zA-Z0-9_]+", autocomplete: "off", placeholder: "pi_...", class: "w-full rounded-xl border border-medical-border bg-white px-3 py-2 text-sm text-medical-navy focus:border-medical-teal focus:outline-none focus:ring-2 focus:ring-medical-teal/20" %>

@@ -3,6 +3,10 @@ module Staff
     before_action :require_staff_administrator
 
     def index
+      load_queue
+    end
+
+    def load_queue
       practice_payment_ids = Payment.where(
         patient_id: current_practice.patients.select(:id)
       ).or(
@@ -215,6 +219,22 @@ module Staff
     end
 
     private
+
+    def redirect_to(options = {}, response_options = {})
+      if request.format.turbo_stream? && options == practice_booking_payment_reconciliations_path
+        load_queue
+        flash.now[:notice] = response_options[:notice]
+        flash.now[:alert] = response_options[:alert]
+        return render turbo_stream: [
+          turbo_stream.replace("booking-payment-reconciliation-content",
+            partial: "staff/booking_payment_reconciliations/content"),
+          turbo_stream.update("booking-payment-reconciliation-flash",
+            partial: "staff/booking_payment_reconciliations/flash")
+        ]
+      end
+
+      super
+    end
 
     def require_staff_administrator
       head :forbidden unless current_staff_member.staff_administration_access?

@@ -9,6 +9,32 @@ RSpec.describe "Staff unresolved booking payment review", type: :request do
       active: true, access_level: "staff_admin")
   end
 
+  it "refuses abandoned cancellation when the Stripe amount differs" do
+    patient = create(:patient, practice: practice)
+    payment = create(:payment, appointment: nil, patient: patient,
+      status: "processing", provider_payment_id: "pi_wrong_cancel_amount")
+    payment.update_columns(updated_at: 20.minutes.ago)
+
+    intent = instance_double(Stripe::PaymentIntent,
+      id: "pi_wrong_cancel_amount", status: "requires_payment_method",
+      amount: payment.amount_cents + 100, currency: payment.currency.downcase,
+      metadata: { "payment_id" => payment.id.to_s })
+    allow(Stripe::PaymentIntent).to receive(:retrieve)
+      .with("pi_wrong_cancel_amount").and_return(intent)
+    expect(Stripe::PaymentIntent).not_to receive(:cancel)
+
+    sign_in user
+    expect {
+      post "/practice/booking_payment_reconciliations/#{payment.id}/cancel",
+        params: { payment_intent_id: "pi_wrong_cancel_amount" }
+    }.not_to change(Appointment, :count)
+
+    expect(response).to redirect_to(practice_booking_payment_reconciliations_path)
+    expect(payment.reload.status).to eq("processing")
+    expect(AuditEvent.where(practice: practice, auditable: payment,
+      action: "stripe_payment.abandoned_cancelled")).to be_empty
+  end
+
   it "refuses abandoned cancellation when Stripe metadata belongs to another payment" do
     patient = create(:patient, practice: practice)
     payment = create(:payment, appointment: nil, patient: patient,

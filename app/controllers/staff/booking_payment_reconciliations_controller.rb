@@ -55,7 +55,20 @@ module Staff
           alert: "Stripe cancellation was not confirmed. Manual review required."
       end
 
-      Payments::HandleFailed.new(payment_intent: cancelled_intent).call
+      begin
+        Payments::HandleFailed.new(payment_intent: cancelled_intent).call
+      rescue ActiveRecord::ActiveRecordError => error
+        AuditEvent.create!(
+          practice: current_practice,
+          user: current_user,
+          auditable: payment,
+          action: "stripe_payment.cancellation_reconciliation_failed",
+          metadata: { payment_intent_id: intent_id, error_class: error.class.name }
+        )
+        return redirect_to practice_booking_payment_reconciliations_path,
+          alert: "Stripe cancellation confirmed, but local reconciliation failed. Manual review required."
+      end
+
       unless payment.reload.status == "failed"
         return redirect_to practice_booking_payment_reconciliations_path,
           alert: "Payment was not closed as abandoned. Review the current payment outcome."

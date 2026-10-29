@@ -9,6 +9,38 @@ RSpec.describe "Staff unresolved booking payment review", type: :request do
       active: true, access_level: "staff_admin")
   end
 
+  it "cancels an abandoned Stripe intent before closing its unresolved local payment" do
+    patient = create(:patient, practice: practice)
+    payment = create(:payment, appointment: nil, patient: patient,
+      status: "processing", provider_payment_id: "pi_abandoned_test")
+    payment.update_columns(updated_at: 20.minutes.ago)
+
+    intent = instance_double(Stripe::PaymentIntent,
+      id: "pi_abandoned_test", status: "requires_payment_method",
+      amount: payment.amount_cents, currency: payment.currency.downcase,
+      metadata: { "payment_id" => payment.id.to_s })
+    cancelled_intent = instance_double(Stripe::PaymentIntent,
+      id: "pi_abandoned_test", status: "canceled",
+      amount: payment.amount_cents, currency: payment.currency.downcase,
+      metadata: { "payment_id" => payment.id.to_s })
+
+    allow(Stripe::PaymentIntent).to receive(:retrieve)
+      .with("pi_abandoned_test").and_return(intent)
+    expect(Stripe::PaymentIntent).to receive(:cancel)
+      .with("pi_abandoned_test").and_return(cancelled_intent)
+
+    sign_in user
+    expect {
+      post "/practice/booking_payment_reconciliations/#{payment.id}/cancel",
+        params: { payment_intent_id: "pi_abandoned_test" }
+    }.not_to change(Appointment, :count)
+
+    expect(response).to redirect_to(practice_booking_payment_reconciliations_path)
+    expect(payment.reload.status).to eq("failed")
+    expect(AuditEvent.where(practice: practice, auditable: payment,
+      user: user, action: "stripe_payment.abandoned_cancelled").count).to eq(1)
+  end
+
   it "shows an actionable Stripe verification form for an eligible unresolved payment" do
     patient = create(:patient, practice: practice)
     payment = create(:payment, appointment: nil, patient: patient,

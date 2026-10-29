@@ -41,7 +41,7 @@ module PatientPortal
     def set_link
       @link = current_patient_account.patient_account_links.approved
         .includes(:patient, :practice).first
-      head :forbidden unless @link && @link.patient.practice_id == @link.practice_id
+      render_access_unavailable unless @link && @link.patient.practice_id == @link.practice_id
     end
 
     def set_appointment

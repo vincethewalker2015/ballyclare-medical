@@ -294,6 +294,28 @@ RSpec.describe "Staff unresolved booking payment review", type: :request do
       user: user, action: "stripe_payment.abandoned_cancelled").count).to eq(1)
   end
 
+  it "shows a separate explicit cancellation form for a stale Stripe payment with an intent ID" do
+    patient = create(:patient, practice: practice)
+    payment = create(:payment, appointment: nil, patient: patient,
+      status: "processing", provider_payment_id: "pi_abandoned_ui")
+    payment.update_columns(updated_at: 20.minutes.ago)
+
+    sign_in user
+    get practice_booking_payment_reconciliations_path
+
+    expect(response).to have_http_status(:ok)
+    document = Nokogiri::HTML(response.body)
+    cancel_form = document.at_css(
+      "form[action='/practice/booking_payment_reconciliations/#{payment.id}/cancel'][method='post']"
+    )
+    expect(cancel_form).to be_present
+    expect(cancel_form.at_css("input[name='payment_intent_id'][value='pi_abandoned_ui']")).to be_present
+    expect(cancel_form.text).to include("Cancel abandoned payment")
+    expect(document.at_css(
+      "form[action='#{verify_practice_booking_payment_reconciliation_path(payment)}']"
+    )).to be_present
+  end
+
   it "shows an actionable Stripe verification form for an eligible unresolved payment" do
     patient = create(:patient, practice: practice)
     payment = create(:payment, appointment: nil, patient: patient,

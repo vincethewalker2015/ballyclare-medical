@@ -1,6 +1,6 @@
 <% content_for :title, "Payment history | Ballyclare Medical" %>
 <main class="mx-auto max-w-5xl px-6 py-10 lg:py-12">
-  <p class="text-xs font-semibold uppercase tracking-[0.2em] text-medical-teal">Patient portal</p>
+  <p class="text-xs font-semibold uppercase tracking-[0.2em] text-medical-teal">Patient portal · <%= @patient.first_name %> <%= @patient.last_name %></p>
   <h1 class="mt-3 text-3xl font-semibold text-medical-navy">Payment history</h1>
   <p class="mt-2 text-medical-muted">Payments and refunds recorded for your appointments. Amounts are shown in their recorded currency.</p>
   <%= link_to "Back to patient portal", patient_portal_path, class: "mt-4 inline-block text-sm font-semibold text-medical-teal underline" %>

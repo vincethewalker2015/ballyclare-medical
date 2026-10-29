@@ -17,6 +17,15 @@ module Staff
         .where("payments.updated_at <= ?", 15.minutes.ago)
         .order(updated_at: :asc, id: :asc)
         .limit(100)
+
+      @stripe_verifications = AuditEvent
+        .where(practice: current_practice, auditable_type: "Payment",
+          auditable_id: @payments.map(&:id),
+          action: %w[stripe_payment.verification_matched stripe_payment.verification_unavailable])
+        .order(created_at: :desc, id: :desc)
+        .each_with_object({}) do |event, latest|
+          latest[event.auditable_id] ||= event
+        end
     end
 
 

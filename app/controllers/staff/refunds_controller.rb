@@ -16,7 +16,6 @@ module Staff
         .includes(payment: [ :patient, :guest_booking, :appointment ])
         .order(created_at: :desc, id: :desc)
         .limit(100)
-
     end
 
     private

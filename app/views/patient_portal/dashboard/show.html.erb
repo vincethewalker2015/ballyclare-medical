@@ -124,6 +124,9 @@
             <li class="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
               <span class="text-medical-muted">Appointment on <%= appointment.appointment_slot.starts_at.in_time_zone(@dashboard.practice.timezone).strftime("%-d %B %Y") %></span>
               <strong class="text-medical-navy"><%= number_to_currency(balance[:balance_cents] / 100.0, unit: balance[:currency] == "GBP" ? "£" : "#{balance[:currency]} ") %></strong>
+              <% unless appointment.status == "cancelled" %>
+                <%= link_to "Pay balance", patient_portal_outstanding_payment_path(appointment), class: "font-semibold text-medical-teal underline" %>
+              <% end %>
             </li>
           <% end %>
         </ul>

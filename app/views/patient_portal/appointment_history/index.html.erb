@@ -1,0 +1,31 @@
+<% content_for :title, "Appointment history | Ballyclare Medical" %>
+<main class="mx-auto max-w-5xl px-6 py-10 lg:py-12">
+  <header class="mb-8">
+    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-medical-teal">Patient portal</p>
+    <h1 class="mt-3 text-3xl font-semibold text-medical-navy">Your appointment history</h1>
+    <p class="mt-2 text-medical-muted">Upcoming, past and cancelled appointments. Dates and times use your practice's local timezone.</p>
+    <%= link_to "Back to patient portal", patient_portal_path, class: "mt-4 inline-block text-sm font-semibold text-medical-teal underline" %>
+  </header>
+
+  <% { "Upcoming appointments" => @upcoming_appointments, "Past and cancelled appointments" => @past_appointments }.each do |heading, appointments| %>
+    <section class="mb-8 rounded-2xl border border-medical-border bg-white p-6 shadow-sm" aria-label="<%= heading %>">
+      <h2 class="text-xl font-semibold text-medical-navy"><%= heading %></h2>
+      <% if appointments.empty? %>
+        <p class="mt-4 text-sm text-medical-muted">No appointments to display.</p>
+      <% else %>
+        <ul class="mt-4 divide-y divide-medical-border">
+          <% appointments.each do |appointment| %>
+            <% local_start = appointment.appointment_slot.starts_at.in_time_zone(@practice.timezone) %>
+            <li class="flex flex-wrap items-center justify-between gap-4 py-4">
+              <div>
+                <p class="font-semibold text-medical-navy"><%= local_start.strftime("%A %-d %B %Y, %-I:%M %p") %></p>
+                <p class="mt-1 text-sm text-medical-muted"><%= appointment.clinician.full_name %></p>
+              </div>
+              <span class="rounded-full bg-medical-cream px-3 py-1 text-sm font-medium text-medical-navy"><%= appointment.status.humanize %></span>
+            </li>
+          <% end %>
+        </ul>
+      <% end %>
+    </section>
+  <% end %>
+</main>

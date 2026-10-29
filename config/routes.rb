@@ -6,6 +6,8 @@ Rails.application.routes.draw do
   get "/book/details", to: "guest_bookings#new", as: :new_guest_booking
   get "/book/review", to: "guest_bookings#review", as: :guest_booking_review
   post "/book/checkout", to: "guest_bookings#checkout", as: :guest_booking_checkout
+  post "/book/emergency-unpaid", to: "guest_bookings#emergency_unpaid", as: :guest_booking_emergency_unpaid
+  get "/book/emergency-confirmation", to: "guest_bookings#emergency_confirmation", as: :guest_booking_emergency_confirmation
   get "/book/payments/:id", to: "guest_bookings#payment_status", as: :guest_booking_payment
   post "/book/details", to: "guest_bookings#create", as: :guest_booking_details
 
@@ -25,6 +27,8 @@ Rails.application.routes.draw do
   get "/patient-portal/payments/:id", to: "patient_portal/appointment_payments#show", as: :patient_portal_payment
   get "/patient-portal/appointment-holds/:appointment_hold_id/payment", to: "patient_portal/appointment_payments#checkout"
   post "/patient-portal/appointment-holds/:appointment_hold_id/payment", to: "patient_portal/appointment_payments#create", as: :patient_portal_appointment_hold_payment
+  post "/patient-portal/appointment-holds/:appointment_hold_id/emergency-unpaid", to: "patient_portal/emergency_bookings#create", as: :patient_portal_emergency_unpaid_booking
+  get "/patient-portal/emergency-bookings/:id", to: "patient_portal/emergency_bookings#show", as: :patient_portal_emergency_booking
   resources :patient_portal_appointment_holds, path: "/patient-portal/appointment-holds", module: :patient_portal, controller: :appointment_holds, only: %i[create show]
 
   get "/staff/invitation/accept", to: "staff/invitations#edit", as: :edit_staff_invitation
@@ -40,8 +44,15 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
   scope "/practice", module: "staff", as: "practice" do
+  resource :stripe_outage, path: "stripe-outage", only: %i[show create update], controller: "stripe_outages"
   resource :consultation_fees, only: %i[edit update], controller: "consultation_fees"
   resources :refunds, only: %i[index]
+  resources :booking_payment_reconciliations, only: %i[index] do
+    member do
+      post :verify
+      post :cancel
+    end
+  end
   resources :patients, only: %i[index show new create edit update]
   resources :patient_account_requests, only: %i[index show] do
     member do

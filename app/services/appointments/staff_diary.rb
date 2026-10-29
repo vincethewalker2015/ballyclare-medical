@@ -69,7 +69,7 @@ module Appointments
         relation.where("appointment_slots.starts_at >= ?", today_start + 1.day)
           .order("appointment_slots.starts_at ASC")
       when "payment_due"
-        relation.where(status: "completed").order("appointment_slots.starts_at DESC")
+        relation.where(status: %w[booked completed]).order("appointment_slots.starts_at DESC")
       when "past"
         relation.where("appointment_slots.starts_at < ?", today_start)
           .order("appointment_slots.starts_at DESC")

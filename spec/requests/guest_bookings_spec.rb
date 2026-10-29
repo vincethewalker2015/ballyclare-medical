@@ -80,4 +80,43 @@ RSpec.describe "Guest booking entry", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.parsed_body.css("ul li").map { |item| item.text.squish }).not_to include(practice.name)
   end
+  it "preserves an unresolved Stripe PaymentIntent without reopening guest checkout" do
+    practice = create(:practice)
+    clinician = create(:staff_member, practice: practice, staff_type: "doctor")
+    create(:consultation_fee, practice: practice, clinician_type: "doctor")
+    starts_at = 3.days.from_now.change(hour: 10, min: 0)
+    block = create(:availability_block, practice: practice, clinician: clinician,
+      starts_at: starts_at - 1.hour, ends_at: starts_at + 1.hour, bookable_online: true)
+    slot = create(:appointment_slot, practice: practice, clinician: clinician,
+      availability_block: block, starts_at: starts_at, ends_at: starts_at + 20.minutes)
+
+    post guest_booking_details_path, params: { guest_booking: {
+      appointment_slot_id: slot.id, first_name: "Guest", last_name: "Visitor",
+      date_of_birth: "1990-01-01", email: "guest@example.com",
+      phone: "07700900123", consultation_reason: "Consultation"
+    } }
+    guest = GuestBooking.order(:created_at).last
+    hold = GuestBookings::ReserveSlot.new(guest_booking: guest).call
+    payment = Payment.create!(
+      appointment_hold: hold, guest_booking: guest, provider: "stripe",
+      currency: practice.currency, amount_cents: 6_500, status: "processing",
+      provider_payment_id: "pi_existing_guest", idempotency_key: SecureRandom.uuid
+    )
+    original_key = payment.idempotency_key
+
+    expect(Stripe::PaymentIntent).not_to receive(:create)
+    expect(Stripe::PaymentIntent).not_to receive(:retrieve)
+
+    expect { post guest_booking_checkout_path }.not_to change(Payment, :count)
+    expect(response).to redirect_to(guest_booking_review_path)
+    expect(payment.reload.provider_payment_id).to eq("pi_existing_guest")
+    expect(payment.idempotency_key).to eq(original_key)
+    expect(payment.status).to eq("processing")
+    expect(Appointment.count).to eq(0)
+
+    get guest_booking_review_path
+    expect(response.body).to include("Payment verification pending")
+    expect(response.body).not_to include("Continue to secure payment")
+    expect(response.body).not_to include("Book now — pay later")
+  end
 end

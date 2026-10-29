@@ -1,0 +1,11 @@
+<% content_for :title, "Booked — Unpaid | Ballyclare Medical" %>
+<main class="mx-auto max-w-3xl px-6 py-12">
+  <section class="rounded-3xl border border-medical-border bg-white p-7 shadow-sm sm:p-10">
+    <h1 class="text-3xl font-semibold text-medical-navy">Booked — Unpaid</h1>
+    <p class="mt-4 text-medical-muted">Your appointment is booked, but payment remains outstanding. The practice will arrange payment separately. You have not been charged online for this booking.</p>
+    <p class="mt-5 font-semibold text-medical-navy"><%= @appointment.clinician.full_name %></p>
+    <p class="mt-2 text-medical-muted"><%= @appointment.appointment_slot.starts_at.in_time_zone(@appointment.practice.timezone).strftime("%A %-d %B %Y, %H:%M") %></p>
+    <p class="mt-5 font-semibold text-medical-navy">Outstanding balance: <%= @charge.currency %> <%= number_with_precision(@charge.amount_cents / 100.0, precision: 2) %></p>
+    <%= link_to "Back to appointment search", guest_booking_path, class: "mt-6 inline-block rounded-xl bg-medical-navy px-6 py-3 text-sm font-semibold text-white" %>
+  </section>
+</main>

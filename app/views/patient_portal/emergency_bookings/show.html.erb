@@ -1,0 +1,12 @@
+<% content_for :title, "Emergency appointment confirmation | Ballyclare Medical" %>
+<main class="mx-auto max-w-3xl px-6 py-12">
+  <section class="rounded-2xl border border-medical-border bg-white p-8 shadow-sm">
+    <p class="text-xs font-semibold uppercase tracking-widest text-medical-teal">Patient portal · Appointment confirmation</p>
+    <h1 class="mt-4 text-3xl font-semibold text-medical-navy">Booked — Unpaid</h1>
+    <p class="mt-4 text-medical-muted">Your appointment is confirmed, but payment remains outstanding. The practice will arrange payment separately.</p>
+    <p class="mt-6 text-medical-navy"><strong>Appointment:</strong> <%= @appointment.appointment_slot.starts_at.in_time_zone(@appointment.practice.timezone).strftime("%A %-d %B %Y at %-I:%M %p") %></p>
+    <p class="mt-2 text-medical-navy"><strong>Clinician:</strong> <%= @appointment.clinician.full_name %></p>
+    <p class="mt-2 text-medical-navy"><strong>Outstanding charge:</strong> <%= number_to_currency(@charge.amount_cents / 100.0, unit: "£") %></p>
+    <%= link_to "Back to patient portal", patient_portal_path, class: "mt-8 inline-block rounded-xl bg-medical-navy px-6 py-3 font-semibold text-white" %>
+  </section>
+</main>

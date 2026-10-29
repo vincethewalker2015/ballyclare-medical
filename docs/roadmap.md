@@ -656,6 +656,61 @@ Future work should include:
 -   audit trail;
 -   safe presentation to patients where applicable.
 
+### Clinician consultation workspace — required before Phase 7
+
+**Status: Planned — Phase 6 completion requirement**
+
+Build a clinician-focused workflow within the existing `/practice` workspace.
+A clinician must be able to open an authorised appointment, begin its clinical
+encounter, document the consultation, and safely complete it. The presence of
+`Encounter` and `ClinicalNote` models alone does not satisfy this requirement.
+
+**Consultation workflow:**
+
+1. From the clinician's appointment list, open the correct patient and
+   appointment with practice-scoped authorisation.
+2. Review relevant patient demographics, appointment reason, clinical history
+   and previous notes only where access is permitted.
+3. Start the consultation, record the responsible clinician and start time,
+   and transition the appointment through the authorised lifecycle.
+4. Create and edit a **draft** consultation note, including presenting
+   complaint/history, examination findings, assessment, plan, advice and
+   follow-up as appropriate. Avoid requiring every section for every practice
+   or consultation type.
+5. Save drafts safely without losing entered information; make the draft
+   state clear and prevent duplicate encounters or notes on repeated requests.
+6. Finalise/sign the clinical note with author and timestamp. A signed note
+   must not be silently overwritten: subsequent corrections use an attributed,
+   timestamped amendment or addendum with preserved history.
+7. Complete the encounter and appointment through validated transitions.
+   Support an explicit interrupted/unfinished consultation state so clinical
+   documentation is not lost or falsely marked complete.
+
+**Clinical safety, privacy and acceptance requirements:**
+
+- Enforce role, clinician assignment, patient, appointment and practice
+  permissions on every read and write; do not expose notes through ordinary
+  administrative or patient-portal views by default.
+- Record meaningful access, creation, changes, signing, amendments and
+  completion in an appropriate audit trail, with actor and timestamps.
+- Prevent cross-practice access, unauthorised edits, accidental overwrites,
+  duplicate submissions and invalid state transitions; cover concurrent edits
+  and stale-form submissions.
+- Keep clinical notes separate from billing and payment state. A consultation
+  may proceed or be completed while a balance remains outstanding.
+- Provide usable keyboard-accessible forms, clear validation and recovery
+  from interrupted sessions; use practice-local times for display.
+- Define an explicit policy for patient visibility and release of notes or
+  documents rather than automatically exposing draft or signed notes.
+- Verify the full clinician journey with request/service tests, permission
+  and audit tests, and manual browser acceptance before marking Phase 6 done.
+
+**Phase gate:** Complete and sign off this core clinician consultation and
+clinical-note workflow **before starting the broader Phase 7 fee/service
+catalogue**. Advanced clinical features (for example prescriptions, referrals,
+orders and structured coding) should be separately scoped rather than assumed
+part of this initial consultation milestone.
+
 ------------------------------------------------------------------------
 
 ## Phase 7 --- Charges, Services, and Practice Fee Catalogue

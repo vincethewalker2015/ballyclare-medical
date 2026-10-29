@@ -8,9 +8,21 @@
       <p class="font-semibold text-medical-navy"><%= @guest_booking.appointment_slot.clinician.full_name %></p>
       <p class="mt-2 text-sm text-medical-muted"><%= @guest_booking.appointment_slot.starts_at.in_time_zone(@guest_booking.practice.timezone).strftime("%A %-d %B %Y, %H:%M") %></p>
     </div>
-    <p class="mt-6 text-sm text-medical-muted">Your appointment is confirmed only after successful payment. No clinical Patient record is created before payment.</p>
+    <% if @payment_verification_pending %>
+      <p class="mt-6 text-sm text-medical-muted">Payment verification pending. We are checking the outcome of your previous payment attempt. Do not start another payment or booking. Please contact the practice if you need assistance.</p>
+    <% elsif @emergency_unpaid_available %>
+      <p class="mt-6 text-sm text-medical-muted">Stripe payments are temporarily unavailable. You may book now, but payment remains outstanding and the practice will arrange payment separately.</p>
+    <% else %>
+      <p class="mt-6 text-sm text-medical-muted">Your appointment is confirmed only after successful payment. No clinical Patient record is created before payment.</p>
+    <% end %>
     <% if @guest_booking.status == "draft" || @guest_booking.appointment_hold&.expires_at&.future? %>
-      <%= button_to "Continue to secure payment", guest_booking_checkout_path, class: "mt-6 rounded-xl bg-medical-navy px-6 py-3 text-sm font-semibold text-white", data: { turbo: false } %>
+      <% if @payment_verification_pending %>
+        <p class="mt-4 text-sm text-medical-muted">Payment verification pending</p>
+      <% elsif @emergency_unpaid_available %>
+        <%= button_to "Book now — pay later", guest_booking_emergency_unpaid_path, class: "mt-6 rounded-xl bg-medical-navy px-6 py-3 text-sm font-semibold text-white", data: { turbo: false } %>
+      <% else %>
+        <%= button_to "Continue to secure payment", guest_booking_checkout_path, class: "mt-6 rounded-xl bg-medical-navy px-6 py-3 text-sm font-semibold text-white", data: { turbo: false } %>
+      <% end %>
     <% else %>
       <p class="mt-4 text-sm text-medical-muted">Your reservation has expired. Please select another time.</p>
     <% end %>

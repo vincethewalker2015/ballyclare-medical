@@ -537,7 +537,7 @@ RSpec.describe "Practice appointments", type: :request do
         expect(response.body).not_to include("Today appointment")
       end
 
-      it "lists completed appointments with money due regardless of appointment date" do
+      it "lists booked and completed appointments with money due regardless of appointment date" do
         appointments = {}
 
         Time.use_zone(practice.timezone) do
@@ -589,7 +589,7 @@ RSpec.describe "Practice appointments", type: :request do
         diary = response.parsed_body.at_css("turbo-frame#appointment_diary_list")
         expect(diary.text).to include("Outstanding completed consultation")
         expect(diary.text).not_to include("Paid completed consultation")
-        expect(diary.text).not_to include("Unpaid future booking")
+        expect(diary.text).to include("Unpaid future booking")
       end
 
       it "filters payment due appointments by clinician" do

@@ -2,6 +2,39 @@ require "rails_helper"
 
 RSpec.describe ReconcileProcessingRefundsJob, type: :job do
   describe "#perform" do
+    it "recovers a completed partial refund after a missing webhook without issuing another refund" do
+      payment = create(:payment, status: "succeeded", provider: "stripe",
+        provider_payment_id: "pi_missing_refund_webhook",
+        amount_cents: 5000, currency: "GBP", paid_at: Time.current)
+      refund = create(:refund, payment: payment, amount_cents: 2000,
+        currency: "GBP", status: "processing",
+        provider_refund_id: "re_missing_webhook", refunded_at: nil)
+      refund.update_columns(updated_at: 20.minutes.ago)
+
+      stripe_refund = Stripe::Refund.construct_from(
+        id: "re_missing_webhook", object: "refund",
+        amount: 2000, currency: "gbp", status: "succeeded",
+        payment_intent: "pi_missing_refund_webhook"
+      )
+
+      expect(Stripe::Refund).to receive(:retrieve)
+        .with("re_missing_webhook").once.and_return(stripe_refund)
+      expect(Stripe::Refund).not_to receive(:create)
+
+      described_class.new.perform
+
+      first_refunded_at = refund.reload.refunded_at
+      expect(refund.status).to eq("succeeded")
+      expect(first_refunded_at).to be_present
+      expect(Refund.where(payment_id: payment.id).count).to eq(1)
+      expect(Refund.where(payment_id: payment.id, status: "succeeded").sum(:amount_cents)).to eq(2000)
+
+      described_class.new.perform
+
+      expect(refund.reload.refunded_at).to eq(first_refunded_at)
+      expect(Refund.where(payment_id: payment.id).count).to eq(1)
+    end
+
     it "reconciles a successful Stripe refund without an appointment" do
       payment = create(:payment,
         appointment: nil,

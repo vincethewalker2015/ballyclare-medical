@@ -67,7 +67,7 @@ RSpec.describe "Patient portal hold payments", type: :request do
     expect(response.body).to include("Find another appointment")
   end
 
-  it "allows a safe checkout refresh without creating another payment" do
+  it "redirects checkout refresh for an unresolved payment without creating another payment" do
     hold = slot.hold_for!(patient: patient)
     sign_in account, scope: :patient_account
     allow(Stripe::PaymentIntent).to receive(:create).and_return(
@@ -75,51 +75,89 @@ RSpec.describe "Patient portal hold payments", type: :request do
     )
     post patient_portal_appointment_hold_payment_path(hold)
     expect(response).to have_http_status(:ok)
-    allow(Stripe::PaymentIntent).to receive(:retrieve).with("pi_refresh_test").and_return(
-      instance_double(Stripe::PaymentIntent, client_secret: "pi_refresh_secret")
-    )
+    payment = Payment.last
+    original_key = payment.idempotency_key
+
+    expect(Stripe::PaymentIntent).not_to receive(:retrieve)
+    expect {
+      get patient_portal_appointment_hold_payment_path(hold)
+    }.not_to change(Payment, :count)
+
+    expect(response).to redirect_to(patient_portal_appointment_hold_path(hold))
+    expect(payment.reload.provider_payment_id).to eq("pi_refresh_test")
+    expect(payment.idempotency_key).to eq(original_key)
+    expect(payment.status).to eq("processing")
+    expect(Appointment.count).to eq(0)
+  end
+
+  it "does not reopen an unresolved Stripe PaymentIntent through the checkout refresh URL" do
+    hold = slot.hold_for!(patient: patient)
+    payment = create(:payment, appointment: nil, appointment_hold: hold,
+      patient: patient, amount_cents: 6_500, status: "processing",
+      provider_payment_id: "pi_patient_refresh_pending")
+    original_key = payment.idempotency_key
+    sign_in account, scope: :patient_account
+
+    expect(Stripe::PaymentIntent).not_to receive(:create)
+    expect(Stripe::PaymentIntent).not_to receive(:retrieve)
 
     expect {
       get patient_portal_appointment_hold_payment_path(hold)
     }.not_to change(Payment, :count)
 
-    expect(response).to have_http_status(:ok)
-    expect(response.body).to include("Pay for your appointment")
+    expect(response).to redirect_to(patient_portal_appointment_hold_path(hold))
+    expect(payment.reload.provider_payment_id).to eq("pi_patient_refresh_pending")
+    expect(payment.idempotency_key).to eq(original_key)
+    expect(payment.status).to eq("processing")
+    expect(Appointment.count).to eq(0)
   end
 
-  it "does not initiate two payments for the same reservation" do
+  it "does not initiate two payments or reopen checkout for the same reservation" do
     hold = slot.hold_for!(patient: patient)
     sign_in account, scope: :patient_account
-    allow(Stripe::PaymentIntent).to receive(:create).and_return(
-      instance_double(Stripe::PaymentIntent, id: "pi_patient_test", client_secret: "pi_secret_test")
-    )
-    post patient_portal_appointment_hold_payment_path(hold)
+    intent = instance_double(Stripe::PaymentIntent, id: "pi_patient_test", client_secret: "pi_secret_test")
+    expect(Stripe::PaymentIntent).to receive(:create).once.and_return(intent)
+    expect(Stripe::PaymentIntent).not_to receive(:retrieve)
+
     post patient_portal_appointment_hold_payment_path(hold)
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("Pay for your appointment")
-    expect(Payment.count).to eq(1)
-  end
-
-  it "retries an interrupted Stripe request with the same idempotency key" do
-    hold = slot.hold_for!(patient: patient)
-    sign_in account, scope: :patient_account
-    intent = instance_double(Stripe::PaymentIntent, id: "pi_patient_retry", client_secret: "pi_secret_retry")
-    attempts = 0
-    allow(Stripe::PaymentIntent).to receive(:create) do
-      attempts += 1
-      raise Stripe::APIConnectionError.new("Temporary Stripe connection failure") if attempts == 1
-      intent
-    end
+    payment = Payment.last
+    original_key = payment.idempotency_key
 
     post patient_portal_appointment_hold_payment_path(hold)
     expect(response).to redirect_to(patient_portal_appointment_hold_path(hold))
-    payment = Payment.last
-    expect(payment.status).to eq("pending")
-
-    post patient_portal_appointment_hold_payment_path(hold)
-    expect(response).to have_http_status(:ok)
     expect(Payment.count).to eq(1)
-    expect(payment.reload.provider_payment_id).to eq("pi_patient_retry")
+    expect(Appointment.count).to eq(0)
+    expect(payment.reload.provider_payment_id).to eq("pi_patient_test")
+    expect(payment.idempotency_key).to eq(original_key)
+  end
+
+  it "preserves an interrupted Stripe request without retrying through another payment POST" do
+    hold = slot.hold_for!(patient: patient)
+    sign_in account, scope: :patient_account
+    expect(Stripe::PaymentIntent).to receive(:create).once.and_raise(
+      Stripe::APIConnectionError.new("Temporary Stripe connection failure")
+    )
+    expect(Stripe::PaymentIntent).not_to receive(:retrieve)
+
+    expect {
+      post patient_portal_appointment_hold_payment_path(hold)
+    }.not_to change(Appointment, :count)
+    expect(response).to redirect_to(patient_portal_appointment_hold_path(hold))
+    payment = Payment.last
+    original_key = payment.idempotency_key
+    expect(payment.status).to eq("pending")
+    expect(payment.appointment_id).to be_nil
+    expect(AppointmentHold.exists?(hold.id)).to be(true)
+
+    expect {
+      post patient_portal_appointment_hold_payment_path(hold)
+    }.not_to change(Appointment, :count)
+    expect(response).to redirect_to(patient_portal_appointment_hold_path(hold))
+    expect(Payment.count).to eq(1)
+    expect(payment.reload.status).to eq("pending")
+    expect(payment.provider_payment_id).to be_nil
+    expect(payment.idempotency_key).to eq(original_key)
   end
 
   it "refuses to charge an expired hold" do
@@ -211,5 +249,31 @@ RSpec.describe "Patient portal hold payments", type: :request do
     post patient_portal_appointment_hold_payment_path(hold)
     expect(response).to have_http_status(:not_found)
     expect(Payment.count).to eq(0)
+  end
+  it "preserves an unresolved Stripe PaymentIntent without reopening patient checkout" do
+    hold = slot.hold_for!(patient: patient)
+    payment = create(:payment, appointment: nil, appointment_hold: hold,
+      patient: patient, amount_cents: 6_500, status: "processing",
+      provider_payment_id: "pi_existing_patient")
+    original_key = payment.idempotency_key
+    sign_in account, scope: :patient_account
+
+    expect(Stripe::PaymentIntent).not_to receive(:create)
+    expect(Stripe::PaymentIntent).not_to receive(:retrieve)
+
+    expect {
+      post patient_portal_appointment_hold_payment_path(hold)
+    }.not_to change(Payment, :count)
+
+    expect(response).to redirect_to(patient_portal_appointment_hold_path(hold))
+    expect(payment.reload.provider_payment_id).to eq("pi_existing_patient")
+    expect(payment.idempotency_key).to eq(original_key)
+    expect(payment.status).to eq("processing")
+    expect(Appointment.count).to eq(0)
+
+    get patient_portal_appointment_hold_path(hold)
+    expect(response.body).to include("Payment verification pending")
+    expect(response.body).not_to include("Continue to secure payment")
+    expect(response.body).not_to include("Book now — pay later")
   end
 end

@@ -12,6 +12,7 @@ Ballyclare Medical. It is being expanded as new features become available.
 - [Booking an Appointment](#booking-an-appointment)
 - [Cancelling an Appointment](#cancelling-an-appointment)
 - [Payments and Refunds](#payments-and-refunds)
+- [Stripe Booking Payment Reconciliation](#stripe-booking-payment-reconciliation)
 - [Clinician Availability](#clinician-availability)
 - [User and Staff Administration](#user-and-staff-administration)
 - [Troubleshooting](#troubleshooting)
@@ -173,6 +174,48 @@ If Stripe collects payment but an online appointment cannot be created
 (for example, because its hold expired), the payment can be marked
 `requires_refund`. Payment and refund history is retained separately
 from appointment records in this case.
+
+## Stripe Booking Payment Reconciliation
+
+**For Staff Admins and Senior Staff Admins.** Open **Booking payment reconciliation** from the practice navigation, or visit `/practice/booking_payment_reconciliations`. This is an administrative review queue for unresolved **online Stripe booking payments**, not a tool for taking a new payment or issuing a refund.
+
+### When a payment appears
+
+The queue shows Stripe payments associated with your practice that have been **pending** or **processing** for at least 15 minutes and do not yet have an appointment attached. A payment can remain here when the booking process did not receive a definitive result from Stripe. The queue is limited to the 100 oldest matching payments.
+
+**Do not assume that an unresolved payment means the patient has not been charged.** Before starting any replacement booking or payment attempt, investigate the existing payment outcome. A Stripe timeout or unavailable verification is not grounds for creating an unpaid appointment.
+
+### Finding and verifying a payment
+
+1. Search by **patient name**, **guest name**, **payment reference** or **Stripe PaymentIntent ID**. The search is limited to payments for your practice.
+2. Check the matching payment reference, patient or booking details and local payment status.
+3. Review the PaymentIntent in the **correct Stripe account and mode** (live or test, as appropriate). Check the payment outcome and transaction details.
+4. In the **Stripe PaymentIntent ID** field, confirm the correct `pi_...` reference and select **Verify payment with Stripe**.
+5. Read the result and the **Stripe status (last checked)** column. Its timestamp refers to the **last audited verification**, not a continuously live Stripe status. Verify again if you need a fresh result.
+
+Verification checks the PaymentIntent against the local payment and records an audit event. **It does not create a new charge.** A confirmed successful payment may be recovered and reconciled with its booking; otherwise the payment remains unresolved until the appropriate next action is clear. Search and verification results update on the page without a full reload.
+
+### Cancelling an abandoned payment
+
+Use **Cancel abandoned payment** only when the original payment attempt is genuinely abandoned and you have checked the PaymentIntent in Stripe. Cancellation prevents further payment attempts using that PaymentIntent and cannot be undone. **It does not refund a successful payment.**
+
+1. Confirm the payment reference and PaymentIntent ID match the intended booking attempt.
+2. Confirm in Stripe that the PaymentIntent has **not succeeded** and is eligible for cancellation.
+3. Select **Cancel abandoned payment**.
+4. Read the confirmation dialog carefully and verify the exact PaymentIntent ID before continuing.
+5. Check the success message and the Stripe Dashboard. When cancellation is confirmed and the local outcome is reconciled, the payment disappears from the unresolved queue.
+
+The application also checks Stripe status, metadata, amount and currency before permitting cancellation. If the check or cancellation cannot be confirmed, the payment remains available for investigation; do not assume it was cancelled.
+
+### If Stripe is unavailable or the outcome is uncertain
+
+- Leave the payment unresolved and escalate according to your practice's payment investigation procedure.
+- **Do not repeat the charge**, create an emergency unpaid booking for the same existing payment attempt, or repeatedly press cancellation hoping for a different result.
+- Check the original PaymentIntent, any associated charge, and the local audit history before taking further action.
+- If a successful payment is discovered but no valid appointment can be created, use the established payment/refund investigation process rather than booking the appointment manually.
+- For failed or uncertain **refunds**, follow [Payments and Refunds](#payments-and-refunds); this reconciliation queue is not a refund retry facility.
+
+Only suitably authorised administrators can perform these actions, and reconciliation results are recorded for audit purposes.
 
 ## Clinician Availability
 

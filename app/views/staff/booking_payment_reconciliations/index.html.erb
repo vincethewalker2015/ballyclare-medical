@@ -1,0 +1,8 @@
+<% content_for :title, "Booking payment reconciliation | Ballyclare Medical" %>
+
+<div id="booking-payment-reconciliation-flash" aria-live="polite">
+  <%= render "flash" %>
+</div>
+<%= turbo_frame_tag "booking-payment-reconciliation-content" do %>
+  <%= render "content" %>
+<% end %>

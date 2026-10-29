@@ -1,0 +1,24 @@
+<h1>Stripe outage fallback</h1>
+
+<% if @outage_active %>
+  <p>Emergency unpaid online booking is active. The declaration expires automatically after 30 minutes.</p>
+  <%= form_with url: practice_stripe_outage_path, method: :patch do |form| %>
+    <div>
+      <%= form.label :reason, "Reason for ending the Stripe outage" %>
+      <%= form.text_area :reason, required: true %>
+    </div>
+    <%= form.submit "End Stripe outage now" %>
+  <% end %>
+<% else %>
+  <p>Emergency unpaid online booking is inactive. Normal online bookings require Stripe payment.</p>
+<% end %>
+
+<% unless @outage_active %>
+  <%= form_with url: practice_stripe_outage_path, method: :post do |form| %>
+    <div>
+      <%= form.label :reason, "Reason for declaring Stripe unavailable" %>
+      <%= form.text_area :reason, required: true %>
+    </div>
+    <%= form.submit "Declare Stripe outage for 30 minutes", data: { turbo_confirm: "Only declare an independently confirmed Stripe outage. Emergency bookings will be unpaid." } %>
+  <% end %>
+<% end %>

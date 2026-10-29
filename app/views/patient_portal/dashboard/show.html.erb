@@ -40,6 +40,11 @@
         <h2 class="mt-4 text-lg font-semibold text-medical-navy">View your appointments</h2>
         <p class="mt-1 text-sm text-medical-muted">See upcoming and previous appointments</p>
       <% end %>
+      <%= link_to patient_portal_payment_history_path, class: "group rounded-2xl border border-medical-border bg-white p-6 transition hover:border-medical-teal hover:shadow-sm" do %>
+        <div class="flex items-start justify-between"><span class="text-medical-navy" aria-hidden="true">▣</span></div>
+        <h2 class="mt-4 text-lg font-semibold text-medical-navy">Payment history and receipts</h2>
+        <p class="mt-1 text-sm text-medical-muted">Review payments, refunds and receipts</p>
+      <% end %>
       <a href="#outstanding-balances" class="group rounded-2xl border border-medical-border bg-white p-6 transition hover:border-medical-teal hover:shadow-sm">
         <div class="flex items-start justify-between">
           <span class="flex size-12 items-center justify-center rounded-full bg-amber-50 text-2xl text-medical-navy" aria-hidden="true">▣</span>

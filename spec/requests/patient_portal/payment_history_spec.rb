@@ -56,7 +56,8 @@ RSpec.describe "Patient portal payment history", type: :request do
   it "immediately revokes payment history and receipt access" do
     patient = create(:patient)
     link = approve(patient)
-    payment = create(:payment, patient: patient, status: "succeeded")
+    appointment = create(:appointment, patient: patient, practice: patient.practice)
+    payment = create(:payment, patient: patient, appointment: appointment, status: "succeeded")
     sign_in account, scope: :patient_account
     get patient_portal_payment_receipt_path(payment)
     expect(response).to have_http_status(:ok)

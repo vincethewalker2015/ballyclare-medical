@@ -57,8 +57,10 @@ RSpec.describe "Patient portal outstanding payments", type: :request do
     sign_in account, scope: :patient_account
     expect(Stripe::PaymentIntent).not_to receive(:create)
     [other, foreign].each do |record|
+      sign_in account, scope: :patient_account
       get patient_portal_outstanding_payment_path(record)
       expect(response).to have_http_status(:not_found)
+      sign_in account, scope: :patient_account
       post patient_portal_outstanding_payment_path(record)
       expect(response).to have_http_status(:not_found)
     end

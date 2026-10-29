@@ -47,7 +47,7 @@ RSpec.describe Payments::TakeHoldPayment do
     payment = hold.payments.sole
     expect(payment.status).to eq("pending")
     expect(payment.provider_payment_id).to be_nil
-    expect(seen_keys).to eq([payment.idempotency_key, payment.idempotency_key])
+    expect(seen_keys).to eq([ payment.idempotency_key, payment.idempotency_key ])
     expect(Appointment.where(appointment_slot: slot)).to be_empty
   end
 end

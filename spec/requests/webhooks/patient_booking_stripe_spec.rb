@@ -69,5 +69,4 @@ RSpec.describe "Patient booking Stripe webhook", type: :request do
     expect { deliver_event }.not_to change(Appointment, :count)
     expect(payment.reload.appointment.appointment_charges.count).to eq(1)
   end
-
 end

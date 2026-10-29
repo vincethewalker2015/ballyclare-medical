@@ -296,5 +296,4 @@ RSpec.describe "Patient portal checkout during a declared Stripe outage", type: 
     expect(payment.provider_payment_id).to be_nil
     expect(payment.idempotency_key).to eq(original_key)
   end
-
 end

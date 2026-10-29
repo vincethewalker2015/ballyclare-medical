@@ -179,5 +179,4 @@ RSpec.describe "Patient portal dashboard", type: :request do
     expect(response.body).to include("£65.00")
     expect(response.body.scan("Booked — Unpaid").size).to eq(2)
   end
-
 end

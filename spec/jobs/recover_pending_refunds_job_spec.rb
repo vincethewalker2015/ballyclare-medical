@@ -2,7 +2,6 @@ require "rails_helper"
 
 RSpec.describe RecoverPendingRefundsJob do
   describe "#perform" do
-
     it "does not automatically retry an old ambiguous pending refund beyond Stripe idempotency retention" do
       payment = create(:payment, status: "succeeded", provider: "stripe",
         provider_payment_id: "pi_old_ambiguous_refund",

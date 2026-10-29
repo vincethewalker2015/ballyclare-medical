@@ -2,7 +2,6 @@ require "rails_helper"
 
 RSpec.describe ReconcileProcessingRefundsJob, type: :job do
   describe "#perform" do
-
     it "recovers a completed partial refund after a missing webhook without issuing another refund" do
       payment = create(:payment, status: "succeeded", provider: "stripe",
         provider_payment_id: "pi_missing_refund_webhook",

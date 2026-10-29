@@ -26,7 +26,7 @@ RSpec.describe PatientPortal::CompleteEmergencyUnpaidBooking do
 
     ready = Queue.new
     start = Queue.new
-    workers = [first_hold.id, second_hold.id].map do |hold_id|
+    workers = [ first_hold.id, second_hold.id ].map do |hold_id|
       Thread.new do
         ActiveRecord::Base.connection_pool.with_connection do
           ready << true
@@ -52,8 +52,8 @@ RSpec.describe PatientPortal::CompleteEmergencyUnpaidBooking do
 
     expect(Appointment.where(appointment_slot: slot).count).to eq(1)
     expect(AppointmentCharge.joins(:appointment).where(appointments: { appointment_slot_id: slot.id }).count).to eq(1)
-    expect(Payment.where(patient: [patient, other_patient]).count).to eq(0)
-    expect(AppointmentHold.where(id: [first_hold.id, second_hold.id]).count).to eq(1)
+    expect(Payment.where(patient: [ patient, other_patient ]).count).to eq(0)
+    expect(AppointmentHold.where(id: [ first_hold.id, second_hold.id ]).count).to eq(1)
   end
   it "rolls back the appointment when the outstanding charge cannot be created" do
     create(:consultation_fee, practice: practice, clinician_type: "doctor")
@@ -71,11 +71,10 @@ RSpec.describe PatientPortal::CompleteEmergencyUnpaidBooking do
       expect { described_class.new(hold: hold).call }
         .to raise_error(ActiveRecord::RecordInvalid)
     }.not_to change {
-      [Appointment.count, AppointmentCharge.count, Payment.count]
+      [ Appointment.count, AppointmentCharge.count, Payment.count ]
     }
 
     expect(AppointmentHold.exists?(hold.id)).to be(true)
     expect(Appointment.where(appointment_slot: slot).count).to eq(0)
   end
-
 end

@@ -2,7 +2,6 @@ require "rails_helper"
 
 RSpec.describe ProcessRefundJob, type: :job do
   describe "#perform" do
-
     it "does not submit an aged pending refund from a delayed job" do
       payment = create(:payment, status: "succeeded",
         provider_payment_id: "pi_delayed_refund_job",
@@ -31,7 +30,7 @@ RSpec.describe ProcessRefundJob, type: :job do
       requests = []
 
       allow(Stripe::Refund).to receive(:create) do |params, options|
-        requests << [params, options]
+        requests << [ params, options ]
         if requests.length == 1
           raise Stripe::APIConnectionError.new("Response lost after request")
         end
@@ -54,10 +53,10 @@ RSpec.describe ProcessRefundJob, type: :job do
 
       expect(requests.length).to eq(2)
       expect(requests.map { |params, _| params[:payment_intent] })
-        .to eq([payment.provider_payment_id, payment.provider_payment_id])
-      expect(requests.map { |params, _| params[:amount] }).to eq([2000, 2000])
+        .to eq([ payment.provider_payment_id, payment.provider_payment_id ])
+      expect(requests.map { |params, _| params[:amount] }).to eq([ 2000, 2000 ])
       expect(requests.map { |_, options| options[:idempotency_key] })
-        .to eq([original_key, original_key])
+        .to eq([ original_key, original_key ])
       expect(refund.reload.status).to eq("processing")
       expect(refund.provider_refund_id).to eq("re_accepted_before_timeout")
       expect(refund.idempotency_key).to eq(original_key)

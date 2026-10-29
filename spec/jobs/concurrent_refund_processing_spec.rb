@@ -18,7 +18,7 @@ RSpec.describe "Concurrent Stripe refund processing", :concurrency do
     second = nil
 
     allow(Stripe::Refund).to receive(:create) do |params, options|
-      stripe_calls << [params, options]
+      stripe_calls << [ params, options ]
       stripe_started << true
       release_stripe.pop
       double(id: "re_concurrent_refund")
@@ -52,7 +52,7 @@ RSpec.describe "Concurrent Stripe refund processing", :concurrency do
       expect(refund.idempotency_key).to eq(original_key)
     ensure
       release_stripe << true
-      [first, second].compact.each { |thread| thread.join(10) }
+      [ first, second ].compact.each { |thread| thread.join(10) }
     end
   end
 end

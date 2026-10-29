@@ -837,5 +837,4 @@ RSpec.describe "Staff unresolved booking payment review", type: :request do
     expect(response.body).to include("Stripe cancellation could not be confirmed")
     expect(payment.reload.status).to eq("processing")
   end
-
 end

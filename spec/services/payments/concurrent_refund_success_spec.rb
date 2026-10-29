@@ -69,7 +69,7 @@ RSpec.describe "Concurrent Stripe refund success callbacks", :concurrency do
       expect(Refund.where(payment_id: payment.id, status: "succeeded").sum(:amount_cents)).to eq(2000)
     ensure
       release_first << true
-      [first, second].compact.each { |thread| thread.join(10) }
+      [ first, second ].compact.each { |thread| thread.join(10) }
     end
   end
 end

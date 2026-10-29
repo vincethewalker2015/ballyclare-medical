@@ -142,7 +142,7 @@ RSpec.describe "Guest checkout during a declared Stripe outage", type: :request 
     }.not_to change(Appointment, :count)
 
     expect(response).to redirect_to(guest_booking_review_path)
-    expect(Payment.where(guest_booking: guest).pluck(:id)).to eq([payment.id])
+    expect(Payment.where(guest_booking: guest).pluck(:id)).to eq([ payment.id ])
     expect(payment.reload.status).to eq("pending")
     expect(guest.reload.status).to eq("payment_pending")
   end
@@ -182,7 +182,7 @@ RSpec.describe "Guest checkout during a declared Stripe outage", type: :request 
       }.not_to change(Appointment, :count)
 
       expect(response).to redirect_to(guest_booking_review_path)
-      expect(Payment.where(guest_booking: guest).pluck(:id)).to eq([payment.id])
+      expect(Payment.where(guest_booking: guest).pluck(:id)).to eq([ payment.id ])
       expect(payment.reload.status).to eq(payment_status)
     end
   end
@@ -209,11 +209,11 @@ RSpec.describe "Guest checkout during a declared Stripe outage", type: :request 
     post guest_booking_emergency_unpaid_path
     expect(response).to redirect_to(guest_booking_emergency_confirmation_path)
 
-    counts = [Patient.count, Appointment.count, AppointmentCharge.count, Payment.count]
+    counts = [ Patient.count, Appointment.count, AppointmentCharge.count, Payment.count ]
     post guest_booking_emergency_unpaid_path
     expect(response).to have_http_status(:not_found)
 
-    expect([Patient.count, Appointment.count, AppointmentCharge.count, Payment.count]).to eq(counts)
+    expect([ Patient.count, Appointment.count, AppointmentCharge.count, Payment.count ]).to eq(counts)
   end
 
   it "does not initiate Stripe when checkout is posted directly during a declared outage" do
@@ -274,5 +274,4 @@ RSpec.describe "Guest checkout during a declared Stripe outage", type: :request 
     expect(payment.reload.status).to eq("pending")
     expect(payment.provider_payment_id).to be_nil
   end
-
 end

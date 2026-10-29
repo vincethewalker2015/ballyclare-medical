@@ -70,7 +70,7 @@ RSpec.describe "Concurrent Stripe booking success", :concurrency do
       expect(AppointmentCharge.where(appointment_id: payment.appointment_id).count).to eq(1)
     ensure
       release_first << true
-      [first, second].compact.each { |thread| thread.join(10) }
+      [ first, second ].compact.each { |thread| thread.join(10) }
     end
   end
   it "requires a refund when availability cancellation wins the race against Stripe success" do
@@ -141,7 +141,7 @@ RSpec.describe "Concurrent Stripe booking success", :concurrency do
       expect(AppointmentCharge.count).to eq(0)
     ensure
       release_cancellation << true
-      [cancellation_thread, payment_thread].compact.each { |thread| thread.join(10) }
+      [ cancellation_thread, payment_thread ].compact.each { |thread| thread.join(10) }
     end
   end
 
@@ -218,8 +218,7 @@ RSpec.describe "Concurrent Stripe booking success", :concurrency do
       expect(AppointmentCharge.where(appointment_id: payment.appointment_id).count).to eq(1)
     ensure
       release_booking << true
-      [booking_thread, cancellation_thread].compact.each { |thread| thread.join(10) }
+      [ booking_thread, cancellation_thread ].compact.each { |thread| thread.join(10) }
     end
   end
-
 end

@@ -143,5 +143,4 @@ RSpec.describe "Senior staff Stripe outage controls", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).not_to include('href="/practice/stripe-outage"')
   end
-
 end

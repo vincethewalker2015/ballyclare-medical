@@ -68,7 +68,7 @@ RSpec.describe "Concurrent refund requests", :concurrency do
       expect(refunds.first.status).to eq("pending")
     ensure
       release_first << true
-      [first, second].compact.each { |thread| thread.join(10) }
+      [ first, second ].compact.each { |thread| thread.join(10) }
     end
   end
 end

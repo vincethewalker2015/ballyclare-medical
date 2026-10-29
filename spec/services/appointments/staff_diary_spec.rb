@@ -58,7 +58,7 @@ RSpec.describe Appointments::StaffDiary do
     partially_paid = create(:appointment, practice: practice, clinician: clinician,
       patient: patient, appointment_slot: partially_paid_slot, status: "booked")
 
-    [fully_paid, partially_paid].each do |appointment|
+    [ fully_paid, partially_paid ].each do |appointment|
       Billing::CreateCharge.new(
         appointment: appointment, description: "Appointment",
         charge_type: "appointment", amount_cents: 6_500
@@ -79,5 +79,4 @@ RSpec.describe Appointments::StaffDiary do
     expect(diary.balances.fetch(partially_paid.id)[:balance_cents]).to eq(4_500)
     expect(diary.balances.fetch(fully_paid.id)[:balance_cents]).to eq(0)
   end
-
 end

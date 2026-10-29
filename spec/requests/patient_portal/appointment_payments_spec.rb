@@ -276,5 +276,4 @@ RSpec.describe "Patient portal hold payments", type: :request do
     expect(response.body).not_to include("Continue to secure payment")
     expect(response.body).not_to include("Book now — pay later")
   end
-
 end

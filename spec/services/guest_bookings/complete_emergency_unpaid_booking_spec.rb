@@ -63,7 +63,7 @@ RSpec.describe GuestBookings::CompleteEmergencyUnpaidBooking do
       expect { described_class.new(hold: hold).call }
         .to raise_error(described_class::Unavailable)
     }.not_to change {
-      [Appointment.count, Patient.count, AppointmentCharge.count]
+      [ Appointment.count, Patient.count, AppointmentCharge.count ]
     }
 
     expect(Appointment.where(appointment_slot: slot).sole.id).to eq(appointment.id)
@@ -90,7 +90,7 @@ RSpec.describe GuestBookings::CompleteEmergencyUnpaidBooking do
         expect { described_class.new(hold: hold).call }
           .to raise_error(described_class::Unavailable, /not permitted/)
       }.not_to change {
-        [Appointment.count, Patient.count, AppointmentCharge.count]
+        [ Appointment.count, Patient.count, AppointmentCharge.count ]
       }
 
       expect(guest.reload.status).to eq("payment_pending")
@@ -110,7 +110,7 @@ RSpec.describe GuestBookings::CompleteEmergencyUnpaidBooking do
       expect { described_class.new(hold: hold).call }
         .to raise_error(described_class::Unavailable, /expired/)
     }.not_to change {
-      [Appointment.count, Patient.count, AppointmentCharge.count]
+      [ Appointment.count, Patient.count, AppointmentCharge.count ]
     }
     expect(guest.reload.status).to eq("payment_pending")
   end
@@ -127,7 +127,7 @@ RSpec.describe GuestBookings::CompleteEmergencyUnpaidBooking do
       expect { described_class.new(hold: hold).call }
         .to raise_error(described_class::Unavailable, /expired/)
     }.not_to change {
-      [Appointment.count, Patient.count, AppointmentCharge.count]
+      [ Appointment.count, Patient.count, AppointmentCharge.count ]
     }
     expect(AppointmentHold.exists?(hold.id)).to be(true)
   end
@@ -157,7 +157,7 @@ RSpec.describe GuestBookings::CompleteEmergencyUnpaidBooking do
       expect { described_class.new(hold: competing_hold).call }
         .to raise_error(described_class::Unavailable, /already booked/)
     }.not_to change {
-      [Appointment.count, Patient.count, AppointmentCharge.count]
+      [ Appointment.count, Patient.count, AppointmentCharge.count ]
     }
 
     expect(Appointment.where(appointment_slot: slot).sole).to eq(first_appointment)
@@ -186,7 +186,7 @@ RSpec.describe GuestBookings::CompleteEmergencyUnpaidBooking do
 
     ready = Queue.new
     start = Queue.new
-    workers = [first_hold.id, second_hold.id].map do |hold_id|
+    workers = [ first_hold.id, second_hold.id ].map do |hold_id|
       Thread.new do
         ActiveRecord::Base.connection_pool.with_connection do
           ready << true
@@ -212,8 +212,8 @@ RSpec.describe GuestBookings::CompleteEmergencyUnpaidBooking do
 
     expect(Appointment.where(appointment_slot: slot).count).to eq(1)
     expect(AppointmentCharge.joins(:appointment).where(appointments: { appointment_slot_id: slot.id }).count).to eq(1)
-    expect(Patient.where(practice: practice, email: ["visitor@example.com", "concurrent@example.com"]).count).to eq(1)
-    expect(Payment.where(guest_booking: [guest, other_guest]).count).to eq(0)
+    expect(Patient.where(practice: practice, email: [ "visitor@example.com", "concurrent@example.com" ]).count).to eq(1)
+    expect(Payment.where(guest_booking: [ guest, other_guest ]).count).to eq(0)
   end
 
   it "clears completed guest personal details while preserving patient and unpaid charge records" do
@@ -253,7 +253,7 @@ RSpec.describe GuestBookings::CompleteEmergencyUnpaidBooking do
       expect { described_class.new(hold: hold).call }
         .to raise_error(described_class::Unavailable, /not permitted/)
     }.not_to change {
-      [Appointment.count, Patient.count, AppointmentCharge.count]
+      [ Appointment.count, Patient.count, AppointmentCharge.count ]
     }
 
     expect(guest.reload.status).to eq("payment_pending")
@@ -277,7 +277,7 @@ RSpec.describe GuestBookings::CompleteEmergencyUnpaidBooking do
         expect { described_class.new(hold: hold).call }
           .to raise_error(described_class::Unavailable, /not permitted/)
       }.not_to change {
-        [Appointment.count, Patient.count, AppointmentCharge.count]
+        [ Appointment.count, Patient.count, AppointmentCharge.count ]
       }
     end
 
@@ -299,7 +299,7 @@ RSpec.describe GuestBookings::CompleteEmergencyUnpaidBooking do
       expect { described_class.new(hold: hold).call }
         .to raise_error(ActiveRecord::RecordInvalid)
     }.not_to change {
-      [Appointment.count, Patient.count, AppointmentCharge.count]
+      [ Appointment.count, Patient.count, AppointmentCharge.count ]
     }
 
     expect(guest.reload.status).to eq("payment_pending")
@@ -308,5 +308,4 @@ RSpec.describe GuestBookings::CompleteEmergencyUnpaidBooking do
     expect(AppointmentHold.exists?(hold.id)).to be(true)
     expect(Payment.where(guest_booking: guest).count).to eq(0)
   end
-
 end

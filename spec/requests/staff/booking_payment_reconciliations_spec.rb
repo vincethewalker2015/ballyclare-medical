@@ -9,6 +9,25 @@ RSpec.describe "Staff unresolved booking payment review", type: :request do
       active: true, access_level: "staff_admin")
   end
 
+  it "forbids basic staff from cancelling an abandoned Stripe payment before contacting Stripe" do
+    patient = create(:patient, practice: practice)
+    payment = create(:payment, appointment: nil, patient: patient,
+      status: "processing", provider_payment_id: "pi_staff_cancel_forbidden")
+    payment.update_columns(updated_at: 20.minutes.ago)
+
+    membership.update!(access_level: "staff")
+    sign_in user
+
+    expect(Stripe::PaymentIntent).not_to receive(:retrieve)
+    expect(Stripe::PaymentIntent).not_to receive(:cancel)
+
+    post "/practice/booking_payment_reconciliations/#{payment.id}/cancel",
+      params: { payment_intent_id: "pi_staff_cancel_forbidden" }
+
+    expect(response).to have_http_status(:forbidden)
+    expect(payment.reload.status).to eq("processing")
+  end
+
   it "records confirmed Stripe cancellation for recovery when local reconciliation fails" do
     patient = create(:patient, practice: practice)
     payment = create(:payment, appointment: nil, patient: patient,

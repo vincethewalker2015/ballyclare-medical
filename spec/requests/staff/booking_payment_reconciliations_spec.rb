@@ -769,4 +769,73 @@ RSpec.describe "Staff unresolved booking payment review", type: :request do
     expect(payment.appointment.appointment_charges.count).to eq(1)
   end
 
+  it "updates the audited Stripe verification result via Turbo Stream without redirecting" do
+    patient = create(:patient, practice: practice)
+    payment = create(:payment, appointment: nil, patient: patient,
+      status: "processing", provider_payment_id: "pi_turbo_verify")
+    payment.update_columns(updated_at: 20.minutes.ago)
+    intent = instance_double(Stripe::PaymentIntent,
+      id: "pi_turbo_verify", status: "requires_payment_method",
+      metadata: { "payment_id" => payment.id.to_s })
+    allow(Stripe::PaymentIntent).to receive(:retrieve).with("pi_turbo_verify").and_return(intent)
+
+    sign_in user
+    post verify_practice_booking_payment_reconciliation_path(payment),
+      params: { payment_intent_id: "pi_turbo_verify" },
+      headers: { "ACCEPT" => "text/vnd.turbo-stream.html" }
+
+    expect(response).to have_http_status(:ok)
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include('action="update" target="booking-payment-reconciliation-content"')
+    expect(response.body).to include("Requires payment method", "historical, not live")
+    expect(payment.reload.status).to eq("processing")
+  end
+
+  it "removes a safely cancelled payment from the Turbo results" do
+    patient = create(:patient, practice: practice)
+    payment = create(:payment, appointment: nil, patient: patient,
+      status: "processing", provider_payment_id: "pi_turbo_cancel")
+    payment.update_columns(updated_at: 20.minutes.ago)
+    intent = instance_double(Stripe::PaymentIntent,
+      id: "pi_turbo_cancel", status: "requires_payment_method",
+      amount: payment.amount_cents, currency: payment.currency.downcase,
+      metadata: { "payment_id" => payment.id.to_s })
+    cancelled = instance_double(Stripe::PaymentIntent,
+      id: "pi_turbo_cancel", status: "canceled",
+      amount: payment.amount_cents, currency: payment.currency.downcase,
+      metadata: { "payment_id" => payment.id.to_s })
+    allow(Stripe::PaymentIntent).to receive(:retrieve).with("pi_turbo_cancel").and_return(intent)
+    allow(Stripe::PaymentIntent).to receive(:cancel).with("pi_turbo_cancel").and_return(cancelled)
+
+    sign_in user
+    post cancel_practice_booking_payment_reconciliation_path(payment),
+      params: { payment_intent_id: "pi_turbo_cancel" },
+      headers: { "ACCEPT" => "text/vnd.turbo-stream.html" }
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).not_to include("pi_turbo_cancel")
+    expect(response.body).to include("Stripe PaymentIntent cancelled and payment outcome reconciled.")
+    expect(payment.reload.status).to eq("failed")
+  end
+
+  it "keeps an unresolved payment visible in Turbo results when Stripe cancellation fails" do
+    patient = create(:patient, practice: practice)
+    payment = create(:payment, appointment: nil, patient: patient,
+      status: "processing", provider_payment_id: "pi_turbo_timeout")
+    payment.update_columns(updated_at: 20.minutes.ago)
+    allow(Stripe::PaymentIntent).to receive(:retrieve)
+      .with("pi_turbo_timeout")
+      .and_raise(Stripe::APIConnectionError.new("timeout"))
+
+    sign_in user
+    post cancel_practice_booking_payment_reconciliation_path(payment),
+      params: { payment_intent_id: "pi_turbo_timeout" },
+      headers: { "ACCEPT" => "text/vnd.turbo-stream.html" }
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("pi_turbo_timeout")
+    expect(response.body).to include("Stripe cancellation could not be confirmed")
+    expect(payment.reload.status).to eq("processing")
+  end
+
 end

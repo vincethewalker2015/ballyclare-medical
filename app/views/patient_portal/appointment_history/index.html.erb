@@ -17,6 +17,7 @@
           <% appointments.each do |appointment| %>
             <% local_start = appointment.appointment_slot.starts_at.in_time_zone(@practice.timezone) %>
             <li class="flex flex-wrap items-center justify-between gap-4 py-4">
+              <%= turbo_stream_from appointment if appointment.status == "cancelled" %>
               <div>
                 <p class="font-semibold text-medical-navy"><%= local_start.strftime("%A %-d %B %Y, %-I:%M %p") %></p>
                 <p class="mt-1 text-sm text-medical-muted"><%= appointment.clinician.full_name %></p>

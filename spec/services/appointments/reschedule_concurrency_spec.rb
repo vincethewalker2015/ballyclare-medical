@@ -7,7 +7,7 @@ RSpec.describe "Concurrent appointment rescheduling", :concurrency do
     block = create(:availability_block, practice: practice, clinician: clinician)
     starts_at = block.starts_at + 20.minutes
 
-    original_slots = [0, 1].map do |offset|
+    original_slots = [ 0, 1 ].map do |offset|
       create(:appointment_slot, practice: practice, clinician: clinician,
         availability_block: block, starts_at: starts_at + offset * 20.minutes,
         ends_at: starts_at + (offset + 1) * 20.minutes)

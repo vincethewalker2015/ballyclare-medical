@@ -155,5 +155,4 @@ RSpec.describe Appointments::Reschedule do
 
     expect(appointment.reload.appointment_slot_id).to eq(original_slot_id)
   end
-
 end

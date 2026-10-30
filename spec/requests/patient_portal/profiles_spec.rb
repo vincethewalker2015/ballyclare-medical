@@ -110,5 +110,4 @@ RSpec.describe "Patient portal profile", type: :request do
     expect(response.body).not_to include(other_patient.patient_number)
     expect(response.body).not_to include("PrivatePerson")
   end
-
 end

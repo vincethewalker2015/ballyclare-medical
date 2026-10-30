@@ -107,7 +107,12 @@ module Appointments
       raise InvalidTransition, "Patients may only cancel appointments" unless to_status == "cancelled"
       raise InvalidTransition, "Patients may only cancel booked or confirmed appointments" unless %w[booked confirmed].include?(appointment.status)
 
-      approved = @patient_account.patient_account_links.approved.exists?(\n        patient_id: appointment.patient_id, practice_id: appointment.practice_id\n      )\n      raise InvalidTransition, "Patient access is not approved for this appointment" unless approved\n\n      starts_at = appointment.appointment_slot.starts_at
+      approved = @patient_account.patient_account_links.approved.exists?(
+        patient_id: appointment.patient_id, practice_id: appointment.practice_id
+      )
+      raise InvalidTransition, "Patient access is not approved for this appointment" unless approved
+
+      starts_at = appointment.appointment_slot.starts_at
       raise InvalidTransition, "Cancellation requires at least 24 hours notice" if starts_at < 24.hours.from_now
     end
 

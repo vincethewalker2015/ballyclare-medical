@@ -28,6 +28,9 @@ class Refund < ApplicationRecord
 
   def broadcast_appointment_refresh
     appointment = payment.appointment
-    broadcast_refresh_later_to(appointment) if appointment
+    return unless appointment
+
+    broadcast_refresh_later_to(appointment)
+    broadcast_refresh_later_to(appointment.patient, :appointment_refunds)
   end
 end

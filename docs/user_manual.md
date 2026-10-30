@@ -8,6 +8,9 @@ Ballyclare Medical. It is being expanded as new features become available.
 - [Getting Started](#getting-started)
 - [Signing In](#signing-in)
 - [Patients](#patients)
+- [Patient Portal: Registration and Access](#patient-portal-registration-and-access)
+- [Patient Portal: Appointment Changes](#patient-portal-appointment-changes)
+- [Patient Portal: Profile Management](#patient-portal-profile-management)
 - [Appointment Diary](#appointment-diary)
 - [Booking an Appointment](#booking-an-appointment)
 - [Cancelling an Appointment](#cancelling-an-appointment)
@@ -38,25 +41,98 @@ records for their own practice, register a new patient, and view or edit
 existing patient details. See [Patient records](#patient-records) below
 for the registration fields and illustrated instructions.
 
-## Online patient registration: current process
+## Patient Portal: Registration and Access
 
-This feature is still being developed. The current steps are:
+Patients can create a separate online patient account at **/patients/sign_up**,
+confirm their email address and sign in at **/patients/sign_in**. Confirming an
+email address does not verify the patient's identity or grant access to a
+clinical record. Practice staff must verify identity and approve the account
+connection through the patient account request workflow before patient-specific
+appointment, payment or profile information becomes available.
 
-1. A person creates an online patient account using an email address and password.
-2. The application sends an email confirmation link. In development this can be viewed in Letter Opener.
-3. After clicking the link, the person can sign in to the patient portal welcome page.
+Practice administrators review patient account requests and verify the
+correct practice and patient record. Never approve an account based on an
+email-address match alone. If access is pending or revoked, the portal
+displays an access-unavailable message; the patient should contact the
+practice. Staff must use the authorised approval or reinstatement process.
 
-**Email confirmation only establishes access to the email inbox. It does not verify identity or connect the account to a clinical patient record.** No medical information is available to the account holder yet.
+Patients without a portal account can still have practice records and
+staff-booked appointments. Guest booking is a separate workflow.
 
-### What staff should do now
+## Patient Portal: Appointment Changes
 
-There is not yet a staff approval screen or account-linking process. Do not attempt to link accounts by matching email addresses or manually changing database records. Continue to use the existing authorised patient and appointment workflows. If a patient asks about access to their records online, explain that the feature is not yet available.
+### Cancelling an appointment (P2.1)
 
-### Planned next steps (not implemented)
+1. Sign in to the patient portal and open **View your appointments**.
+2. Find an upcoming **Booked** or **Confirmed** appointment.
+3. If its start time is at least **24 hours away**, select **Cancel appointment**
+   and confirm the action.
+4. Return to appointment history to see the updated status.
 
-The practice will identify the correct patient record, verify the person's identity, explicitly approve the account connection and notify the patient when their access is ready. The system will need to record the approving staff member and verification details. These steps must be implemented and tested before clinical records can be exposed in the portal.
+Cancellation is unavailable within 24 hours of the appointment start,
+after the appointment has started, or for an appointment in an ineligible
+status. Patients cannot cancel another patient's appointment. Contact the
+practice if the cancellation control is unavailable.
 
-Patients, including one-off patients, can have clinical records and staff-booked appointments without an online account. Guest online booking is a separate planned feature.
+On successful cancellation, the active consultation charge is voided.
+Eligible successful payments trigger an automatic refund request; the
+refund may take additional time to be confirmed by Stripe. The payment
+and refund records remain in the financial history. A pending or
+processing payment blocks cancellation until its outcome is known.
+**Do not assume a refund has completed merely because cancellation succeeded.**
+See [Payments and Refunds](#payments-and-refunds).
+
+### Rescheduling an appointment (P2.2)
+
+1. From **View your appointments**, select **Reschedule** for an upcoming
+   booked or confirmed appointment at least **24 hours** before it starts.
+2. Choose a displayed available replacement appointment slot.
+3. Submit the change and check the updated appointment history.
+
+Patients may choose a different clinician only when the replacement
+clinician is the **same type** as the original (doctor to doctor or nurse
+to nurse). To switch between doctor and nurse, cancel and make a new
+booking instead, subject to the cancellation policy. Patient choices are
+limited to future online-bookable availability in the same practice.
+The system checks the replacement slot again at submission: a slot
+booked or held by someone else is rejected.
+
+Rescheduling retains the existing appointment, charges and successful
+payments; it does not silently change the fee or issue a refund. It
+records an audit event identifying the original and replacement slots,
+clinicians, times and initiating actor. A pending or processing payment
+must reach a final state before rescheduling.
+
+### Staff rescheduling and overrides
+
+Authorised operational staff can open an eligible appointment in the
+practice and use **Reschedule**. Staff can override the patient's
+24-hour notice restriction, including on the same day, **but cannot
+reschedule an appointment after its original start time**. The original
+appointment must still be booked or confirmed. The replacement must be
+future, available, within the same practice and with the same clinician
+type. Staff Clinicians are restricted to their own appointments; Basic
+Staff cannot reschedule. Staff may use available slots that are not
+online-bookable. The same financial integrity and audit rules apply.
+
+## Patient Portal: Profile Management
+
+Patients with an approved connection can open **Your profile** on the
+patient portal dashboard. The profile shows the verified name, date of
+birth and patient number alongside the sign-in email address.
+
+Select **Edit sign-in details** to change the email address or password.
+Enter the **current password** to save changes. To keep the existing
+password, leave both new-password fields blank. When changing the
+password, enter matching new-password and confirmation values.
+An email-address change requires confirmation through the new inbox
+before the new sign-in address becomes active.
+
+Verified identity details (name, date of birth and patient number)
+cannot be edited through the portal. Patients should contact the
+practice for corrections so staff can verify the request and update
+the patient record using the authorised workflow. A revoked or
+unapproved connection cannot view or update the profile.
 
 ## Appointment Diary
 
@@ -384,6 +460,19 @@ Do not deactivate the last active Senior Staff Admin. If senior access is
 lost, contact an authorised platform operator for recovery.
 
 ## Troubleshooting
+
+**Patient cannot access appointment history or profile:** Confirm that the patient has verified their email and that an authorised practice administrator has approved the correct account-to-patient connection. If access was revoked, follow the practice's reinstatement process. Do not bypass verification.
+
+**Cancel or reschedule option missing:** Check that the appointment is booked or confirmed and starts at least 24 hours from now. Patients cannot override this cutoff; contact the practice for assistance. Staff may reschedule before the original start under their own permissions.
+
+**Replacement slot no longer available:** Another appointment or active hold may have taken the slot. Return to the rescheduling page and choose a different available slot. A doctor-to-nurse or nurse-to-doctor change requires cancellation and a new booking.
+
+**Payment prevents appointment changes:** Wait for a pending or processing payment to settle. Check the existing payment before attempting another transaction or booking.
+
+**Profile email change not reflected:** Open the confirmation email sent to the new address. Until confirmation, the existing email remains the sign-in address. Check junk mail and ask the platform operator to investigate email delivery if necessary.
+
+**Profile update rejected:** Confirm the current password and ensure the new password and confirmation match. For verified name or date-of-birth corrections, contact the practice rather than changing the online account.
+
 
 **Cannot find a patient when booking:** Search by first name, surname or
 patient number. Only the first five matching results appear; type more of

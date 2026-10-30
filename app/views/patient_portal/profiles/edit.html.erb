@@ -1,0 +1,19 @@
+<% content_for :title, "Edit sign-in details | Ballyclare Medical" %>
+<main class="mx-auto max-w-3xl px-6 py-10">
+  <h1 class="text-3xl font-semibold text-medical-navy">Edit sign-in details</h1>
+  <p class="mt-2 text-medical-muted">Enter your current password to save changes. Leave the new password blank to keep it unchanged.</p>
+  <%= form_with model: current_patient_account, url: patient_portal_profile_path, method: :patch, class: "mt-6 space-y-5" do |form| %>
+    <% if current_patient_account.errors.any? %>
+      <div role="alert" class="rounded-xl border border-red-300 p-4 text-red-800">
+        <p>Unable to update your details:</p>
+        <ul class="list-disc pl-5"><% current_patient_account.errors.full_messages.each do |message| %><li><%= message %></li><% end %></ul>
+      </div>
+    <% end %>
+    <div><%= form.label :email, "Sign-in email", class: "block font-semibold" %><%= form.email_field :email, required: true, autocomplete: "email", class: "mt-1 w-full rounded-lg border p-3" %></div>
+    <div><%= form.label :password, "New password (optional)", class: "block font-semibold" %><%= form.password_field :password, autocomplete: "new-password", class: "mt-1 w-full rounded-lg border p-3" %></div>
+    <div><%= form.label :password_confirmation, "Confirm new password", class: "block font-semibold" %><%= form.password_field :password_confirmation, autocomplete: "new-password", class: "mt-1 w-full rounded-lg border p-3" %></div>
+    <div><%= form.label :current_password, "Current password", class: "block font-semibold" %><%= form.password_field :current_password, required: true, autocomplete: "current-password", class: "mt-1 w-full rounded-lg border p-3" %></div>
+    <%= form.submit "Save changes", class: "rounded-full bg-medical-navy px-6 py-3 font-semibold text-white" %>
+  <% end %>
+  <%= link_to "Back to profile", patient_portal_profile_path, class: "mt-5 inline-block text-medical-teal underline" %>
+</main>

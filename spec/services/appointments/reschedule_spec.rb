@@ -124,9 +124,13 @@ RSpec.describe Appointments::Reschedule do
     end
   end
   it "does not allow two appointments to claim the same replacement slot" do
-    competing = create(:appointment, practice: practice, clinician: appointment.clinician)
-    competing.appointment_slot.update!(starts_at: 2.days.from_now,
-      ends_at: 2.days.from_now + 20.minutes)
+    competing_slot = create(:appointment_slot, practice: practice,
+      clinician: appointment.clinician,
+      availability_block: appointment.appointment_slot.availability_block,
+      starts_at: appointment.appointment_slot.starts_at + 60.minutes,
+      ends_at: appointment.appointment_slot.starts_at + 80.minutes)
+    competing = create(:appointment, practice: practice, clinician: appointment.clinician,
+      appointment_slot: competing_slot)
 
     described_class.new(appointment: appointment, replacement_slot: replacement, staff_user: staff_user).call
 

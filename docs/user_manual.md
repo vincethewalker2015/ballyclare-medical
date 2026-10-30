@@ -67,7 +67,7 @@ staff-booked appointments. Guest booking is a separate workflow.
 2. Find an upcoming **Booked** or **Confirmed** appointment.
 3. If its start time is at least **24 hours away**, select **Cancel appointment**
    and confirm the action.
-4. Return to appointment history to see the updated status.
+4. Return to appointment history. The appointment moves from **Upcoming appointments**\n   to **Past and cancelled appointments**, where it is marked **Cancelled**.
 
 Cancellation is unavailable within 24 hours of the appointment start,
 after the appointment has started, or for an appointment in an ineligible
@@ -79,14 +79,14 @@ Eligible successful payments trigger an automatic refund request; the
 refund may take additional time to be confirmed by Stripe. The payment
 and refund records remain in the financial history. A pending or
 processing payment blocks cancellation until its outcome is known.
-**Do not assume a refund has completed merely because cancellation succeeded.**
+The patient portal initially confirms that an eligible refund has been\nrequested. Under **Past and cancelled appointments**, paid cancellations\nshow the latest recorded refund outcome: **Refund pending**, **Refund\ncompleted**, or **Refund failed — contact your practice**. The status\nupdates automatically while the appointment-history page is open; if the\nlive connection is interrupted, refresh the page to retrieve the latest\nrecorded status.\n\n**Do not assume a refund has completed merely because cancellation succeeded.**
 See [Payments and Refunds](#payments-and-refunds).
 
 ### Rescheduling an appointment (P2.2)
 
 1. From **View your appointments**, select **Reschedule** for an upcoming
    booked or confirmed appointment at least **24 hours** before it starts.
-2. Choose a displayed available replacement appointment slot.
+2. Choose a replacement appointment from the date-grouped available-time\n   cards. Each card identifies the time and clinician.
 3. Submit the change and check the updated appointment history.
 
 Patients may choose a different clinician only when the replacement
@@ -467,7 +467,7 @@ lost, contact an authorised platform operator for recovery.
 
 **Replacement slot no longer available:** Another appointment or active hold may have taken the slot. Return to the rescheduling page and choose a different available slot. A doctor-to-nurse or nurse-to-doctor change requires cancellation and a new booking.
 
-**Payment prevents appointment changes:** Wait for a pending or processing payment to settle. Check the existing payment before attempting another transaction or booking.
+**Cancelled appointment or refund missing from upcoming list:** Cancelled\nappointments appear under **Past and cancelled appointments**, not\n**Upcoming appointments**. A refund may first show as pending before\nchanging to completed. If the status does not update, refresh the\nappointment-history page; for a failed refund, contact the practice.\n\n**Payment prevents appointment changes:** Wait for a pending or processing payment to settle. Check the existing payment before attempting another transaction or booking.
 
 **Profile email change not reflected:** Open the confirmation email sent to the new address. Until confirmation, the existing email remains the sign-in address. Check junk mail and ask the platform operator to investigate email delivery if necessary.
 

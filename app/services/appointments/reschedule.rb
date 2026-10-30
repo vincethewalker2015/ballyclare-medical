@@ -51,6 +51,11 @@ module Appointments
         raise NotAllowed, "Rescheduling requires at least 24 hours notice" if @appointment.appointment_slot.starts_at < 24.hours.from_now
       end
       raise NotAllowed, "Replacement slot belongs to another practice" unless @replacement_slot.practice_id == @appointment.practice_id
+      unless @replacement_slot.clinician.practice_id == @appointment.practice_id &&
+          @replacement_slot.availability_block.practice_id == @appointment.practice_id &&
+          @replacement_slot.availability_block.clinician_id == @replacement_slot.clinician_id
+        raise NotAllowed, "Replacement slot has inconsistent practice or clinician details"
+      end
       raise NotAllowed, "Clinician type must remain the same" unless @replacement_slot.clinician.staff_type == @appointment.clinician.staff_type
       raise NotAllowed, "Replacement clinician is inactive" unless @replacement_slot.clinician.active?
       raise NotAllowed, "Replacement availability is inactive" unless @replacement_slot.availability_block.active?

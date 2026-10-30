@@ -4,6 +4,9 @@ module PatientPortal
 
     def edit
       return unless @appointment
+      unless @appointment.status.in?(%w[booked confirmed]) && @appointment.appointment_slot.starts_at >= 24.hours.from_now
+        return redirect_to patient_portal_appointment_history_path, alert: "Rescheduling requires at least 24 hours notice and an upcoming booked or confirmed appointment."
+      end
       @slots = available_slots
     end
 

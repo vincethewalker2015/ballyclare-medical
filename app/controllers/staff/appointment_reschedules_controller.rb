@@ -4,6 +4,9 @@ module Staff
 
     def edit
       @appointment = scoped_appointment
+      unless @appointment.status.in?(%w[booked confirmed]) && @appointment.appointment_slot.starts_at.future?
+        return redirect_to practice_appointment_path(@appointment), alert: "This appointment cannot be rescheduled."
+      end
       @slots = @appointment.practice.staff_members
         .where(staff_type: @appointment.clinician.staff_type, active: true).flat_map do |clinician|
           Appointments::AvailableStaffSlots.new(practice: current_practice,

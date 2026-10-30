@@ -8,7 +8,7 @@ module PatientPortal
       @patient = link.patient
       @practice = link.practice
       appointments = @practice.appointments.where(patient_id: link.patient_id)
-        .joins(:appointment_slot).includes(:clinician, :appointment_slot)
+        .joins(:appointment_slot).includes(:clinician, :appointment_slot, payments: :refunds)
       @upcoming_appointments = appointments
         .where.not(status: %w[cancelled completed did_not_attend referred])
         .where("appointment_slots.starts_at >= ?", Time.current)

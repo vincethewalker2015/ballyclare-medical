@@ -1,11 +1,11 @@
 module PatientPortal
   class AppointmentCancellationsController < BaseController
     def update
-      link = current_patient_account.patient_account_links.approved
+      patient_account_link = current_patient_account.patient_account_links.approved
         .includes(:patient, :practice).first
-      return render_access_unavailable unless link && link.patient.practice_id == link.practice_id
+      return render_access_unavailable unless patient_account_link && patient_account_link.patient.practice_id == patient_account_link.practice_id
 
-      appointment = link.practice.appointments.where(patient_id: link.patient_id)
+      appointment = patient_account_link.practice.appointments.where(patient_id: patient_account_link.patient_id)
         .includes(:appointment_slot).find(params[:appointment_id])
 
       Appointments::ChangeStatus.new(

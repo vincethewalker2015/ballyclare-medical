@@ -198,6 +198,9 @@
         </div>
       </dl>
 
+      <% if @current_staff_member.operational_access? && @appointment.status.in?(%w[booked confirmed]) && @appointment.appointment_slot.starts_at.future? %>
+        <%= link_to "Reschedule appointment", edit_practice_appointment_reschedule_path(@appointment), class: "text-sm font-semibold text-medical-teal underline" %>
+      <% end %>
       <% if @current_staff_member.operational_access? %>
       <%= render "staff/appointments/lifecycle_controls",
                  appointment: @appointment,

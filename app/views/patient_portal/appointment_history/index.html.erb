@@ -24,6 +24,7 @@
               <div class="flex flex-col items-end gap-2">
                 <span class="rounded-full bg-medical-cream px-3 py-1 text-sm font-medium text-medical-navy"><%= appointment.status.humanize %></span>
                 <% if %w[booked confirmed].include?(appointment.status) && appointment.appointment_slot.starts_at >= 24.hours.from_now %>
+                  <%= link_to "Reschedule", edit_patient_portal_appointment_reschedule_path(appointment), class: "text-sm font-semibold text-medical-teal underline" %>
                   <%= button_to "Cancel appointment", patient_portal_cancel_appointment_path(appointment), method: :patch,
                     form: { data: { turbo_confirm: "Cancel this appointment? Any successful payments will be automatically refunded." } },
                     class: "text-sm font-semibold text-red-700 underline" %>

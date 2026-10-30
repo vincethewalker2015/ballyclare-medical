@@ -1,0 +1,10 @@
+<div class="mx-auto max-w-3xl px-6 py-10">
+  <h1 class="text-3xl font-semibold text-medical-navy">Reschedule appointment</h1>
+  <p class="mt-3 text-medical-muted">Staff may reschedule within 24 hours, including today. The replacement clinician must be the same type.</p>
+  <%= form_with url: practice_appointment_reschedule_path(@appointment), method: :patch, class: "mt-6 space-y-4" do |form| %>
+    <%= form.label :appointment_slot_id, "New appointment", class: "block font-semibold" %>
+    <%= form.select :appointment_slot_id, @slots.map { |slot| ["#{slot.starts_at.in_time_zone(@appointment.practice.timezone).strftime('%a %-d %b %Y %H:%M')} — #{slot.clinician.full_name}", slot.id] }, { prompt: "Select a time" }, { required: true, class: "w-full rounded-lg border p-3" } %>
+    <%= form.submit "Confirm reschedule", class: "rounded-lg bg-medical-teal px-5 py-3 font-semibold text-white" %>
+  <% end %>
+  <%= link_to "Back to appointment", practice_appointment_path(@appointment), class: "mt-5 inline-block underline" %>
+</div>

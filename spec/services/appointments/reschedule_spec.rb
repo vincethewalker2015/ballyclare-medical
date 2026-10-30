@@ -105,4 +105,22 @@ RSpec.describe Appointments::Reschedule do
     }.to raise_error(described_class::NotAllowed, /available/)
   end
 
+  it "preserves charges and successful payments" do
+    charge = create(:appointment_charge, appointment: appointment, practice: practice,
+      patient: appointment.patient, status: "active")
+    payment = create(:payment, appointment: appointment, patient: appointment.patient, status: "succeeded")
+    described_class.new(appointment: appointment, replacement_slot: replacement, staff_user: staff_user).call
+    expect(charge.reload.status).to eq("active")
+    expect(payment.reload.status).to eq("succeeded")
+    expect(payment.appointment_id).to eq(appointment.id)
+  end
+
+  %w[pending processing].each do |payment_status|
+    it "blocks rescheduling during a #{payment_status} payment" do
+      create(:payment, appointment: appointment, patient: appointment.patient, status: payment_status)
+      expect {
+        described_class.new(appointment: appointment, replacement_slot: replacement, staff_user: staff_user).call
+      }.to raise_error(described_class::NotAllowed, /payment is in progress/)
+    end
+  end
 end

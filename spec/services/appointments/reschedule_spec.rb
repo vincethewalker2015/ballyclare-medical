@@ -81,7 +81,7 @@ RSpec.describe Appointments::Reschedule do
 
   it "rejects rescheduling within 24 hours for patients, even with approved access" do
     patient_account = create(:patient_account, confirmed_at: Time.current)
-    create(:patient_account_link, patient_account: patient_account, patient: appointment.patient,
+    PatientAccountLink.create!(patient_account: patient_account, patient: appointment.patient,
       practice: practice, status: "approved", approved_at: Time.current,
       verified_at: Time.current, verification_method: "in_person",
       verified_by: create(:staff_member, practice: practice, access_level: "staff_admin"))
@@ -98,7 +98,7 @@ RSpec.describe Appointments::Reschedule do
   end
 
   it "rejects an active hold on the replacement slot" do
-    create(:appointment_hold, practice: practice, appointment_slot: replacement,
+    create(:appointment_hold, appointment_slot: replacement,
       patient: appointment.patient, expires_at: 10.minutes.from_now)
     expect {
       described_class.new(appointment: appointment, replacement_slot: replacement, staff_user: staff_user).call

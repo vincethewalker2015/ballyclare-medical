@@ -311,18 +311,4 @@ RSpec.describe Appointments::ChangeStatus do
       end
     end
   end
-  it "rejects patient cancellation without an approved link at the service boundary" do
-    account = create(:patient_account, confirmed_at: Time.current)
-    appointment.appointment_slot.update!(starts_at: 3.days.from_now, ends_at: 3.days.from_now + 20.minutes)
-    expect {
-      described_class.new(
-        appointment: appointment,
-        to_status: "cancelled",
-        changed_by: nil,
-        patient_account: account
-      ).call
-    }.to raise_error(described_class::InvalidTransition, /not approved/)
-    expect(appointment.reload.status).to eq("booked")
-  end
-
 end

@@ -123,4 +123,33 @@ RSpec.describe Appointments::Reschedule do
       }.to raise_error(described_class::NotAllowed, /payment is in progress/)
     end
   end
+  it "does not allow two appointments to claim the same replacement slot" do
+    competing = create(:appointment, practice: practice, clinician: appointment.clinician)
+    competing.appointment_slot.update!(starts_at: 2.days.from_now,
+      ends_at: 2.days.from_now + 20.minutes)
+
+    described_class.new(appointment: appointment, replacement_slot: replacement, staff_user: staff_user).call
+
+    expect {
+      described_class.new(appointment: competing, replacement_slot: replacement, staff_user: staff_user).call
+    }.to raise_error(described_class::NotAllowed, /no longer available/)
+
+    expect(competing.reload.appointment_slot_id).not_to eq(replacement.id)
+    expect(Appointment.where(appointment_slot_id: replacement.id).where.not(status: "cancelled").count).to eq(1)
+  end
+
+  it "keeps the original slot and audit history when the replacement is already booked" do
+    original_slot_id = appointment.appointment_slot_id
+    create(:appointment, practice: practice, clinician: replacement.clinician,
+      appointment_slot: replacement)
+
+    expect {
+      expect {
+        described_class.new(appointment: appointment, replacement_slot: replacement, staff_user: staff_user).call
+      }.to raise_error(described_class::NotAllowed, /no longer available/)
+    }.not_to change(AuditEvent, :count)
+
+    expect(appointment.reload.appointment_slot_id).to eq(original_slot_id)
+  end
+
 end

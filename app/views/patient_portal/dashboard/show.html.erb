@@ -16,6 +16,10 @@
     <%= render "patient_portal/shared/access_status", revoked: @revoked_access, standalone: false %>
   <% else %>
     <nav aria-label="Patient portal actions" class="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <%= link_to patient_portal_profile_path, class: "group rounded-2xl border border-medical-border bg-white p-6 transition hover:border-medical-teal hover:shadow-sm" do %>
+        <h2 class="text-lg font-semibold text-medical-navy">Your profile</h2>
+        <p class="mt-1 text-sm text-medical-muted">View verified details and manage sign-in credentials</p>
+      <% end %>
       <%= link_to patient_portal_appointments_path, class: "group rounded-2xl border border-medical-teal/30 bg-medical-teal-soft p-6 transition hover:border-medical-teal hover:shadow-sm" do %>
         <div class="flex items-start justify-between">
           <span class="flex size-12 items-center justify-center rounded-full bg-white text-2xl text-medical-teal" aria-hidden="true">▦</span>

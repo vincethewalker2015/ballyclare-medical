@@ -75,4 +75,34 @@ RSpec.describe "Patient portal appointment history", type: :request do
     expect(response.body).not_to include(foreign.appointment_slot.starts_at
       .in_time_zone(patient.practice.timezone).strftime("%A %-d %B %Y, %-I:%M %p"))
   end
+  it "shows pending and completed refunds with a live-update subscription" do
+    patient = create(:patient)
+    approve(patient)
+    appointment = create(:appointment, patient: patient, practice: patient.practice, status: "cancelled")
+    payment = create(:payment, appointment: appointment, patient: patient, status: "succeeded")
+    refund = create(:refund, payment: payment, status: "pending")
+    sign_in account, scope: :patient_account
+
+    get patient_portal_appointment_history_path
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Refund pending", "turbo-cable-stream-source")
+
+    refund.update!(status: "succeeded")
+    get patient_portal_appointment_history_path
+    expect(response.body).to include("Refund completed")
+    expect(response.body).not_to include("Refund pending")
+  end
+
+  it "instructs patients to contact the practice when a refund fails" do
+    patient = create(:patient)
+    approve(patient)
+    appointment = create(:appointment, patient: patient, practice: patient.practice, status: "cancelled")
+    payment = create(:payment, appointment: appointment, patient: patient, status: "succeeded")
+    create(:refund, payment: payment, status: "failed")
+    sign_in account, scope: :patient_account
+
+    get patient_portal_appointment_history_path
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Refund failed", "contact your practice")
+  end
 end

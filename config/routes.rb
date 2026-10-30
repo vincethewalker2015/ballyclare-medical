@@ -23,6 +23,7 @@ Rails.application.routes.draw do
     }
 
   get "/patient-portal", to: "patient_portal/dashboard#show", as: :patient_portal
+  resource :patient_portal_profile, path: "/patient-portal/profile", module: :patient_portal, controller: :profiles, only: %i[show edit update]
   get "/patient-portal/appointments/:appointment_id/reschedule", to: "patient_portal/appointment_reschedules#edit", as: :edit_patient_portal_appointment_reschedule
   patch "/patient-portal/appointments/:appointment_id/reschedule", to: "patient_portal/appointment_reschedules#update", as: :patient_portal_appointment_reschedule
   patch "/patient-portal/appointments/:appointment_id/cancel", to: "patient_portal/appointment_cancellations#update", as: :patient_portal_cancel_appointment

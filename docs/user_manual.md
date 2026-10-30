@@ -79,7 +79,7 @@ Eligible successful payments trigger an automatic refund request; the
 refund may take additional time to be confirmed by Stripe. The payment
 and refund records remain in the financial history. A pending or
 processing payment blocks cancellation until its outcome is known.
-The patient portal initially confirms that an eligible refund has been\nrequested. Under **Past and cancelled appointments**, paid cancellations\nshow the latest recorded refund outcome: **Refund pending**, **Refund\ncompleted**, or **Refund failed — contact your practice**. The status\nupdates automatically while the appointment-history page is open; if the\nlive connection is interrupted, refresh the page to retrieve the latest\nrecorded status.\n\n**Do not assume a refund has completed merely because cancellation succeeded.**
+The patient portal initially confirms that an eligible refund has been\nrequested. Under **Past and cancelled appointments**, paid cancellations\nshow the latest recorded refund outcome: **Refund pending**, **Refund completed**, **Partially refunded — contact your\npractice**, or **Refund failed — contact your practice**. The status\nupdates automatically while the appointment-history page is open; if the\nlive connection is interrupted, refresh the page to retrieve the latest\nrecorded status.\n\n**Do not assume a refund has completed merely because cancellation succeeded.**
 See [Payments and Refunds](#payments-and-refunds).
 
 ### Rescheduling an appointment (P2.2)

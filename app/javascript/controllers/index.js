@@ -24,3 +24,6 @@ application.register("diary-date-picker", DiaryDatePickerController)
 
 import PatientPickerController from "./patient_picker_controller"
 application.register("patient-picker", PatientPickerController)
+
+import PasswordVisibilityController from "./password_visibility_controller"
+application.register("password-visibility", PasswordVisibilityController)

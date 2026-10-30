@@ -47,4 +47,62 @@ RSpec.describe Appointments::Reschedule do
       described_class.new(appointment: appointment, replacement_slot: replacement, staff_user: staff_user).call
     }.to raise_error(described_class::NotAllowed, /future/)
   end
+  it "allows a different clinician of the same type" do
+    other_clinician = create(:staff_member, practice: practice, staff_type: appointment.clinician.staff_type)
+    replacement.update!(clinician: other_clinician,
+      availability_block: create(:availability_block, practice: practice, clinician: other_clinician))
+    described_class.new(appointment: appointment, replacement_slot: replacement, staff_user: staff_user).call
+    expect(appointment.reload.clinician).to eq(other_clinician)
+  end
+
+  it "does not permit a different practice" do
+    other_practice = create(:practice)
+    other_clinician = create(:staff_member, practice: other_practice, staff_type: appointment.clinician.staff_type)
+    replacement.update!(practice: other_practice, clinician: other_clinician,
+      availability_block: create(:availability_block, practice: other_practice, clinician: other_clinician))
+    expect {
+      described_class.new(appointment: appointment, replacement_slot: replacement, staff_user: staff_user).call
+    }.to raise_error(described_class::NotAllowed, /practice/)
+  end
+
+  it "rejects appointments which are not booked or confirmed" do
+    appointment.update!(status: "arrived")
+    expect {
+      described_class.new(appointment: appointment, replacement_slot: replacement, staff_user: staff_user).call
+    }.to raise_error(described_class::NotAllowed, /booked or confirmed/)
+  end
+
+  it "rejects a patient without approved access" do
+    patient_account = create(:patient_account)
+    expect {
+      described_class.new(appointment: appointment, replacement_slot: replacement, patient_account: patient_account).call
+    }.to raise_error(described_class::NotAllowed, /approved/)
+  end
+
+  it "rejects rescheduling within 24 hours for patients, even with approved access" do
+    patient_account = create(:patient_account, confirmed_at: Time.current)
+    create(:patient_account_link, patient_account: patient_account, patient: appointment.patient,
+      practice: practice, status: "approved", approved_at: Time.current,
+      verified_at: Time.current, verification_method: "in_person",
+      verified_by: create(:staff_member, practice: practice, access_level: "staff_admin"))
+    appointment.appointment_slot.update!(starts_at: 12.hours.from_now, ends_at: 12.hours.from_now + 20.minutes)
+    expect {
+      described_class.new(appointment: appointment, replacement_slot: replacement, patient_account: patient_account).call
+    }.to raise_error(described_class::NotAllowed, /24 hours/)
+  end
+
+  it "allows staff to reschedule within 24 hours" do
+    appointment.appointment_slot.update!(starts_at: 12.hours.from_now, ends_at: 12.hours.from_now + 20.minutes)
+    described_class.new(appointment: appointment, replacement_slot: replacement, staff_user: staff_user).call
+    expect(appointment.reload.appointment_slot).to eq(replacement)
+  end
+
+  it "rejects an active hold on the replacement slot" do
+    create(:appointment_hold, practice: practice, appointment_slot: replacement,
+      patient: appointment.patient, expires_at: 10.minutes.from_now)
+    expect {
+      described_class.new(appointment: appointment, replacement_slot: replacement, staff_user: staff_user).call
+    }.to raise_error(described_class::NotAllowed, /available/)
+  end
+
 end

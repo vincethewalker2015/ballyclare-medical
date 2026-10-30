@@ -1,10 +1,52 @@
-<main class="mx-auto max-w-3xl px-6 py-10">
-  <h1 class="text-3xl font-semibold text-medical-navy">Reschedule appointment</h1>
-  <p class="mt-3 text-medical-muted">Select another available appointment with the same clinician type. At least 24 hours notice is required.</p>
-  <%= form_with url: patient_portal_appointment_reschedule_path(@appointment), method: :patch, class: "mt-6 space-y-4" do |form| %>
-    <%= form.label :appointment_slot_id, "New appointment", class: "block font-semibold" %>
-    <%= form.select :appointment_slot_id, @slots.map { |slot| ["#{slot.starts_at.in_time_zone(@appointment.practice.timezone).strftime('%a %-d %b %Y %H:%M')} — #{slot.clinician.full_name}", slot.id] }, { prompt: "Select a time" }, { required: true, class: "w-full rounded-lg border p-3" } %>
-    <%= form.submit "Confirm reschedule", class: "rounded-lg bg-medical-teal px-5 py-3 font-semibold text-white" %>
-  <% end %>
-  <%= link_to "Back to appointment history", patient_portal_appointment_history_path, class: "mt-5 inline-block underline" %>
+<% content_for :title, "Reschedule appointment | Ballyclare Medical" %>
+
+<main class="mx-auto max-w-5xl px-6 py-10">
+  <div class="mb-8">
+    <p class="text-sm font-semibold uppercase tracking-[0.16em] text-medical-teal">Appointments</p>
+    <h1 class="mt-2 text-3xl font-semibold tracking-tight text-medical-navy">Reschedule appointment</h1>
+    <p class="mt-2 text-sm leading-6 text-medical-muted">
+      Select another available appointment with the same clinician type. At least 24 hours notice is required.
+    </p>
+  </div>
+
+  <div class="rounded-2xl border border-medical-border bg-white p-6 shadow-sm sm:p-8">
+    <%= form_with url: patient_portal_appointment_reschedule_path(@appointment), method: :patch do |form| %>
+      <fieldset>
+        <legend class="text-sm font-semibold text-medical-navy">Available appointments</legend>
+        <p class="mt-1 mb-5 text-sm text-medical-muted">Choose a replacement time and clinician. Only one appointment can be selected.</p>
+
+        <% if @slots.any? %>
+          <div class="max-h-[32rem] space-y-6 overflow-y-auto pr-1">
+            <% @slots.group_by { |slot| slot.starts_at.in_time_zone(@appointment.practice.timezone).to_date }.each do |date, slots| %>
+              <section>
+                <h2 class="mb-3 text-sm font-semibold text-medical-navy"><%= date.strftime("%A, %-d %B %Y") %></h2>
+                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <% slots.each do |slot| %>
+                    <label class="block cursor-pointer">
+                      <%= form.radio_button :appointment_slot_id, slot.id, required: true, class: "peer sr-only" %>
+                      <span class="block rounded-xl border border-medical-border bg-white px-5 py-4 transition hover:border-medical-teal peer-checked:border-medical-teal peer-checked:bg-medical-cream peer-checked:ring-2 peer-checked:ring-medical-teal peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-medical-teal">
+                        <span class="block text-base font-semibold text-medical-navy"><%= slot.starts_at.in_time_zone(@appointment.practice.timezone).strftime("%H:%M") %></span>
+                        <span class="mt-1 block text-sm text-medical-muted"><%= slot.clinician.full_name %></span>
+                      </span>
+                    </label>
+                  <% end %>
+                </div>
+              </section>
+            <% end %>
+          </div>
+        <% else %>
+          <p class="rounded-xl border border-medical-border bg-medical-cream px-5 py-4 text-sm text-medical-muted">
+            No replacement appointments are currently available. Please try again later or contact the practice.
+          </p>
+        <% end %>
+      </fieldset>
+
+      <div class="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-medical-border pt-6">
+        <%= link_to "Back to appointment history", patient_portal_appointment_history_path, class: "text-sm font-semibold text-medical-teal hover:text-medical-teal-dark" %>
+        <% if @slots.any? %>
+          <%= form.submit "Confirm reschedule", class: "cursor-pointer rounded-xl bg-medical-navy px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-medical-navy-deep focus:outline-none focus:ring-2 focus:ring-medical-navy focus:ring-offset-2" %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
 </main>

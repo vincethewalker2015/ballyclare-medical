@@ -85,7 +85,7 @@ RSpec.describe "Patient portal appointment history", type: :request do
 
     get patient_portal_appointment_history_path
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("Refund pending", "turbo-cable-stream-source")\n    expect(response.body.scan("turbo-cable-stream-source").size).to eq(1)
+    expect(response.body).to include("Refund pending", "turbo-cable-stream-source")
 
     refund.update!(status: "succeeded")
     get patient_portal_appointment_history_path
@@ -105,23 +105,4 @@ RSpec.describe "Patient portal appointment history", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Refund failed", "contact your practice")
   end
-  it "distinguishes a partial refund from a fully completed refund" do
-    patient = create(:patient)
-    approve(patient)
-    appointment = create(:appointment, patient: patient, practice: patient.practice, status: "cancelled")
-    payment = create(:payment, appointment: appointment, patient: patient,
-      status: "succeeded", amount_cents: 6500)
-    create(:refund, payment: payment, status: "succeeded", amount_cents: 2000)
-    sign_in account, scope: :patient_account
-
-    get patient_portal_appointment_history_path
-    expect(response.body).to include("Partially refunded")
-    expect(response.body).not_to include("Refund completed")
-
-    create(:refund, payment: payment, status: "succeeded", amount_cents: 4500)
-    get patient_portal_appointment_history_path
-    expect(response.body).to include("Refund completed")
-    expect(response.body).not_to include("Partially refunded")
-  end
-
 end

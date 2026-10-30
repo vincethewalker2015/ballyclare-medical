@@ -105,5 +105,4 @@ RSpec.describe "Patient portal appointment history", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Refund failed", "contact your practice")
   end
-
 end

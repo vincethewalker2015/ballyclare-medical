@@ -74,7 +74,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_27_130000) do
 
   create_table "appointment_status_changes", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "appointment_id", null: false
-    t.uuid "changed_by_id", null: false
+    t.uuid "changed_by_id"
     t.string "from_status"
     t.string "to_status", null: false
     t.text "notes"

@@ -23,11 +23,28 @@
               </div>
               <div class="flex flex-col items-end gap-2">
                 <span class="rounded-full bg-medical-cream px-3 py-1 text-sm font-medium text-medical-navy"><%= appointment.status.humanize %></span>
+                <% if appointment.status == "cancelled" %>
+                  <% refunds = appointment.payments.flat_map(&:refunds) %>
+                  <% if refunds.any? %>
+                    <% refund_status = if refunds.all? { |refund| refund.status == "succeeded" }
+                      "Refund completed"
+                    elsif refunds.any? { |refund| refund.status == "failed" }
+                      "Refund failed — contact your practice"
+                    elsif refunds.any? { |refund| %w[pending processing].include?(refund.status) }
+                      "Refund pending"
+                    elsif refunds.all? { |refund| refund.status == "cancelled" }
+                      "Refund cancelled — contact your practice"
+                    else
+                      "Refund status unavailable — contact your practice"
+                    end %>
+                    <span class="text-sm font-medium text-medical-muted"><%= refund_status %></span>
+                  <% end %>
+                <% end %>
                 <% if %w[booked confirmed].include?(appointment.status) && appointment.appointment_slot.starts_at >= 24.hours.from_now %>
-                  <%= link_to "Reschedule", edit_patient_portal_appointment_reschedule_path(appointment), class: "text-sm font-semibold text-medical-teal underline" %>
+                  <%= link_to "Reschedule", edit_patient_portal_appointment_reschedule_path(appointment), class: "inline-flex items-center justify-center rounded-xl border border-medical-border bg-white px-4 py-2 text-sm font-semibold text-medical-navy shadow-sm hover:border-medical-teal hover:text-medical-teal" %>
                   <%= button_to "Cancel appointment", patient_portal_cancel_appointment_path(appointment), method: :patch,
                     form: { data: { turbo_confirm: "Cancel this appointment? Any successful payments will be automatically refunded." } },
-                    class: "text-sm font-semibold text-red-700 underline" %>
+                    class: "inline-flex items-center justify-center rounded-xl border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-700 shadow-sm hover:bg-red-50" %>
                 <% end %>
               </div>
             </li>

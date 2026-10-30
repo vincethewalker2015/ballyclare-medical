@@ -1,0 +1,16 @@
+<% content_for :title, "Your profile | Ballyclare Medical" %>
+<main class="mx-auto max-w-3xl px-6 py-10">
+  <h1 class="text-3xl font-semibold text-medical-navy">Your profile</h1>
+  <p class="mt-2 text-medical-muted">Your verified patient details are managed by your practice.</p>
+  <section class="mt-6 rounded-2xl border border-medical-border bg-white p-6">
+    <dl class="space-y-4">
+      <div><dt class="text-sm text-medical-muted">Name</dt><dd><%= @patient.first_name %> <%= @patient.last_name %></dd></div>
+      <div><dt class="text-sm text-medical-muted">Date of birth</dt><dd><%= @patient.date_of_birth.strftime("%-d %B %Y") %></dd></div>
+      <div><dt class="text-sm text-medical-muted">Patient number</dt><dd><%= @patient.patient_number %></dd></div>
+      <div><dt class="text-sm text-medical-muted">Sign-in email</dt><dd><%= current_patient_account.email %></dd></div>
+    </dl>
+    <p class="mt-5 text-sm text-medical-muted">To correct your name or date of birth, contact your practice so they can verify the change.</p>
+    <%= link_to "Edit sign-in details", edit_patient_portal_profile_path, class: "mt-5 inline-block font-semibold text-medical-teal underline" %>
+  </section>
+  <%= link_to "Back to patient portal", patient_portal_path, class: "mt-5 inline-block text-medical-teal underline" %>
+</main>

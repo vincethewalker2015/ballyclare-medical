@@ -93,6 +93,16 @@ RSpec.describe "Practice appointments", type: :request do
         expect(response).to have_http_status(:forbidden)
       end
 
+      it "forbids changing another clinician's appointment status" do
+        expect {
+          patch status_practice_appointment_path(other_appointment),
+            params: { status: "confirmed" }
+        }.not_to change { other_appointment.reload.status }
+
+        expect(response).to have_http_status(:forbidden)
+        expect(other_appointment.appointment_status_changes.count).to eq(0)
+      end
+
       it "allows own appointment detail" do
         get practice_appointment_path(own_appointment)
         expect(response).to have_http_status(:success)

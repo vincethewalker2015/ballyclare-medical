@@ -113,6 +113,10 @@ module Staff
     def status
       appointment = current_practice.appointments.find(params[:id])
 
+      if current_staff_member.access_level == "staff_clinician" && appointment.clinician_id != current_staff_member.id
+        return head :forbidden
+      end
+
       Appointments::ChangeStatus.new(
         appointment: appointment,
         to_status: params[:status],

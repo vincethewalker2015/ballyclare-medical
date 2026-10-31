@@ -77,4 +77,70 @@ RSpec.describe PatientPortal::CompleteEmergencyUnpaidBooking do
     expect(AppointmentHold.exists?(hold.id)).to be(true)
     expect(Appointment.where(appointment_slot: slot).count).to eq(0)
   end
+  describe "emergency unpaid booking safeguards" do
+    let(:senior) do
+      create(:staff_member, practice: practice,
+        staff_type: "administrator", access_level: "senior_staff_admin")
+    end
+    let(:hold) { slot.hold_for!(patient: patient) }
+
+    before { create(:consultation_fee, practice: practice, clinician_type: "doctor") }
+
+    def declare_outage
+      Payments::StripeOutageDeclaration.activate!(
+        practice: practice, actor: senior, reason: "Stripe outage independently confirmed"
+      )
+    end
+
+    def expect_refused(message = /not permitted/)
+      expect(Stripe::PaymentIntent).not_to receive(:create)
+      expect {
+        expect { described_class.new(hold: hold).call }
+          .to raise_error(described_class::Unavailable, message)
+      }.not_to change { [Appointment.count, AppointmentCharge.count, Payment.count] }
+      expect(AppointmentHold.exists?(hold.id)).to be(true)
+    end
+
+    it "rejects unpaid booking without a declared Stripe outage" do
+      expect_refused
+    end
+
+    it "rejects unpaid booking after the outage is deactivated" do
+      declare_outage
+      Payments::StripeOutageDeclaration.deactivate!(
+        practice: practice, actor: senior, reason: "Stripe service restored"
+      )
+      expect_refused
+    end
+
+    it "rejects unpaid booking after the declaration expires" do
+      hold.update!(expires_at: 45.minutes.from_now)
+      travel_to Time.current.change(usec: 0) do
+        declare_outage
+        travel 31.minutes
+        expect_refused
+      end
+    end
+
+    %w[pending processing succeeded failed cancelled requires_refund].each do |status|
+      it "rejects unpaid booking after a #{status} Stripe payment attempt" do
+        declare_outage
+        Payment.create!(
+          appointment_hold: hold, patient: patient, provider: "stripe",
+          currency: practice.currency, amount_cents: 6_500,
+          status: status, idempotency_key: SecureRandom.uuid
+        )
+        expect_refused
+      end
+    end
+
+    it "rejects a hold whose patient belongs to another practice" do
+      declare_outage
+      foreign_patient = create(:patient, practice: create(:practice))
+      hold.update_column(:patient_id, foreign_patient.id)
+      hold.reload
+      expect_refused(/practice mismatch/)
+    end
+  end
+
 end

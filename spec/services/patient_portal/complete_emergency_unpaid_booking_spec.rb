@@ -1,6 +1,8 @@
 require "rails_helper"
+require "active_support/testing/time_helpers"
 
 RSpec.describe PatientPortal::CompleteEmergencyUnpaidBooking do
+  include ActiveSupport::Testing::TimeHelpers
   let(:practice) { create(:practice) }
   let(:clinician) { create(:staff_member, practice: practice, staff_type: "doctor") }
   let(:patient) { create(:patient, practice: practice) }

@@ -174,7 +174,7 @@ RSpec.describe "Stripe webhooks", type: :request do
       expect(refund.refunded_at).to eq(first_refunded_at)
     end
 
-    it "does not mutate a failed payment when payment_intent.payment_failed is redelivered" do
+    it "preserves an appointment-linked processing payment when failure is redelivered" do
       payment = create(:payment, provider: "stripe", status: "processing",
         provider_payment_id: "pi_failed_duplicate", amount_cents: 5000,
         currency: "GBP")
@@ -193,11 +193,12 @@ RSpec.describe "Stripe webhooks", type: :request do
       end
 
       deliver.call
-      expect(payment.reload.status).to eq("failed")
-      failed_attributes = payment.attributes
+      expect(payment.reload.appointment_id).to be_present
+      expect(payment.status).to eq("processing")
+      original_attributes = payment.attributes
 
       expect { deliver.call }.not_to change { payment.reload.attributes }
-      expect(payment.attributes).to eq(failed_attributes)
+      expect(payment.attributes).to eq(original_attributes)
     end
 
     it "rejects an invalid Stripe signature" do

@@ -90,6 +90,108 @@ RSpec.describe Appointments::ChangeStatus do
       end
     end
 
+    context "when a patient account requests cancellation" do
+      let(:to_status) { "cancelled" }
+      let(:patient_account) { create(:patient_account, confirmed_at: Time.current) }
+      let(:admin) do
+        create(:staff_member, practice: practice,
+          staff_type: "administrator", access_level: "staff_admin")
+      end
+      let!(:link) do
+        PatientAccountLink.create!(
+          patient_account: patient_account,
+          patient: appointment.patient,
+          practice: practice,
+          status: "approved",
+          verification_method: "in_person",
+          verified_at: Time.current,
+          verified_by: admin,
+          approved_at: Time.current
+        )
+      end
+      let(:patient_cancellation) do
+        described_class.new(
+          appointment: appointment,
+          to_status: "cancelled",
+          changed_by: nil,
+          patient_account: patient_account
+        )
+      end
+
+      before do
+        appointment.appointment_slot.update!(
+          starts_at: 3.days.from_now,
+          ends_at: 3.days.from_now + 20.minutes
+        )
+      end
+
+      it "allows cancellation with an approved link to the appointment patient and practice" do
+        expect { patient_cancellation.call }
+          .to change { appointment.reload.status }.from("booked").to("cancelled")
+      end
+
+      it "rejects a patient account without an approved link" do
+        link.destroy!
+        expect { patient_cancellation.call }
+          .to raise_error(described_class::InvalidTransition, /not authorized/)
+        expect(appointment.reload.status).to eq("booked")
+      end
+
+      it "rejects a revoked link" do
+        link.update!(status: "revoked")
+        expect { patient_cancellation.call }
+          .to raise_error(described_class::InvalidTransition, /not authorized/)
+        expect(appointment.reload.status).to eq("booked")
+      end
+
+      it "rejects an account linked to a different patient" do
+        other_appointment = create(:appointment, practice: practice, status: "booked")
+        other_appointment.appointment_slot.update!(
+          starts_at: 3.days.from_now,
+          ends_at: 3.days.from_now + 20.minutes
+        )
+        service = described_class.new(
+          appointment: other_appointment,
+          to_status: "cancelled",
+          changed_by: nil,
+          patient_account: patient_account
+        )
+        expect { service.call }
+          .to raise_error(described_class::InvalidTransition, /not authorized/)
+        expect(other_appointment.reload.status).to eq("booked")
+      end
+
+      it "rejects an appointment in another practice" do
+        other_practice = create(:practice)
+        other_appointment = create(:appointment, practice: other_practice, status: "booked")
+        service = described_class.new(
+          appointment: other_appointment,
+          to_status: "cancelled",
+          changed_by: nil,
+          patient_account: patient_account
+        )
+        expect { service.call }
+          .to raise_error(described_class::InvalidTransition, /not authorized/)
+        expect(other_appointment.reload.status).to eq("booked")
+      end
+
+      it "does not void charges, create refunds or record status changes when unauthorized" do
+        charge = create(:appointment_charge, appointment: appointment,
+          amount_cents: 5000, status: "active")
+        payment = create(:payment, appointment: appointment,
+          patient: appointment.patient, status: "succeeded",
+          amount_cents: 5000, currency: "GBP", paid_at: Time.current)
+        link.update!(status: "revoked")
+
+        expect { patient_cancellation.call }
+          .to raise_error(described_class::InvalidTransition, /not authorized/)
+        expect(appointment.reload.status).to eq("booked")
+        expect(charge.reload.status).to eq("active")
+        expect(payment.refunds.count).to eq(0)
+        expect(appointment.appointment_status_changes.count).to eq(0)
+      end
+    end
+
     context "when cancelling an unpaid appointment" do
       let(:to_status) { "cancelled" }
 

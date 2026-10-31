@@ -104,6 +104,12 @@ module Appointments
     def validate_patient_cancellation!
       return unless @patient_account
 
+      authorized = @patient_account.patient_account_links.approved.exists?(
+        patient_id: appointment.patient_id,
+        practice_id: appointment.practice_id
+      )
+      raise InvalidTransition, "Patient account is not authorized for this appointment" unless authorized
+
       raise InvalidTransition, "Patients may only cancel appointments" unless to_status == "cancelled"
       raise InvalidTransition, "Patients may only cancel booked or confirmed appointments" unless %w[booked confirmed].include?(appointment.status)
 

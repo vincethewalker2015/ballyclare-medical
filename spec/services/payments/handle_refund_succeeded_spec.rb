@@ -127,6 +127,24 @@ RSpec.describe Payments::HandleRefundSucceeded do
     expect(refund.refunded_at).to be_present
   end
 
+  it "accepts Stripe string metadata IDs for a matching refund and payment" do
+    refund.update!(status: "pending", provider_refund_id: nil)
+
+    stripe_refund.metadata = Stripe::StripeObject.construct_from(
+      refund_id: refund.id.to_s,
+      payment_id: payment.id.to_s
+    )
+
+    result = described_class.new(stripe_refund: stripe_refund).call
+
+    expect(result.id).to eq(refund.id)
+    expect(refund.reload).to have_attributes(
+      provider_refund_id: "re_test_123",
+      status: "succeeded"
+    )
+    expect(refund.refunded_at).to be_present
+  end
+
   it "rejects a conflicting Stripe refund ID supplied through metadata" do
     refund.update!(
       provider_refund_id: "re_existing_456",

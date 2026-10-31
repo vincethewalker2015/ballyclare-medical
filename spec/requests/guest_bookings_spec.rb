@@ -139,6 +139,22 @@ RSpec.describe "Guest booking entry", type: :request do
       GuestBooking.order(:id).last
     end
 
+    def create_guest_record
+      GuestBooking.create!(
+        practice: practice, appointment_slot: slot, expires_at: 30.minutes.from_now,
+        first_name: "Other", last_name: "Visitor", date_of_birth: Date.new(1990, 1, 1),
+        email: "other@example.com", phone: "07700900124",
+        consultation_reason: "Consultation", status: "draft"
+      )
+    end
+
+    def create_guest_payment(guest)
+      Payment.create!(
+        guest_booking: guest, provider: "stripe", currency: practice.currency,
+        amount_cents: 6_500, status: "pending", idempotency_key: SecureRandom.uuid
+      )
+    end
+
     it "requires a guest session for booking review" do
       get guest_booking_review_path
       expect(response).to have_http_status(:not_found)
@@ -151,8 +167,8 @@ RSpec.describe "Guest booking entry", type: :request do
     end
 
     it "requires a guest session for payment status even when the payment ID exists" do
-      guest = create(:guest_booking)
-      payment = create(:payment, guest_booking: guest)
+      guest = create_guest_record
+      payment = create_guest_payment(guest)
       expect(Payments::ReconcileStripeStatus).not_to receive(:new)
       get guest_booking_payment_path(payment)
       expect(response).to have_http_status(:not_found)
@@ -160,8 +176,8 @@ RSpec.describe "Guest booking entry", type: :request do
 
     it "rejects another guest's payment ID without attempting Stripe reconciliation" do
       own_guest = submit_guest
-      other_guest = create(:guest_booking, practice: practice, appointment_slot: slot)
-      foreign_payment = create(:payment, guest_booking: other_guest)
+      other_guest = create_guest_record
+      foreign_payment = create_guest_payment(other_guest)
       expect(own_guest).not_to eq(other_guest)
       expect(Payments::ReconcileStripeStatus).not_to receive(:new)
       get guest_booking_payment_path(foreign_payment)

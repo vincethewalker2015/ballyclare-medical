@@ -15,6 +15,52 @@ RSpec.describe "Stripe webhooks", type: :request do
   end
 
   describe "POST /webhooks/stripe" do
+    def signed_stripe_request(payload, secret: webhook_secret, timestamp: Time.now.to_i)
+      signed_content = "#{timestamp}.#{payload}"
+      signature = OpenSSL::HMAC.hexdigest("SHA256", secret, signed_content)
+      post "/webhooks/stripe", params: payload,
+        headers: {
+          "Stripe-Signature" => "t=#{timestamp},v1=#{signature}",
+          "CONTENT_TYPE" => "application/json"
+        }
+    end
+
+    it "verifies a genuinely signed Stripe payload without mocking verification" do
+      payload = { id: "evt_signed_test", object: "event",
+        type: "payment_intent.created", data: { object: { id: "pi_signed_test", object: "payment_intent" } } }.to_json
+
+      expect(Payments::HandleSucceeded).not_to receive(:new)
+      signed_stripe_request(payload)
+
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "rejects a tampered payload even when the signature was valid for the original body" do
+      original = { id: "evt_original", object: "event",
+        type: "payment_intent.created", data: { object: { id: "pi_original", object: "payment_intent" } } }.to_json
+      tampered = original.sub("evt_original", "evt_modified")
+      timestamp = Time.now.to_i
+      signature = OpenSSL::HMAC.hexdigest("SHA256", webhook_secret, "#{timestamp}.#{original}")
+
+      expect(Payments::HandleSucceeded).not_to receive(:new)
+      post "/webhooks/stripe", params: tampered,
+        headers: {
+          "Stripe-Signature" => "t=#{timestamp},v1=#{signature}",
+          "CONTENT_TYPE" => "application/json"
+        }
+
+      expect(response).to have_http_status(:bad_request)
+    end
+
+    it "rejects a correctly signed but stale Stripe timestamp" do
+      payload = { id: "evt_stale", object: "event",
+        type: "payment_intent.created", data: { object: { id: "pi_stale", object: "payment_intent" } } }.to_json
+
+      signed_stripe_request(payload, timestamp: 1.hour.ago.to_i)
+
+      expect(response).to have_http_status(:bad_request)
+    end
+
     it "accepts a valid Stripe event" do
       payment_intent = double(
         id: "pi_test_123"

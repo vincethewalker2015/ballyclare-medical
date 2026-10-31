@@ -179,7 +179,8 @@ RSpec.describe "Stripe webhooks", type: :request do
         provider_payment_id: "pi_failed_duplicate", amount_cents: 5000,
         currency: "GBP")
       intent = instance_double(Stripe::PaymentIntent,
-        id: "pi_failed_duplicate", amount: 5000, currency: "gbp")
+        id: "pi_failed_duplicate", amount: 5000, currency: "gbp",
+        status: "requires_payment_method")
       event = instance_double(Stripe::Event, type: "payment_intent.payment_failed",
         data: double(object: intent))
       allow(Stripe::Webhook).to receive(:construct_event).and_return(event)

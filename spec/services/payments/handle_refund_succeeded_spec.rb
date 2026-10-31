@@ -135,6 +135,10 @@ RSpec.describe Payments::HandleRefundSucceeded do
       payment_id: payment.id.to_s
     )
 
+    expect(stripe_refund.metadata.payment_id).to be_a(String)
+    expect(refund.payment_id).to be_a(String)
+    expect(stripe_refund.metadata.payment_id).to eq(refund.payment_id)
+
     result = described_class.new(stripe_refund: stripe_refund).call
 
     expect(result.id).to eq(refund.id)

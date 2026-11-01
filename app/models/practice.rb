@@ -1,4 +1,5 @@
 class Practice < ApplicationRecord
+  belongs_to :medical_group
   has_many :consultation_fees, dependent: :restrict_with_error
   has_many :patients, dependent: :restrict_with_error
   has_many :patient_account_links, dependent: :restrict_with_error

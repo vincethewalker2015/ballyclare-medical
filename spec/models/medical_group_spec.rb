@@ -18,8 +18,20 @@ RSpec.describe MedicalGroup, type: :model do
     expect(first.medical_group_id).not_to eq(second.medical_group_id)
   end
 
-  it "requires each practice to belong to a medical group" do
-    practice = build(:practice, medical_group: nil)
+  it "automatically assigns a separate medical group to a directly created practice" do
+    practice = Practice.create!(
+      name: "Directly Created Practice",
+      timezone: "Europe/London",
+      currency: "GBP",
+      country_code: "GB"
+    )
+
+    expect(practice.medical_group).to be_persisted
+    expect(practice.medical_group.name).to eq("Directly Created Practice")
+  end
+
+  it "rejects an explicitly supplied nonexistent medical group" do
+    practice = build(:practice, medical_group: nil, medical_group_id: SecureRandom.uuid)
     expect(practice).not_to be_valid
   end
 

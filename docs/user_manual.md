@@ -7,6 +7,7 @@ Ballyclare Medical. It is being expanded as new features become available.
 
 - [Getting Started](#getting-started)
 - [Signing In](#signing-in)
+- [Working Across Multiple Practices (Planned)](#working-across-multiple-practices-planned)
 - [Patients](#patients)
 - [Patient Portal: Registration and Access](#patient-portal-registration-and-access)
 - [Patient Portal: Appointment Changes](#patient-portal-appointment-changes)
@@ -33,6 +34,36 @@ members receive password-setting instructions when an administrator
 creates their account, provided outgoing email is configured. If you
 cannot remember your password, use **Forgot password?** on the sign-in
 page. Never share account credentials.
+
+## Working Across Multiple Practices (Planned)
+
+**Development note:** The group-wide staff access described in this section is an
+agreed design for a future release, not a feature currently available in the
+application. Until it is implemented, staff access and patient searches remain
+scoped to the staff member's current practice.
+
+Ballyclare Medical is intended to operate as one medical group with multiple
+practices or locations. Staff will use one account across the group's practices,
+without requiring separate staff memberships at each location.
+
+- **Choosing a working practice:** Staff will be able to select a practice or
+  work across all practices when scheduling and managing appointments.
+- **Clinicians:** Clinicians may work at different locations and will have
+  role-appropriate clinical access across the group.
+- **Reception and booking staff:** Authorised reception staff will be able to
+  search for patients and arrange appointments at any group practice. Patient
+  information displayed for booking will be limited to essential identifying
+  and administrative details, not confidential consultation notes.
+- **Administrators:** Authorised administrators will manage operations according
+  to their group-level role.
+- **Patient confidentiality:** Access to clinical records will continue to
+  depend on the staff member's role and care responsibilities. Staff access
+  within one group must never grant access to records belonging to a different
+  medical group.
+
+When this feature is released, this section will be updated with step-by-step
+instructions and screenshots for selecting a practice and booking across
+locations.
 
 ## Patients
 

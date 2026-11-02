@@ -439,7 +439,7 @@ Provide a single staff appointment screen showing:
 
 ## Phase 5 --- Patient Portal
 
-**Status: In progress — registration, portal foundation and paid booking implemented; completion audit outstanding**
+**Status: Phase 5 implementation and code-security acceptance completed (November 2026); production operational readiness remains a separate end-of-project gate**
 
 The current implementation uses `PatientAccount` authentication and
 `/patient-portal` routes (rather than the earlier proposed `/portal`
@@ -448,22 +448,33 @@ verification/approval; patient dashboard, appointment discovery, holds and
 payment routes exist. Public `/book` guest booking is also delivered, but
 it is a separate anonymous workflow and does **not** complete Phase 5.
 
-**Remaining acceptance work to verify/implement:**
+**Phase 5 acceptance evidence and scope:**
 
-- End-to-end account activation, email verification, staff approval and secure
-  linking to existing patient records, including abuse and enumeration tests.
-- Portal appointment history, cancellation and rescheduling policies, with
-  appropriate audit and financial/refund behaviour.
-- Payment history, receipts, outstanding balances and later payments within
-  the authenticated portal.
-- Personal-detail management within the agreed Phase 5 scope. Standalone
-  documents, approval/release and secure messaging are deferred as described
-  below.
-- End-to-end request/system, accessibility, practice-isolation and permission
-  regression tests, plus production email delivery verification.
+- Registration, email confirmation, identity verification, senior approval,
+  patient-record linking, revocation and reinstatement reviewed against the
+  implemented controllers, services and existing regression coverage.
+- Appointment history, cancellation and rescheduling reviewed, including
+  practice-scoped access, 24-hour patient notice and the permitted staff override.
+- Portal payment history, receipts, outstanding balances and later payments
+  implemented and included in the financial-integrity review.
+- Personal-detail management is included in the agreed portal scope.
+  Standalone documents, approval/release and secure messaging remain deferred
+  as described below.
+- Final code-security audit reviewed identity/linking, practice isolation,
+  staff permissions, booking/cancellation/rescheduling, Stripe callbacks,
+  refunds and reconciliation. Additional regression coverage and paid-booking
+  practice-consistency validation were committed; the full RSpec suite passed
+  on the developer's Mac after these changes.
+- Manual browser, accessibility and production operational checks remain
+  distinct from the completed code-security audit; do not infer production
+  email delivery or live Stripe readiness from passing automated tests.
 
-Existing routes and controllers establish implementation progress, **not**
-proof that every workflow or acceptance criterion is complete.
+**Acceptance record (November 2026):** The Phase 5 code-security review is
+closed with no further confirmed defects in the reviewed paths, and the full
+RSpec regression suite was reported passing. This is a code and regression
+acceptance decision, **not** a claim of exhaustive penetration testing,
+independent accessibility certification, live-provider verification or
+production launch approval.
 
 ### Agreed Phase 5 completion sequence (October 2026)
 
@@ -497,10 +508,13 @@ implementation is not, by itself, evidence that acceptance is complete.
    outgoing-email integration and sender configuration are deferred to the
    end-of-project operational readiness work; development email behaviour
    must not be mistaken for verified production delivery.
-8. **Final Phase 5 acceptance:** Complete request/system regression, security,
-   accessibility, cross-practice isolation, permissions and operational
-   checks for the agreed portal scope. Review the User Manual and its
-   illustrations. Sign off Phase 5 **before beginning Phase 6**.
+8. **Final Phase 5 acceptance — code-security gate completed November 2026:**
+   Registration/linking, practice isolation, permissions, appointment changes,
+   payment/refund integrity and reconciliation were reviewed. The User Manual
+   and illustrations were reviewed and rendered in the application; the full
+   RSpec suite passed after the final booking-consistency regression changes.
+   Broader accessibility, manual operational checks and production integrations
+   remain tracked separately for release readiness. Phase 6 may begin.
 
 ### Patient registration and secure record linking
 
@@ -587,7 +601,7 @@ Planned capabilities include:
 
 ## Phase 6 --- Appointment Lifecycle and Clinical Workflow
 
-**Status: Partially implemented**
+**Status: In progress — Phase 5 code-security gate completed; clinician consultation workflow is next**
 
 Appointment transitions and status history have a staff-facing foundation.
 `Encounter` and `ClinicalNote` models also exist, but clinical consultation

@@ -10,6 +10,7 @@ Ballyclare Medical. It is being expanded as new features become available.
 - [Working Across Multiple Practices](#working-across-multiple-practices)
 - [Patients](#patients)
 - [Patient Portal: Registration and Access](#patient-portal-registration-and-access)
+- [Patient Portal: Appointments and Payments](#patient-portal-appointments-and-payments)
 - [Patient Portal: Appointment Changes](#patient-portal-appointment-changes)
 - [Patient Portal: Profile Management](#patient-portal-profile-management)
 - [Appointment Diary](#appointment-diary)
@@ -114,6 +115,46 @@ practice. Staff must use the authorised approval or reinstatement process.
 
 Patients without a portal account can still have practice records and
 staff-booked appointments. Guest booking is a separate workflow.
+
+## Patient Portal: Appointments and Payments
+
+### Viewing appointments
+
+After signing in with an approved patient account, open **View your appointments**
+to see upcoming appointments and past or cancelled appointments. The history
+includes completed and cancelled bookings where applicable. Appointment details
+are limited to the patient record approved for your account at that practice.
+
+If the portal reports that access is unavailable, contact the practice to
+check the identity-verification and account-approval process. Do not create
+a second account to bypass an outstanding approval.
+
+### Booking online
+
+The authenticated patient portal provides online appointment selection and
+payment. An available time may be held temporarily while payment is completed;
+a hold alone is **not** a confirmed appointment. Follow the payment and
+confirmation screens, and check the appointment list for the final booking
+result. If payment status is uncertain, do not repeatedly submit payment;
+contact the practice for assistance.
+
+Public guest booking at **/book** is separate from the authenticated portal.
+
+### Payment history and receipts
+
+Open **Payment history** in the patient portal to review recorded payments,
+their status and associated refunds. A receipt is available for a payment
+recorded as successful. A pending or processing payment is not proof that
+the payment has succeeded, and a requested refund is not necessarily complete.
+
+### Paying an outstanding balance
+
+For an appointment with an outstanding balance, use its **outstanding payment**
+option in the patient portal to review the amount and proceed to secure payment.
+The amount is calculated from the appointment's recorded charges, payments
+and refunds. If a payment is already being processed, wait for its result
+rather than attempting another payment. If secure payments are temporarily
+unavailable, try again later or contact the practice.
 
 ## Patient Portal: Appointment Changes
 

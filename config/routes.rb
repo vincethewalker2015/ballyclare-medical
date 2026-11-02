@@ -46,7 +46,7 @@ Rails.application.routes.draw do
   get "/docs/user_manual", to: "staff/documentation#user_manual", as: :user_manual
   get "/docs/images/user_manual/:image", to: "staff/documentation#image",
       as: :user_manual_image, format: false,
-      constraints: { image: /[a-z0-9-]+\.png/ }
+      constraints: { image: /[a-z0-9-]+\.(?:png|svg)/ }
 
   # Reveal health status on /up that returns 200 if the app boots
   # with no exceptions, otherwise 500.

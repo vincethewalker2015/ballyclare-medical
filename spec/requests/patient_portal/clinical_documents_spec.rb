@@ -30,6 +30,32 @@ RSpec.describe "Patient portal clinical document releases", type: :request do
     )
   end
 
+  it "subscribes only the approved patient link to document refreshes" do
+    link = approve_link
+    sign_in account, scope: :patient_account
+    get patient_portal_clinical_documents_path
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("turbo-cable-stream-source")
+    expect(response.body).to include("clinical_documents")
+    expect(response.body).not_to include("Confidential internal assessment")
+  end
+
+  it "broadcasts a refresh to the approved patient link after a release" do
+    link = approve_link
+    expect(Turbo::StreamsChannel).to receive(:broadcast_refresh_to).with(link, :clinical_documents)
+    release_for(patient_record: patient, clinician_record: clinician,
+      title: "Aftercare", body: "Patient guidance")
+  end
+
+  it "does not broadcast a release to revoked patient connections" do
+    link = approve_link
+    link.update!(status: "revoked")
+    expect(Turbo::StreamsChannel).not_to receive(:broadcast_refresh_to)
+    release_for(patient_record: patient, clinician_record: clinician,
+      title: "Private release", body: "Patient guidance")
+  end
+
   it "requires a signed-in patient account" do
     get patient_portal_clinical_documents_path
     expect(response).to redirect_to(new_patient_account_session_path)

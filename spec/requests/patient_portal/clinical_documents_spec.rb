@@ -37,8 +37,11 @@ RSpec.describe "Patient portal clinical document releases", type: :request do
 
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("turbo-cable-stream-source")
-    signed_stream = response.parsed_body.at_css("turbo-cable-stream-source")["signed-stream-name"]
-    expect(Turbo::StreamsChannel.verified_stream_name(signed_stream)).to eq(
+    stream_names = response.parsed_body.css("turbo-cable-stream-source").map do |source|
+      Turbo::StreamsChannel.verified_stream_name(source["signed-stream-name"])
+    end
+    expect(stream_names).to contain_exactly(
+      Turbo::StreamsChannel.send(:stream_name_from, [account, :portal_access]),
       Turbo::StreamsChannel.send(:stream_name_from, [link, :clinical_documents])
     )
     expect(response.body).not_to include("Confidential internal assessment")

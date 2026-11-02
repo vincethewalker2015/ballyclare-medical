@@ -22,6 +22,8 @@ module Staff
 
     def image
       image_path = case params[:image]
+      when "appointment-diary-illustration.svg"
+        Rails.root.join("docs/images/user_manual/appointment-diary-illustration.svg")
       when "patients-list-illustration.png"
         Rails.root.join("docs/images/user_manual/patients-list-illustration.png")
       when "new-patient-illustration.png"
@@ -36,7 +38,7 @@ module Staff
 
       return head :not_found unless image_path&.file?
 
-      send_file image_path, type: "image/png", disposition: "inline"
+      send_file image_path, type: (image_path.extname == ".svg" ? "image/svg+xml" : "image/png"), disposition: "inline"
     end
   end
 end

@@ -13,6 +13,7 @@ RSpec.describe "Staff availability after practice switching", type: :request do
   context "as an administrator" do
     before do
       create(:staff_member, user: user, practice: home, staff_type: "administrator", access_level: "staff_admin")
+      create(:staff_member, user: user, practice: sibling, staff_type: "administrator", access_level: "staff_admin")
       sign_in user
       patch practice_selection_path, params: { practice_id: sibling.id }
       expect(response).to redirect_to(practice_appointments_path)
@@ -42,7 +43,7 @@ RSpec.describe "Staff availability after practice switching", type: :request do
       create(:staff_member, user: user, practice: home, staff_type: "doctor", access_level: "staff_clinician")
       sign_in user
       patch practice_selection_path, params: { practice_id: sibling.id }
-      expect(response).to redirect_to(practice_appointments_path)
+      expect(response).to have_http_status(:forbidden)
     end
 
     it "cannot edit another clinician's availability" do

@@ -49,13 +49,13 @@ RSpec.describe "Staff availability after practice switching", type: :request do
     it "cannot edit another clinician's availability" do
       get edit_practice_availability_block_path(sibling_block)
 
-      expect(response).to have_http_status(:forbidden)
+      expect(response).to have_http_status(:not_found)
     end
 
     it "cannot cancel another clinician's availability" do
       patch cancel_practice_availability_block_path(sibling_block)
 
-      expect(response).to have_http_status(:forbidden)
+      expect(response).to have_http_status(:not_found)
     end
   end
 

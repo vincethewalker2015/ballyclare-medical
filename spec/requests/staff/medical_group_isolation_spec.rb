@@ -33,24 +33,24 @@ RSpec.describe "Staff medical group isolation", type: :request do
   end
 
   it "does not expose another group's patient detail" do
-    expect {
-      get practice_patient_path(patient_b)
-    }.to raise_error(ActiveRecord::RecordNotFound)
+    get practice_patient_path(patient_b)
+
+    expect(response).to have_http_status(:not_found)
   end
 
   it "does not allow updating another group's patient" do
-    expect {
-      patch practice_patient_path(patient_b), params: {
-        patient: { first_name: "Changed" }
-      }
-    }.to raise_error(ActiveRecord::RecordNotFound)
+    patch practice_patient_path(patient_b), params: {
+      patient: { first_name: "Changed" }
+    }
+
+    expect(response).to have_http_status(:not_found)
 
     expect(patient_b.reload.first_name).to eq("Bob")
   end
 
   it "does not allow editing another group's patient" do
-    expect {
-      get edit_practice_patient_path(patient_b)
-    }.to raise_error(ActiveRecord::RecordNotFound)
+    get edit_practice_patient_path(patient_b)
+
+    expect(response).to have_http_status(:not_found)
   end
 end

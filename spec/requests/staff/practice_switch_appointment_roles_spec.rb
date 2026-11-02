@@ -58,4 +58,57 @@ RSpec.describe "Staff appointment roles after practice switching", type: :reques
       expect(response).to have_http_status(:not_found)
     end
   end
+
+  context "when a clinician also has a membership at the sibling practice" do
+    let!(:home_membership) do
+      create(:staff_member, user: user, practice: home, access_level: "staff_clinician", staff_type: "doctor")
+    end
+    let!(:sibling_membership) do
+      create(:staff_member, user: user, practice: sibling, access_level: "staff_clinician", staff_type: "doctor")
+    end
+    let!(:own_sibling_appointment) do
+      create(:appointment, practice: sibling, clinician: sibling_membership)
+    end
+
+    before do
+      sign_in user
+      patch practice_selection_path, params: { practice_id: sibling.id }
+      expect(response).to redirect_to(practice_appointments_path)
+    end
+
+    it "shows the clinician's own appointment at the selected practice" do
+      get practice_appointment_path(own_sibling_appointment)
+
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "still forbids a different clinician's appointment" do
+      get practice_appointment_path(sibling_appointment)
+
+      expect(response).to have_http_status(:forbidden)
+    end
+
+    it "filters the diary to the selected practice's clinician identity" do
+      get practice_appointments_path, params: { view: "upcoming", layout: "list" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include(sibling_appointment.id)
+    end
+  end
+
+  context "when a clinician has no membership at the sibling practice" do
+    before do
+      create(:staff_member, user: user, practice: home, access_level: "staff_clinician", staff_type: "doctor")
+      sign_in user
+      patch practice_selection_path, params: { practice_id: sibling.id }
+      expect(response).to redirect_to(practice_appointments_path)
+    end
+
+    it "renders an empty clinician diary instead of exposing all clinicians" do
+      get practice_appointments_path, params: { view: "upcoming", layout: "list" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include(sibling_appointment.id)
+    end
+  end
 end

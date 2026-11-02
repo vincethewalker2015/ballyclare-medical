@@ -1,0 +1,19 @@
+<% content_for :title, "Clinical documents | Ballyclare Medical" %>
+<div class="mx-auto max-w-4xl space-y-6">
+  <header>
+    <p class="text-sm font-semibold uppercase tracking-[0.16em] text-medical-teal">Patient portal</p>
+    <h1 class="mt-2 text-3xl font-semibold text-medical-navy">Your clinical documents</h1>
+    <p class="mt-2 text-sm text-medical-muted">Only documents deliberately released to you by your clinician appear here. Internal clinical notes remain private.</p>
+  </header>
+  <% if @releases.any? %>
+    <% @releases.each do |release| %>
+      <article class="rounded-2xl border border-medical-border bg-white p-6 shadow-sm">
+        <h2 class="text-lg font-semibold text-medical-navy"><%= release.title %></h2>
+        <p class="mt-1 text-xs text-medical-muted">Released <%= release.released_at.in_time_zone(release.practice.timezone).strftime("%d %B %Y at %H:%M") %></p>
+        <p class="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-medical-ink"><%= release.body %></p>
+      </article>
+    <% end %>
+  <% else %>
+    <div class="rounded-2xl border border-medical-border bg-white p-6 text-sm text-medical-muted">No clinical documents have been released to you yet.</div>
+  <% end %>
+</div>

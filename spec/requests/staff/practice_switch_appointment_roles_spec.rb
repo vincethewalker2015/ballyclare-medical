@@ -12,6 +12,7 @@ RSpec.describe "Staff appointment roles after practice switching", type: :reques
   context "when signed in as an administrator" do
     before do
       create(:staff_member, user: user, practice: home, access_level: "staff_admin")
+      create(:staff_member, user: user, practice: sibling, access_level: "staff_admin")
       sign_in user
       patch practice_selection_path, params: { practice_id: sibling.id }
       expect(response).to redirect_to(practice_appointments_path)
@@ -35,7 +36,7 @@ RSpec.describe "Staff appointment roles after practice switching", type: :reques
       create(:staff_member, user: user, practice: home, access_level: "staff_clinician", staff_type: "doctor")
       sign_in user
       patch practice_selection_path, params: { practice_id: sibling.id }
-      expect(response).to redirect_to(practice_appointments_path)
+      expect(response).to have_http_status(:forbidden)
     end
 
     it "cannot view another clinician's appointment at the selected sibling practice" do
@@ -49,7 +50,7 @@ RSpec.describe "Staff appointment roles after practice switching", type: :reques
         patch status_practice_appointment_path(sibling_appointment), params: { status: "confirmed" }
       }.not_to change { sibling_appointment.reload.status }
 
-      expect(response).to have_http_status(:forbidden)
+      expect(response).to have_http_status(:not_found)
     end
 
     it "cannot view appointments from an unrelated medical group" do
@@ -101,7 +102,7 @@ RSpec.describe "Staff appointment roles after practice switching", type: :reques
       create(:staff_member, user: user, practice: home, access_level: "staff_clinician", staff_type: "doctor")
       sign_in user
       patch practice_selection_path, params: { practice_id: sibling.id }
-      expect(response).to redirect_to(practice_appointments_path)
+      expect(response).to have_http_status(:forbidden)
     end
 
     it "renders an empty clinician diary instead of exposing all clinicians" do

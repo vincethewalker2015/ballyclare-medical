@@ -112,4 +112,60 @@ RSpec.describe "Clinician consultation entry", type: :request do
     get practice_appointment_consultation_path(appointment)
     expect(response).to have_http_status(:not_found)
   end
+  describe "starting a consultation" do
+    before { appointment.update!(status: "arrived") }
+
+    it "creates one encounter and transitions the appointment with an audit event" do
+      expect {
+        post practice_appointment_consultation_path(appointment)
+      }.to change(Encounter, :count).by(1)
+        .and change { AuditEvent.where(action: "clinical.consultation_started").count }.by(1)
+
+      expect(response).to redirect_to(practice_appointment_consultation_path(appointment))
+      expect(appointment.reload.status).to eq("in_consultation")
+      expect(appointment.consultation_started_at).to eq(appointment.encounter.started_at)
+      expect(appointment.appointment_status_changes.last.to_status).to eq("in_consultation")
+    end
+
+    it "is idempotent when submitted twice" do
+      2.times { post practice_appointment_consultation_path(appointment) }
+
+      expect(appointment.reload.encounter).to be_present
+      expect(Encounter.where(appointment: appointment).count).to eq(1)
+      expect(appointment.appointment_status_changes.where(to_status: "in_consultation").count).to eq(1)
+      expect(AuditEvent.where(action: "clinical.consultation_started", auditable: appointment.encounter).count).to eq(1)
+    end
+
+    it "does not start a booked appointment" do
+      appointment.update!(status: "booked")
+
+      expect {
+        post practice_appointment_consultation_path(appointment)
+      }.not_to change(Encounter, :count)
+
+      expect(appointment.reload.status).to eq("booked")
+    end
+
+    it "rejects an appointment assigned to another clinician" do
+      other = create(:staff_member, practice: practice, staff_type: "doctor", access_level: "staff_clinician")
+      appointment.update!(clinician: other)
+
+      expect {
+        post practice_appointment_consultation_path(appointment)
+      }.not_to change(Encounter, :count)
+
+      expect(response).to have_http_status(:forbidden)
+    end
+
+    it "does not allow administrative staff to start an encounter" do
+      clinician.update!(access_level: "senior_staff_admin")
+
+      expect {
+        post practice_appointment_consultation_path(appointment)
+      }.not_to change(Encounter, :count)
+
+      expect(response).to have_http_status(:forbidden)
+    end
+  end
+
 end

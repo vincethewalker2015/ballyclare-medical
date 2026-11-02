@@ -1,4 +1,5 @@
 <% content_for :title, "Clinical documents | Ballyclare Medical" %>
+<%= turbo_stream_from @patient_link, :clinical_documents %>
 <div class="mx-auto max-w-4xl space-y-6">
   <header>
     <p class="text-sm font-semibold uppercase tracking-[0.16em] text-medical-teal">Patient portal</p>

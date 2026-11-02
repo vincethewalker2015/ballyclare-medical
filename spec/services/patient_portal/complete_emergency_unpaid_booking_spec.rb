@@ -99,7 +99,7 @@ RSpec.describe PatientPortal::CompleteEmergencyUnpaidBooking do
       expect {
         expect { described_class.new(hold: hold).call }
           .to raise_error(described_class::Unavailable, message)
-      }.not_to change { [Appointment.count, AppointmentCharge.count, Payment.count] }
+      }.not_to change { [ Appointment.count, AppointmentCharge.count, Payment.count ] }
       expect(AppointmentHold.exists?(hold.id)).to be(true)
     end
 
@@ -144,5 +144,4 @@ RSpec.describe PatientPortal::CompleteEmergencyUnpaidBooking do
       expect_refused(/practice mismatch/)
     end
   end
-
 end

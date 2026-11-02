@@ -2,7 +2,7 @@ module Staff
   class DocumentationController < BaseController
     def user_manual
       markdown = Rails.root.join("docs/user_manual.md").read
-      markdown = markdown.gsub(%r{\]\(images/user_manual/([a-z0-9-]+\.png)\)}) do
+      markdown = markdown.gsub(%r{\]\(images/user_manual/([a-z0-9-]+\.(?:png|svg))\)}) do
         "](/docs/images/user_manual/#{Regexp.last_match(1)})"
       end
 

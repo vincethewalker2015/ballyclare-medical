@@ -64,7 +64,22 @@
     <% elsif @appointment.encounter.nil? %>
       <p class="mt-3 text-sm text-medical-muted">Mark the patient as arrived in the appointment before starting.</p>
     <% end %>
-    <p class="mt-3 text-sm text-medical-muted">Clinical note editing will be introduced in the next Phase 6 milestone.</p>
+    <% if @appointment.status == "in_consultation" && @appointment.encounter.present? %>
+      <div class="mt-6 border-t border-medical-border pt-6">
+        <h3 class="text-base font-semibold text-medical-navy">Draft clinical notes</h3>
+        <p class="mt-2 text-sm text-medical-muted">Drafts are private to authorised clinicians and are not signed clinical records.</p>
+        <%= form_with url: draft_practice_appointment_consultation_path(@appointment), method: :patch, scope: :clinical_note, class: "mt-5 space-y-4" do |form| %>
+          <%= form.hidden_field :lock_version, value: @draft&.lock_version || 0 %>
+          <div>
+            <%= form.label :body, "Consultation notes", class: "block text-sm font-semibold text-medical-navy" %>
+            <%= form.text_area :body, value: @draft&.body, rows: 12,
+              placeholder: "Presenting complaint and history\nExamination\nAssessment\nPlan and advice\nFollow-up",
+              class: "mt-2 block w-full rounded-xl border border-medical-border bg-white px-4 py-3 text-sm text-medical-ink shadow-sm focus:border-medical-teal focus:outline-none focus:ring-2 focus:ring-medical-teal/20" %>
+          </div>
+          <%= form.submit "Save draft", class: "cursor-pointer rounded-full bg-medical-navy px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-medical-navy-deep focus:outline-none focus:ring-2 focus:ring-medical-teal focus:ring-offset-2" %>
+        <% end %>
+      </div>
+    <% end %>
   </section>
 
   <section aria-labelledby="clinical-history" class="rounded-2xl border border-medical-border bg-white p-6 shadow-sm sm:p-8">

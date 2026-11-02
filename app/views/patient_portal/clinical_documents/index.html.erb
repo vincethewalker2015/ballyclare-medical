@@ -5,6 +5,7 @@
     <h1 class="mt-2 text-3xl font-semibold text-medical-navy">Your clinical documents</h1>
     <p class="mt-2 text-sm text-medical-muted">Only documents deliberately released to you by your clinician appear here. Internal clinical notes remain private.</p>
   </header>
+  <%= link_to "Back to patient portal", patient_portal_path, class: "inline-block text-sm font-semibold text-medical-teal underline focus:outline-none focus:ring-2 focus:ring-medical-teal" %>
   <% if @releases.any? %>
     <% @releases.each do |release| %>
       <article class="rounded-2xl border border-medical-border bg-white p-6 shadow-sm">

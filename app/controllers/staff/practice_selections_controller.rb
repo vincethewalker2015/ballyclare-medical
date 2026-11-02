@@ -3,7 +3,8 @@ module Staff
     def update
       practice = current_staff_member.practice.medical_group.practices.find_by(id: params[:practice_id])
 
-      unless current_staff_member.can_access_practice?(practice)
+      unless current_staff_member.can_access_practice?(practice) &&
+          current_user.staff_members.exists?(practice_id: practice&.id, active: true)
         return head :forbidden
       end
 

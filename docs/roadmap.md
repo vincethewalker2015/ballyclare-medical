@@ -456,8 +456,9 @@ it is a separate anonymous workflow and does **not** complete Phase 5.
   appropriate audit and financial/refund behaviour.
 - Payment history, receipts, outstanding balances and later payments within
   the authenticated portal.
-- Approved documents, personal-detail management and patient communications
-  where required for the agreed Phase 5 scope.
+- Personal-detail management within the agreed Phase 5 scope. Standalone
+  documents, approval/release and secure messaging are deferred as described
+  below.
 - End-to-end request/system, accessibility, practice-isolation and permission
   regression tests, plus production email delivery verification.
 
@@ -490,12 +491,16 @@ implementation is not, by itself, evidence that acceptance is complete.
    cutoff before implementation.
 6. **P2 — Profile management:** Permit updates to explicitly approved patient
    details with suitable identity protections, permissions and auditing.
-7. **P3 — Approved documents and communications:** Provide access only to
-   explicitly approved patient documents and appropriately scoped messages;
-   verify production email delivery before relying on notifications.
+7. **P3 — Scope decision (deferred):** Standalone patient documents and
+   document approval/release move to Phase 6 alongside the clinician encounter
+   workflow. Secure patient messaging remains a later-phase feature. Production
+   outgoing-email integration and sender configuration are deferred to the
+   end-of-project operational readiness work; development email behaviour
+   must not be mistaken for verified production delivery.
 8. **Final Phase 5 acceptance:** Complete request/system regression, security,
    accessibility, cross-practice isolation, permissions and operational
-   checks. Sign off Phase 5 **before beginning Phase 6**.
+   checks for the agreed portal scope. Review the User Manual and its
+   illustrations. Sign off Phase 5 **before beginning Phase 6**.
 
 ### Patient registration and secure record linking
 

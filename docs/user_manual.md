@@ -43,6 +43,11 @@ patients, appointment slots, appointments, payments and clinical records.
 
 ### Selecting a working practice
 
+![Simplified three-step illustration of selecting and switching practices](images/user_manual/practice-switching-illustration.svg)
+
+*Practice switching: Select an authorised practice, switch, and work with that
+practice's appointment diary and patient records.*
+
 If your medical group contains more than one practice, the staff interface
 shows a practice selector. Choose the location you want to work with; the
 application switches to that practice's appointment diary. The selected

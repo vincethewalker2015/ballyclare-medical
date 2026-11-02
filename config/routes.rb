@@ -53,6 +53,7 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
   scope "/practice", module: "staff", as: "practice" do
+  patch "/select-practice", to: "practice_selections#update", as: :selection
   resource :stripe_outage, path: "stripe-outage", only: %i[show create update], controller: "stripe_outages"
   resource :consultation_fees, only: %i[edit update], controller: "consultation_fees"
   resources :refunds, only: %i[index]

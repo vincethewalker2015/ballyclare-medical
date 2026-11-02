@@ -231,7 +231,7 @@ RSpec.describe "Clinician consultation entry", type: :request do
       expect(note.signed_at).to be_present
       expect(appointment.reload.status).to eq("completed")
       expect(appointment.completed_at).to eq(appointment.encounter.reload.ended_at)
-      expect(appointment.appointment_status_changes.last.to_status).to eq("completed")
+      expect(appointment.appointment_status_changes.where(from_status: "in_consultation", to_status: "completed").count).to eq(1)
       get practice_appointment_consultation_path(appointment)
       expect(response.body).to include("Signed consultation note", "Assessment and plan documented")
       expect(response.body).not_to include("Save draft")

@@ -209,4 +209,65 @@ RSpec.describe "Clinician consultation entry", type: :request do
       expect(response).to have_http_status(:forbidden)
     end
   end
+  describe "signing and completing a consultation" do
+    let(:draft_path) { draft_practice_appointment_consultation_path(appointment) }
+    let(:sign_path) { sign_and_complete_practice_appointment_consultation_path(appointment) }
+
+    before do
+      appointment.update!(status: "arrived")
+      post practice_appointment_consultation_path(appointment)
+      patch draft_path, params: { clinical_note: { body: "Assessment and plan documented", lock_version: 0 } }
+    end
+
+    it "signs the note, closes the encounter, completes the appointment and audits both actions" do
+      note = appointment.reload.encounter.clinical_notes.last
+      expect {
+        post sign_path, params: { clinical_note: { lock_version: note.lock_version } }
+      }.to change { AuditEvent.where(action: "clinical.note_signed").count }.by(1)
+        .and change { AuditEvent.where(action: "clinical.consultation_completed").count }.by(1)
+
+      expect(response).to redirect_to(practice_appointment_consultation_path(appointment))
+      expect(note.reload.status).to eq("signed")
+      expect(note.signed_at).to be_present
+      expect(appointment.reload.status).to eq("completed")
+      expect(appointment.completed_at).to eq(appointment.encounter.reload.ended_at)
+      expect(appointment.appointment_status_changes.last.to_status).to eq("completed")
+      get practice_appointment_consultation_path(appointment)
+      expect(response.body).to include("Signed consultation note", "Assessment and plan documented")
+      expect(response.body).not_to include("Save draft")
+    end
+
+    it "rejects stale signatures without changing clinical state" do
+      note = appointment.reload.encounter.clinical_notes.last
+      post sign_path, params: { clinical_note: { lock_version: note.lock_version + 1 } }
+      expect(note.reload.status).to eq("draft")
+      expect(appointment.reload.status).to eq("in_consultation")
+    end
+
+    it "rejects signing an empty draft" do
+      note = appointment.reload.encounter.clinical_notes.last
+      patch draft_path, params: { clinical_note: { body: "", lock_version: note.lock_version } }
+      note.reload
+      post sign_path, params: { clinical_note: { lock_version: note.lock_version } }
+      expect(note.reload.status).to eq("draft")
+      expect(appointment.reload.status).to eq("in_consultation")
+    end
+
+    it "does not sign twice or allow edits after completion" do
+      note = appointment.reload.encounter.clinical_notes.last
+      post sign_path, params: { clinical_note: { lock_version: note.lock_version } }
+      post sign_path, params: { clinical_note: { lock_version: note.lock_version } }
+      patch draft_path, params: { clinical_note: { body: "Tampered", lock_version: 0 } }
+      expect(note.reload.body).to eq("Assessment and plan documented")
+      expect(AuditEvent.where(action: "clinical.note_signed", auditable: note).count).to eq(1)
+    end
+
+    it "forbids other clinicians and administrators" do
+      note = appointment.reload.encounter.clinical_notes.last
+      clinician.update!(access_level: "senior_staff_admin")
+      post sign_path, params: { clinical_note: { lock_version: note.lock_version } }
+      expect(response).to have_http_status(:forbidden)
+      expect(note.reload.status).to eq("draft")
+    end
+  end
 end

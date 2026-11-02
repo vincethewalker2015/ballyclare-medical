@@ -10,7 +10,7 @@ class CreateClinicalDocumentReleases < ActiveRecord::Migration[8.0]
       t.datetime :released_at, null: false
       t.timestamps
     end
-    add_index :clinical_document_releases, [:practice_id, :patient_id, :released_at],
+    add_index :clinical_document_releases, [ :practice_id, :patient_id, :released_at ],
       name: "index_clinical_releases_for_patient"
   end
 end

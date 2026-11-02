@@ -41,8 +41,8 @@ RSpec.describe "Patient portal clinical document releases", type: :request do
       Turbo::StreamsChannel.verified_stream_name(source["signed-stream-name"])
     end
     expect(stream_names).to contain_exactly(
-      Turbo::StreamsChannel.send(:stream_name_from, [account, :portal_access]),
-      Turbo::StreamsChannel.send(:stream_name_from, [link, :clinical_documents])
+      Turbo::StreamsChannel.send(:stream_name_from, [ account, :portal_access ]),
+      Turbo::StreamsChannel.send(:stream_name_from, [ link, :clinical_documents ])
     )
     expect(response.body).not_to include("Confidential internal assessment")
   end

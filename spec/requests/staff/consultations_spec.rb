@@ -318,5 +318,4 @@ RSpec.describe "Clinician consultation entry", type: :request do
       expect(response).to have_http_status(:forbidden)
     end
   end
-
 end

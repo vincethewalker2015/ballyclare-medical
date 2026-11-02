@@ -23,7 +23,7 @@ RSpec.describe "Patient portal dashboard", type: :request do
     source = response.parsed_body.at_css("turbo-cable-stream-source")
     expect(source).to be_present
     expect(Turbo::StreamsChannel.verified_stream_name(source["signed-stream-name"])).to eq(
-      Turbo::StreamsChannel.send(:stream_name_from, [account, :portal_access])
+      Turbo::StreamsChannel.send(:stream_name_from, [ account, :portal_access ])
     )
   end
 
@@ -48,7 +48,7 @@ RSpec.describe "Patient portal dashboard", type: :request do
     source = response.parsed_body.at_css("turbo-cable-stream-source")
     expect(source).to be_present
     expect(Turbo::StreamsChannel.verified_stream_name(source["signed-stream-name"])).to eq(
-      Turbo::StreamsChannel.send(:stream_name_from, [account, :portal_access])
+      Turbo::StreamsChannel.send(:stream_name_from, [ account, :portal_access ])
     )
   end
 

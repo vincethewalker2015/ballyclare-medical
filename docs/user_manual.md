@@ -18,6 +18,7 @@ Ballyclare Medical. It is being expanded as new features become available.
 - [Cancelling an Appointment](#cancelling-an-appointment)
 - [Payments and Refunds](#payments-and-refunds)
 - [Stripe Booking Payment Reconciliation](#stripe-booking-payment-reconciliation)
+- [Clinical Consultations and Patient Documents](#clinical-consultations-and-patient-documents)
 - [Clinician Availability](#clinician-availability)
 - [User and Staff Administration](#user-and-staff-administration)
 - [Troubleshooting](#troubleshooting)
@@ -89,8 +90,7 @@ practice-specific.
 
 Clinical encounters and notes must refer to patients and clinicians associated
 with the correct practice. The application validates these relationships.
-Staff-facing consultation and clinical-note workflows are still under
-development; practice switching does not itself grant access to clinical notes.
+Clinical consultations and clinical notes are accessible only to the assigned, active clinician in the selected practice. Practice switching does not grant access to clinical notes.
 
 If you cannot see an expected appointment or availability record, check the
 selected practice and your assigned role. Contact a practice administrator
@@ -681,3 +681,19 @@ appointment page if the live connection has been interrupted.
 
 For a failed refund, follow the escalation guidance above rather than
 repeatedly attempting payment or cancellation actions.
+
+## Clinical Consultations and Patient Documents
+
+### For clinicians
+
+Open an appointment assigned to your local clinician membership and select **Open consultation**. Review patient information and previous encounters belonging to that practice. Reception must first mark the patient as **Arrived**; then select **Start consultation**.
+
+Use **Draft clinical notes** to save and resume documentation. If another browser has saved a newer version, refresh and review it before saving. Draft notes are not visible to patients. Once the note is complete, select **Sign note and complete consultation** and confirm the action. Signing completes the appointment, ends the encounter and locks the clinical note against editing.
+
+To share information with the patient, create a **separate patient-facing document** under **Release a patient document**. Review the title and content carefully before release. The internal signed note is not published automatically. Released documents cannot be edited through the normal workflow.
+
+Only the assigned active doctor or nurse with local clinician access can open the consultation or perform these actions. Administrative privileges alone do not grant access.
+
+### For patients
+
+Sign in to the patient portal with an approved patient-account connection and visit **/patient-portal/clinical-documents**. Only documents deliberately released for your linked patient record at that practice appear. Internal notes and drafts are never shown on this page. Revoking the patient-account connection immediately blocks access to released documents.

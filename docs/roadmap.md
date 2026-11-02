@@ -484,9 +484,7 @@ implementation is not, by itself, evidence that acceptance is complete.
    balance reconciliation rather than duplicating billing logic.
 5. **P2 — Cancellation and rescheduling:** Implement patient-initiated and
    authorised staff-initiated changes after agreeing cancellation, fee,
-   refund and replacement-slot policies. **Neither patients nor staff may
-   reschedule an appointment occurring on the current calendar day in the
-   practice's configured timezone.** Validate replacement availability and
+   refund and replacement-slot policies. **Patients must meet the 24-hour notice restriction; authorised staff may override it, including on the same day, provided the original appointment has not started and the replacement slot is in the future.** Validate replacement availability and
    practice membership under authoritative concurrency controls; audit the
    actor, original slot and replacement slot. Confirm any additional advance
    cutoff before implementation.

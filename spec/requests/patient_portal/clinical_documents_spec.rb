@@ -60,6 +60,29 @@ RSpec.describe "Patient portal clinical document releases", type: :request do
     expect(response.body).not_to include("Other patient confidential content", "Sibling confidential content")
   end
 
+  it "audits approved patient document access without logging document contents" do
+    approve_link
+    release_for(patient_record: patient, clinician_record: clinician,
+      title: "Patient guidance", body: "Sensitive patient instructions")
+    sign_in account, scope: :patient_account
+
+    expect {
+      get patient_portal_clinical_documents_path
+    }.to change { AuditEvent.where(action: "clinical.patient_documents_viewed").count }.by(1)
+
+    event = AuditEvent.where(action: "clinical.patient_documents_viewed").last
+    expect(event.practice).to eq(practice)
+    expect(event.metadata.to_s).not_to include("Sensitive patient instructions")
+  end
+
+  it "does not audit denied patient document access" do
+    sign_in account, scope: :patient_account
+    expect {
+      get patient_portal_clinical_documents_path
+    }.not_to change { AuditEvent.where(action: "clinical.patient_documents_viewed").count }
+    expect(response).to have_http_status(:forbidden)
+  end
+
   it "does not display internal signed notes without a release" do
     approve_link
     encounter = Encounter.create!(

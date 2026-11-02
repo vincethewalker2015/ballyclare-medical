@@ -13,6 +13,11 @@ RSpec.describe "Staff practice selection", type: :request do
 
   before { sign_in user }
 
+  def grant_sibling_membership(access_level: "staff_admin")
+    create(:staff_member, user: user, practice: sibling,
+      access_level: access_level, staff_type: "administrator")
+  end
+
   it "defaults to the staff member's home practice" do
     get practice_patients_path
 
@@ -22,6 +27,7 @@ RSpec.describe "Staff practice selection", type: :request do
   end
 
   it "switches to a sibling practice and scopes subsequent patient requests" do
+    grant_sibling_membership
     patch practice_selection_path, params: { practice_id: sibling.id }
 
     expect(response).to redirect_to(practice_appointments_path)
@@ -59,11 +65,42 @@ RSpec.describe "Staff practice selection", type: :request do
     expect(response).to have_http_status(:forbidden)
   end
 
+  it "rejects switching to a sibling without a local membership" do
+    patch practice_selection_path, params: { practice_id: sibling.id }
+
+    expect(response).to have_http_status(:forbidden)
+    get practice_patients_path
+    expect(response.body).to include("HomePatient")
+    expect(response.body).not_to include("SiblingPatient")
+  end
+
+  it "rejects switching when the local membership is inactive" do
+    local = grant_sibling_membership
+    local.update!(active: false)
+
+    patch practice_selection_path, params: { practice_id: sibling.id }
+
+    expect(response).to have_http_status(:forbidden)
+  end
+
+  it "drops a previously selected practice when its local membership is deactivated" do
+    local = grant_sibling_membership
+    patch practice_selection_path, params: { practice_id: sibling.id }
+    expect(response).to redirect_to(practice_appointments_path)
+
+    local.update!(active: false)
+    get practice_patients_path
+
+    expect(response.body).to include("HomePatient")
+    expect(response.body).not_to include("SiblingPatient")
+  end
+
   describe "booking isolation after switching practices" do
     let!(:home_slot) { create(:appointment_slot, practice: home) }
     let!(:sibling_slot) { create(:appointment_slot, practice: sibling) }
 
     before do
+      grant_sibling_membership
       patch practice_selection_path, params: { practice_id: sibling.id }
       expect(response).to redirect_to(practice_appointments_path)
     end
@@ -112,7 +149,7 @@ RSpec.describe "Staff practice selection", type: :request do
 
   describe "selected-practice role boundaries" do
     it "does not carry home administrator privileges into a lower-privilege local membership" do
-      create(:staff_member, user: user, practice: sibling, access_level: "staff", staff_type: "administrator")
+      grant_sibling_membership(access_level: "staff")
       patch practice_selection_path, params: { practice_id: sibling.id }
       expect(response).to redirect_to(practice_appointments_path)
 
@@ -122,8 +159,7 @@ RSpec.describe "Staff practice selection", type: :request do
     end
 
     it "uses the selected practice's senior administrator membership for privileged actions" do
-      create(:staff_member, user: user, practice: sibling, access_level: "senior_staff_admin",
-        staff_type: "administrator")
+      grant_sibling_membership(access_level: "senior_staff_admin")
       patch practice_selection_path, params: { practice_id: sibling.id }
       expect(response).to redirect_to(practice_appointments_path)
 
@@ -136,7 +172,7 @@ RSpec.describe "Staff practice selection", type: :request do
       create(:staff_member, user: user, practice: sibling, access_level: "senior_staff_admin",
         staff_type: "administrator", active: false)
       patch practice_selection_path, params: { practice_id: sibling.id }
-      expect(response).to redirect_to(practice_appointments_path)
+      expect(response).to have_http_status(:forbidden)
 
       get new_practice_staff_member_path
 

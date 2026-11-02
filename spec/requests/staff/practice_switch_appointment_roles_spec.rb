@@ -39,10 +39,10 @@ RSpec.describe "Staff appointment roles after practice switching", type: :reques
       expect(response).to have_http_status(:forbidden)
     end
 
-    it "cannot view another clinician's appointment at the selected sibling practice" do
+    it "cannot view a sibling appointment when switching was denied" do
       get practice_appointment_path(sibling_appointment)
 
-      expect(response).to have_http_status(:forbidden)
+      expect(response).to have_http_status(:not_found)
     end
 
     it "cannot change another clinician's appointment status" do
@@ -105,7 +105,7 @@ RSpec.describe "Staff appointment roles after practice switching", type: :reques
       expect(response).to have_http_status(:forbidden)
     end
 
-    it "renders an empty clinician diary instead of exposing all clinicians" do
+    it "keeps the home-practice diary after the denied switch" do
       get practice_appointments_path, params: { view: "upcoming", layout: "list" }
 
       expect(response).to have_http_status(:ok)

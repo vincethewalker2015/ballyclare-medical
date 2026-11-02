@@ -168,4 +168,45 @@ RSpec.describe "Clinician consultation entry", type: :request do
     end
   end
 
+  describe "draft clinical notes" do
+    before do
+      appointment.update!(status: "arrived")
+      post practice_appointment_consultation_path(appointment)
+    end
+
+    it "saves and resumes a draft with audit events" do
+      expect {
+        patch draft_practice_appointment_consultation_path(appointment),
+          params: { clinical_note: { body: "Presenting complaint: headache", lock_version: 0 } }
+      }.to change(ClinicalNote, :count).by(1)
+
+      note = appointment.reload.encounter.clinical_notes.last
+      expect(note.status).to eq("draft")
+      expect(note.body).to include("headache")
+      expect(AuditEvent.where(auditable: note, action: "clinical.draft_created")).to exist
+
+      get practice_appointment_consultation_path(appointment)
+      expect(response.body).to include("Presenting complaint: headache")
+    end
+
+    it "rejects a stale edit without overwriting the current draft" do
+      path = draft_practice_appointment_consultation_path(appointment)
+      patch path, params: { clinical_note: { body: "Original", lock_version: 0 } }
+      patch path, params: { clinical_note: { body: "Revised", lock_version: 0 } }
+      expect(appointment.encounter.clinical_notes.last.reload.body).to eq("Revised")
+
+      patch path, params: { clinical_note: { body: "Stale", lock_version: 0 } }
+      expect(appointment.encounter.clinical_notes.last.reload.body).to eq("Revised")
+      expect(response).to redirect_to(practice_appointment_consultation_path(appointment))
+    end
+
+    it "rejects an administrator writing clinical drafts" do
+      clinician.update!(access_level: "senior_staff_admin")
+      expect {
+        patch draft_practice_appointment_consultation_path(appointment),
+          params: { clinical_note: { body: "Unauthorised", lock_version: 0 } }
+      }.not_to change(ClinicalNote, :count)
+      expect(response).to have_http_status(:forbidden)
+    end
+  end
 end

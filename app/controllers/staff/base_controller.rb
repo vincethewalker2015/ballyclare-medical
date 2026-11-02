@@ -32,6 +32,7 @@ module Staff
 
         if current_staff_member.can_access_practice?(selected_practice)
           @current_practice = selected_practice
+          @current_staff_member = current_user.staff_members.where(active: true, practice_id: selected_practice.id).first || current_staff_member
         else
           session.delete(:staff_practice_id)
         end

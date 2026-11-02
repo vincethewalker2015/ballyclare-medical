@@ -12,6 +12,20 @@ RSpec.describe "Clinician consultation entry", type: :request do
 
   before { sign_in user }
 
+  it "redacts clinical note and patient document form fields from parameter logs" do
+    filter = ActiveSupport::ParameterFilter.new(Rails.application.config.filter_parameters)
+    filtered = filter.filter(
+      "clinical_note" => { "body" => "Sensitive consultation narrative", "lock_version" => "0" },
+      "clinical_document_release" => { "title" => "Private letter title", "body" => "Sensitive patient letter" }
+    )
+
+    expect(filtered.dig("clinical_note", "body")).to eq("[FILTERED]")
+    expect(filtered.dig("clinical_document_release", "title")).to eq("[FILTERED]")
+    expect(filtered.dig("clinical_document_release", "body")).to eq("[FILTERED]")
+    expect(filtered.dig("clinical_note", "lock_version")).to eq("0")
+  end
+
+
   it "shows the assigned clinician a read-only, Ballyclare-styled consultation and audits access" do
     expect {
       get practice_appointment_consultation_path(appointment)

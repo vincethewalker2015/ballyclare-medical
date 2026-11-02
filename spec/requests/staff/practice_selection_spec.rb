@@ -109,4 +109,38 @@ RSpec.describe "Staff practice selection", type: :request do
       expect(response).to have_http_status(:not_found)
     end
   end
+
+  describe "selected-practice role boundaries" do
+    it "does not carry home administrator privileges into a lower-privilege local membership" do
+      create(:staff_member, user: user, practice: sibling, access_level: "staff", staff_type: "administrator")
+      patch practice_selection_path, params: { practice_id: sibling.id }
+      expect(response).to redirect_to(practice_appointments_path)
+
+      get new_practice_staff_member_path
+
+      expect(response).to have_http_status(:forbidden)
+    end
+
+    it "uses the selected practice's senior administrator membership for privileged actions" do
+      create(:staff_member, user: user, practice: sibling, access_level: "senior_staff_admin",
+        staff_type: "administrator")
+      patch practice_selection_path, params: { practice_id: sibling.id }
+      expect(response).to redirect_to(practice_appointments_path)
+
+      get new_practice_staff_member_path
+
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "does not use an inactive local membership to elevate access" do
+      create(:staff_member, user: user, practice: sibling, access_level: "senior_staff_admin",
+        staff_type: "administrator", active: false)
+      patch practice_selection_path, params: { practice_id: sibling.id }
+      expect(response).to redirect_to(practice_appointments_path)
+
+      get new_practice_staff_member_path
+
+      expect(response).to have_http_status(:ok)
+    end
+  end
 end

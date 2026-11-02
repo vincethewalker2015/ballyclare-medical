@@ -283,6 +283,11 @@ taken place; the clinician consultation workspace is still planned for Phase 6.
 
 ## Booking an Appointment
 
+![Simplified staff booking form with patient, clinician, date, time and fee](images/user_manual/appointment-booking-illustration.svg)
+
+*Staff appointment booking: Select the patient, clinician, date and available
+time, then review the consultation fee before confirming the booking.*
+
 Staff Admins, Staff Clinicians and Senior Staff Admins can book appointments
 on behalf of patients. Basic Staff can view the diary but cannot book.
 

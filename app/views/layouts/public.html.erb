@@ -22,6 +22,9 @@
         <%= flash[:alert] %>
       </div>
     <% end %>
+    <% if patient_account_signed_in? %>
+      <%= turbo_stream_from current_patient_account, :portal_access %>
+    <% end %>
     <%= yield %>
   </body>
 </html>

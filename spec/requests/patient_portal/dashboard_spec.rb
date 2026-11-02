@@ -13,6 +13,54 @@ RSpec.describe "Patient portal dashboard", type: :request do
     )
   end
 
+  it "subscribes an approved dashboard to its own access refresh stream" do
+    patient = create(:patient)
+    link = approved_link(account: account, patient: patient)
+    sign_in account, scope: :patient_account
+
+    get patient_portal_path
+
+    source = response.parsed_body.at_css("turbo-cable-stream-source")
+    expect(source).to be_present
+    expect(Turbo::StreamsChannel.verified_stream_name(source["signed-stream-name"])).to eq(
+      Turbo::StreamsChannel.send(:stream_name_from, [ account, :portal_access ])
+    )
+  end
+
+  it "broadcasts a dashboard refresh when an approved link is revoked" do
+    patient = create(:patient)
+    link = approved_link(account: account, patient: patient)
+
+    expect(Turbo::StreamsChannel).to receive(:broadcast_refresh_to).with(link, :clinical_documents)
+    expect(Turbo::StreamsChannel).to receive(:broadcast_refresh_to).with(account, :portal_access)
+    link.update!(status: "revoked")
+  end
+
+  it "keeps a revoked dashboard subscribed so reinstatement can refresh it" do
+    patient = create(:patient)
+    link = approved_link(account: account, patient: patient)
+    link.update!(status: "revoked")
+    sign_in account, scope: :patient_account
+
+    get patient_portal_path
+
+    expect(response.body).to include("Patient portal access unavailable")
+    source = response.parsed_body.at_css("turbo-cable-stream-source")
+    expect(source).to be_present
+    expect(Turbo::StreamsChannel.verified_stream_name(source["signed-stream-name"])).to eq(
+      Turbo::StreamsChannel.send(:stream_name_from, [ account, :portal_access ])
+    )
+  end
+
+  it "broadcasts a dashboard refresh when a revoked link is reinstated" do
+    patient = create(:patient)
+    link = approved_link(account: account, patient: patient)
+    link.update!(status: "revoked")
+
+    expect(Turbo::StreamsChannel).to receive(:broadcast_refresh_to).with(account, :portal_access)
+    link.update!(status: "approved")
+  end
+
   it "redirects unauthenticated visitors" do
     get patient_portal_path
     expect(response).to redirect_to(new_patient_account_session_path)

@@ -1579,3 +1579,14 @@ GitHub issues/PRs should contain implementation-level work.
 
 This roadmap should remain the higher-level reference for **what we are
 building, in what order, and why**.
+
+## Phase 6 — Clinician consultation workflow (implemented; security validation in progress)
+
+- P6.1: Practice-scoped, assigned-clinician-only consultation view and historical notes.
+- P6.2: Transactional consultation start, encounter creation and status transition.
+- P6.3: Audited draft notes with optimistic locking.
+- P6.4: Immutable signed notes and atomic consultation completion.
+- P6.5: Explicit, immutable patient-facing document releases; no automatic disclosure of signed internal notes.
+- P6.6: Patient-portal access, revocation, isolation and privacy regression coverage, plus workflow documentation.
+
+**Validation gate:** Run the targeted clinician and patient-portal request specs and the complete RSpec suite before merging. Pending examples require separate review; passing tests alone do not constitute a clinical security audit.

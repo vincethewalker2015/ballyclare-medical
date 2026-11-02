@@ -18,6 +18,7 @@ Ballyclare Medical. It is being expanded as new features become available.
 - [Cancelling an Appointment](#cancelling-an-appointment)
 - [Payments and Refunds](#payments-and-refunds)
 - [Stripe Booking Payment Reconciliation](#stripe-booking-payment-reconciliation)
+- [Clinical Consultations and Patient Documents](#clinical-consultations-and-patient-documents)
 - [Clinician Availability](#clinician-availability)
 - [User and Staff Administration](#user-and-staff-administration)
 - [Troubleshooting](#troubleshooting)
@@ -89,8 +90,7 @@ practice-specific.
 
 Clinical encounters and notes must refer to patients and clinicians associated
 with the correct practice. The application validates these relationships.
-Staff-facing consultation and clinical-note workflows are still under
-development; practice switching does not itself grant access to clinical notes.
+Clinical consultations and clinical notes are accessible only to the assigned, active clinician in the selected practice. Practice switching does not grant access to clinical notes.
 
 If you cannot see an expected appointment or availability record, check the
 selected practice and your assigned role. Contact a practice administrator
@@ -634,6 +634,11 @@ lost, contact an authorised platform operator for recovery.
 
 ## Troubleshooting
 
+**Clinical document not visible in the patient portal:** Confirm that the clinician completed and signed the consultation, separately released a patient-facing document, and that the patient account has an approved connection to the correct practice and patient record. Internal notes are never published automatically.
+
+**Cannot start or sign a consultation:** Check that the patient is marked Arrived, the appointment belongs to the signed-in clinician in the selected practice, and the draft is saved before signing. An administrator cannot sign on a clinician’s behalf.
+
+
 **Patient cannot access appointment history or profile:** Confirm that the patient has verified their email and that an authorised practice administrator has approved the correct account-to-patient connection. If access was revoked, follow the practice's reinstatement process. Do not bypass verification.
 
 **Cancel or reschedule option missing:** Check that the appointment is booked or confirmed and starts at least 24 hours from now. Patients cannot override this cutoff; contact the practice for assistance. Staff may reschedule before the original start under their own permissions.
@@ -681,3 +686,122 @@ appointment page if the live connection has been interrupted.
 
 For a failed refund, follow the escalation guidance above rather than
 repeatedly attempting payment or cancellation actions.
+
+
+## Clinical Consultations and Patient Documents
+
+This workflow is for an **assigned, active doctor or nurse** with local
+`staff_clinician` access. Staff administrators cannot read clinical notes
+merely because they can manage appointments. Practice selection does not
+override clinician assignment or patient-record isolation.
+
+### 1. Open an assigned appointment
+
+In the practice workspace, open **Appointments** and select the patient's
+appointment. Confirm the patient's name, patient number, clinician, date and
+appointment reason. Select **Open consultation**. This action is visible only
+to the assigned clinician with the required access level.
+
+The **Consultation** page shows **Appointment and patient**, **Consultation
+record**, and **Previous clinical encounters**. Previous encounters are
+restricted to the current practice; only signed historical notes are shown.
+If the appointment has not yet arrived, the page explains that it must be
+marked **Arrived** before the consultation can start.
+
+### 2. Start the consultation
+
+Reception or other authorised operational staff mark the appointment
+**Arrived** using the appointment lifecycle controls. Return to the
+consultation and select **Start consultation**. The appointment changes to
+**In consultation**, and the encounter start time is recorded. Reopening an
+already-started consultation does not create a second encounter.
+
+### 3. Write and save a draft
+
+Under **Draft clinical notes**, enter the clinical assessment in
+**Consultation notes** and select **Save draft**. The editor suggests headings
+for presenting complaint and history, examination, assessment, plan and
+follow-up. Review the saved content after the page reloads.
+
+Drafts remain internal. They are not patient-facing documents. If the draft
+was updated in another tab, the application asks you to reload and review
+the latest version rather than overwriting it.
+
+### 4. Sign and complete
+
+After saving a nonblank draft, select **Sign note and complete consultation**.
+Read the confirmation prompt carefully: signing cannot be undone. Once
+confirmed, the appointment becomes **Completed**, the encounter ends, and
+the note appears under **Signed consultation note** with its signing time
+and **Read only** label.
+
+The signed note cannot be edited through the consultation workflow.
+Do not sign until the documentation has been reviewed for accuracy.
+
+### 5. Release a separate patient document
+
+After completion, the **Release a patient document** section appears.
+Enter a **Document title** and **Patient-facing information**. This is a
+separate document; the internal signed note is **not copied or released
+automatically**. Review the content for clarity, correctness and
+appropriateness for the patient.
+
+Select **Release document to patient**, then confirm the release. The
+document becomes visible to the linked patient account and cannot be
+edited through the ordinary workflow. Each release is recorded in the
+clinical audit trail. Do not put sensitive internal-only commentary in a
+patient-facing document.
+
+### 6. Patient access to released documents
+
+Patients sign in using their separate patient account. A confirmed email
+address alone does not grant access; the practice must approve the correct
+account-to-patient connection.
+
+From the patient portal dashboard select **Clinical documents**, or visit
+**/patient-portal/clinical-documents**, to open **Your clinical
+documents**. The page lists the released document title, release date and
+patient-facing text. When nothing has been released, it displays
+**No clinical documents have been released to you yet.**
+
+Internal draft notes, signed consultation notes and other patients'
+documents do not appear. If the patient connection is revoked, the
+portal displays **Patient portal access unavailable** instead of the
+documents. Approved document-list access is audited.
+
+### Visual walkthrough note
+
+The patient portal dashboard includes a **Clinical documents** card.
+After the clinician confirms release, check for the success message,
+then sign in as the approved patient and open that card. Confirm the
+released document is present. The clinical note remains private.
+
+### Visual acceptance checklist
+
+Use **fictional or approved test patient data only** when capturing
+screenshots. Test at desktop and mobile widths, including keyboard
+navigation, focus visibility and long document text.
+
+- [ ] Assigned clinician sees **Open consultation** on the correct
+      appointment; an administrator or another clinician does not.
+- [ ] Before arrival, **Consultation record** explains the required
+      appointment state; after arrival, **Start consultation** is available.
+- [ ] Starting shows **In consultation** and the encounter start time.
+- [ ] **Save draft** preserves entered text on reload, including line breaks.
+- [ ] Two-tab stale draft submission warns instead of overwriting newer text.
+- [ ] Signing shows a confirmation prompt, then **Completed**, the signed
+      timestamp and a read-only note; draft editing is no longer available.
+- [ ] The release form appears only after signing and completion, and
+      confirms before publishing.
+- [ ] A released document appears at
+      **/patient-portal/clinical-documents** for the approved patient.
+- [ ] The internal signed note does not appear in the patient portal.
+- [ ] Another patient's documents and another practice's documents are
+      absent.
+- [ ] A revoked patient connection receives the access-unavailable screen.
+- [ ] Desktop and mobile layouts have no horizontal overflow, clipped
+      buttons, unreadable text or inaccessible controls.
+
+**Visual sign-off:** Record the browser/device, date, tester, observed
+results and any defects. Automated RSpec success does not replace
+browser-based visual acceptance.

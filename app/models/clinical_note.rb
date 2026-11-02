@@ -3,7 +3,18 @@ class ClinicalNote < ApplicationRecord
   belongs_to :encounter
   belongs_to :author, class_name: "StaffMember"
 
-  validates :note_type, :body, presence: true
+  validates :note_type, presence: true
+  validates :status, inclusion: { in: %w[draft signed] }
+  validates :body, presence: true, unless: :draft?
+  validate :signed_note_immutable, on: :update
+
+  def draft?
+    status == "draft"
+  end
+
+  def signed_note_immutable
+    errors.add(:base, "Signed clinical notes cannot be edited") if status_in_database == "signed"
+  end
   validate :associations_match_encounter
   private
 

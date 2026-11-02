@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_01_210000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_02_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -151,6 +151,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_210000) do
     t.exclusion_constraint "clinician_id WITH =, tsrange(starts_at, ends_at, '[)'::text) WITH &&", where: "cancelled_at IS NULL", using: :gist, name: "no_overlapping_active_availability"
   end
 
+  create_table "clinical_document_releases", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "practice_id", null: false
+    t.uuid "patient_id", null: false
+    t.uuid "encounter_id", null: false
+    t.uuid "released_by_id", null: false
+    t.string "title", null: false
+    t.text "body", null: false
+    t.datetime "released_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["encounter_id"], name: "index_clinical_document_releases_on_encounter_id"
+    t.index ["patient_id"], name: "index_clinical_document_releases_on_patient_id"
+    t.index ["practice_id", "patient_id", "released_at"], name: "index_clinical_releases_for_patient"
+    t.index ["practice_id"], name: "index_clinical_document_releases_on_practice_id"
+    t.index ["released_by_id"], name: "index_clinical_document_releases_on_released_by_id"
+  end
+
   create_table "clinical_notes", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "patient_id", null: false
     t.uuid "encounter_id", null: false
@@ -159,10 +176,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_210000) do
     t.text "body", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "status", default: "signed", null: false
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "signed_at"
     t.index ["author_id", "created_at"], name: "index_clinical_notes_on_author_id_and_created_at"
     t.index ["author_id"], name: "index_clinical_notes_on_author_id"
     t.index ["encounter_id", "created_at"], name: "index_clinical_notes_on_encounter_id_and_created_at"
     t.index ["encounter_id"], name: "index_clinical_notes_on_encounter_id"
+    t.index ["encounter_id"], name: "index_one_consultation_draft_per_encounter", unique: true, where: "(((status)::text = 'draft'::text) AND ((note_type)::text = 'consultation'::text))"
     t.index ["patient_id", "created_at"], name: "index_clinical_notes_on_patient_id_and_created_at"
     t.index ["patient_id"], name: "index_clinical_notes_on_patient_id"
   end
@@ -177,7 +198,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_210000) do
     t.index ["practice_id", "clinician_type"], name: "index_consultation_fees_on_practice_id_and_clinician_type", unique: true
     t.index ["practice_id"], name: "index_consultation_fees_on_practice_id"
     t.check_constraint "amount_cents > 0", name: "consultation_fees_positive_amount"
-    t.check_constraint "clinician_type::text = ANY (ARRAY['doctor'::character varying::text, 'nurse'::character varying::text])", name: "consultation_fees_clinician_type"
+    t.check_constraint "clinician_type::text = ANY (ARRAY['doctor'::character varying, 'nurse'::character varying]::text[])", name: "consultation_fees_clinician_type"
   end
 
   create_table "encounters", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -245,7 +266,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_210000) do
     t.index ["practice_id"], name: "index_patient_account_links_on_practice_id"
     t.index ["verified_by_id"], name: "index_patient_account_links_on_verified_by_id"
     t.check_constraint "status::text <> 'approved'::text OR verified_by_id IS NOT NULL AND verified_at IS NOT NULL AND approved_at IS NOT NULL AND verification_method IS NOT NULL", name: "patient_account_links_approval_requires_verification"
-    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying::text, 'approved'::character varying::text, 'revoked'::character varying::text])", name: "patient_account_links_valid_status"
+    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying, 'approved'::character varying, 'revoked'::character varying]::text[])", name: "patient_account_links_valid_status"
   end
 
   create_table "patient_accounts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -328,7 +349,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_210000) do
     t.index ["practice_id", "patient_number"], name: "index_patients_on_practice_id_and_patient_number", unique: true
     t.index ["practice_id"], name: "index_patients_on_practice_id"
     t.index ["user_id"], name: "index_patients_on_user_id", unique: true, where: "(user_id IS NOT NULL)"
-    t.check_constraint "patient_type::text = ANY (ARRAY['practice'::character varying::text, 'external'::character varying::text])", name: "patients_patient_type_valid"
+    t.check_constraint "patient_type::text = ANY (ARRAY['practice'::character varying, 'external'::character varying]::text[])", name: "patients_patient_type_valid"
   end
 
   create_table "payments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -647,6 +668,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_210000) do
   add_foreign_key "audit_events", "users"
   add_foreign_key "availability_blocks", "practices"
   add_foreign_key "availability_blocks", "staff_members", column: "clinician_id"
+  add_foreign_key "clinical_document_releases", "encounters"
+  add_foreign_key "clinical_document_releases", "patients"
+  add_foreign_key "clinical_document_releases", "practices"
+  add_foreign_key "clinical_document_releases", "staff_members", column: "released_by_id"
   add_foreign_key "clinical_notes", "encounters"
   add_foreign_key "clinical_notes", "patients"
   add_foreign_key "clinical_notes", "staff_members", column: "author_id"

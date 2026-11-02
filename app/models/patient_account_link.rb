@@ -20,6 +20,13 @@ class PatientAccountLink < ApplicationRecord
 
   scope :approved, -> { where(status: "approved") }
 
+  after_update_commit :refresh_documents_when_revoked, if: :saved_change_to_status?
+
+  def refresh_documents_when_revoked
+    Turbo::StreamsChannel.broadcast_refresh_to(self, :clinical_documents) if status == "revoked"
+    Turbo::StreamsChannel.broadcast_refresh_to(patient_account, :portal_access) if status.in?(%w[approved revoked])
+  end
+
   def approved?
     status == "approved"
   end

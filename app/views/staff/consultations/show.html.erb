@@ -1,0 +1,150 @@
+<% content_for :title, "Consultation | Ballyclare Medical" %>
+<% local_start = @appointment.appointment_slot.starts_at.in_time_zone(@appointment.practice.timezone) %>
+
+<div class="mx-auto max-w-5xl space-y-6">
+  <header class="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <p class="text-sm font-semibold uppercase tracking-[0.16em] text-medical-teal">Clinical workspace</p>
+      <h1 class="mt-2 text-3xl font-semibold tracking-tight text-medical-navy">Consultation</h1>
+      <p class="mt-2 text-sm leading-6 text-medical-muted">
+        <%= @appointment.patient.first_name %> <%= @appointment.patient.last_name %>
+        · <%= local_start.strftime("%A, %d %B %Y at %H:%M") %>
+      </p>
+    </div>
+    <%= link_to "Back to appointment", practice_appointment_path(@appointment),
+      class: "inline-flex items-center justify-center rounded-xl border border-medical-border bg-white px-5 py-3 text-sm font-semibold text-medical-navy shadow-sm transition hover:border-medical-teal hover:text-medical-teal focus:outline-none focus:ring-2 focus:ring-medical-teal focus:ring-offset-2" %>
+  </header>
+
+  <section aria-labelledby="consultation-summary" class="rounded-2xl border border-medical-border bg-white p-6 shadow-sm sm:p-8">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <h2 id="consultation-summary" class="text-lg font-semibold text-medical-navy">Appointment and patient</h2>
+      <span class="rounded-full bg-medical-teal-soft px-3 py-1 text-xs font-semibold text-medical-teal-dark"><%= @appointment.status.humanize %></span>
+    </div>
+    <dl class="mt-6 grid gap-x-8 gap-y-5 sm:grid-cols-2">
+      <div>
+        <dt class="text-sm font-medium text-medical-muted">Patient</dt>
+        <dd class="mt-1 font-semibold text-medical-navy"><%= @appointment.patient.first_name %> <%= @appointment.patient.last_name %></dd>
+        <dd class="mt-1 text-sm text-medical-muted">Patient number: <%= @appointment.patient.patient_number %></dd>
+      </div>
+      <div>
+        <dt class="text-sm font-medium text-medical-muted">Date of birth</dt>
+        <dd class="mt-1 text-medical-ink"><%= @appointment.patient.date_of_birth.strftime("%d %B %Y") %></dd>
+      </div>
+      <div>
+        <dt class="text-sm font-medium text-medical-muted">Clinician</dt>
+        <dd class="mt-1 text-medical-ink"><%= @appointment.clinician.full_name %></dd>
+      </div>
+      <div>
+        <dt class="text-sm font-medium text-medical-muted">Appointment time</dt>
+        <dd class="mt-1 text-medical-ink"><%= local_start.strftime("%H:%M") %></dd>
+      </div>
+      <div class="sm:col-span-2">
+        <dt class="text-sm font-medium text-medical-muted">Reason for appointment</dt>
+        <dd class="mt-1 whitespace-pre-wrap text-medical-ink"><%= @appointment.reason.presence || "No reason provided" %></dd>
+      </div>
+    </dl>
+  </section>
+
+  <section aria-labelledby="encounter-status" class="rounded-2xl border border-medical-border bg-white p-6 shadow-sm sm:p-8">
+    <h2 id="encounter-status" class="text-lg font-semibold text-medical-navy">Consultation record</h2>
+    <% if @appointment.encounter.present? %>
+      <p class="mt-2 text-sm leading-6 text-medical-muted">
+        An encounter has been recorded. Started
+        <%= @appointment.encounter.started_at.in_time_zone(@appointment.practice.timezone).strftime("%d %B %Y at %H:%M") %>.
+      </p>
+    <% else %>
+      <p class="mt-2 text-sm leading-6 text-medical-muted">
+        Consultation not yet started. Mark the patient as arrived before starting.
+      </p>
+    <% end %>
+    <% if @appointment.status == "arrived" && @appointment.encounter.nil? %>
+      <%= button_to "Start consultation", practice_appointment_consultation_path(@appointment),
+        method: :post,
+        class: "mt-5 inline-flex cursor-pointer items-center justify-center rounded-full bg-medical-navy px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-medical-navy-deep focus:outline-none focus:ring-2 focus:ring-medical-teal focus:ring-offset-2" %>
+    <% elsif @appointment.encounter.nil? %>
+      <p class="mt-3 text-sm text-medical-muted">Mark the patient as arrived in the appointment before starting.</p>
+    <% end %>
+    <% if @appointment.status == "in_consultation" && @appointment.encounter.present? %>
+      <div class="mt-6 border-t border-medical-border pt-6">
+        <h3 class="text-base font-semibold text-medical-navy">Draft clinical notes</h3>
+        <p class="mt-2 text-sm text-medical-muted">Drafts are private to authorised clinicians and are not signed clinical records.</p>
+        <%= form_with url: draft_practice_appointment_consultation_path(@appointment), method: :patch, scope: :clinical_note, class: "mt-5 space-y-4" do |form| %>
+          <%= form.hidden_field :lock_version, value: @draft&.lock_version || 0 %>
+          <div>
+            <%= form.label :body, "Consultation notes", class: "block text-sm font-semibold text-medical-navy" %>
+            <%= form.text_area :body, value: @draft&.body, rows: 12,
+              placeholder: "Presenting complaint and history\nExamination\nAssessment\nPlan and advice\nFollow-up",
+              class: "mt-2 block w-full rounded-xl border border-medical-border bg-white px-4 py-3 text-sm text-medical-ink shadow-sm focus:border-medical-teal focus:outline-none focus:ring-2 focus:ring-medical-teal/20" %>
+          </div>
+          <%= form.submit "Save draft", class: "cursor-pointer rounded-full bg-medical-navy px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-medical-navy-deep focus:outline-none focus:ring-2 focus:ring-medical-teal focus:ring-offset-2" %>
+        <% end %>
+        <% if @draft.present? %>
+          <%= button_to "Sign note and complete consultation",
+            sign_and_complete_practice_appointment_consultation_path(@appointment),
+            method: :post, params: { clinical_note: { lock_version: @draft.lock_version } },
+            form: { data: { turbo_confirm: "Sign this clinical note and complete the consultation? This cannot be undone." } },
+            class: "mt-4 cursor-pointer rounded-full bg-medical-teal px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-medical-teal-dark focus:outline-none focus:ring-2 focus:ring-medical-teal focus:ring-offset-2" %>
+        <% end %>
+      </div>
+    <% elsif @signed_note.present? %>
+      <div class="mt-6 rounded-xl border border-medical-border bg-medical-cream p-5">
+        <h3 class="font-semibold text-medical-navy">Signed consultation note</h3>
+        <p class="mt-1 text-xs text-medical-muted">Signed <%= @signed_note.signed_at&.in_time_zone(@appointment.practice.timezone)&.strftime("%d %B %Y at %H:%M") || "before signing timestamps were recorded" %> · Read only</p>
+        <p class="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-medical-ink"><%= @signed_note.body %></p>
+      </div>
+    <% end %>
+  </section>
+
+  <% if @appointment.status == "completed" && @signed_note.present? %>
+    <section aria-labelledby="patient-release" class="rounded-2xl border border-medical-border bg-white p-6 shadow-sm sm:p-8">
+      <h2 id="patient-release" class="text-lg font-semibold text-medical-navy">Release a patient document</h2>
+      <p class="mt-2 text-sm text-medical-muted">Write a separate patient-facing document. The signed internal note is never released automatically. Review carefully before publishing.</p>
+      <%= form_with url: release_document_practice_appointment_consultation_path(@appointment), method: :post, scope: :clinical_document_release, class: "mt-5 space-y-4" do |form| %>
+        <div>
+          <%= form.label :title, "Document title", class: "block text-sm font-semibold text-medical-navy" %>
+          <%= form.text_field :title, required: true, maxlength: 200, class: "mt-2 block w-full rounded-xl border border-medical-border bg-white px-4 py-3 text-sm text-medical-ink focus:ring-2 focus:ring-medical-teal" %>
+        </div>
+        <div>
+          <%= form.label :body, "Patient-facing information", class: "block text-sm font-semibold text-medical-navy" %>
+          <%= form.text_area :body, rows: 8, required: true, class: "mt-2 block w-full rounded-xl border border-medical-border bg-white px-4 py-3 text-sm text-medical-ink focus:ring-2 focus:ring-medical-teal" %>
+        </div>
+        <%= form.submit "Release document to patient",
+          data: { turbo_confirm: "Release this document to the patient's portal? It cannot be edited after release." },
+          class: "cursor-pointer rounded-full bg-medical-navy px-6 py-3 text-sm font-semibold text-white hover:bg-medical-navy-deep focus:ring-2 focus:ring-medical-teal" %>
+      <% end %>
+    </section>
+  <% end %>
+
+  <section aria-labelledby="clinical-history" class="rounded-2xl border border-medical-border bg-white p-6 shadow-sm sm:p-8">
+    <h2 id="clinical-history" class="text-lg font-semibold text-medical-navy">Previous clinical encounters</h2>
+    <p class="mt-1 text-sm leading-6 text-medical-muted">Clinical records from this practice only. Notes are not automatically shared with patients.</p>
+    <% if @previous_encounters.any? %>
+      <div class="mt-6 divide-y divide-medical-border">
+        <% @previous_encounters.each do |encounter| %>
+          <article class="py-5 first:pt-0 last:pb-0">
+            <h3 class="font-semibold text-medical-navy">
+              <%= encounter.started_at.in_time_zone(@appointment.practice.timezone).strftime("%d %B %Y at %H:%M") %>
+              · <%= encounter.encounter_type.humanize %>
+            </h3>
+            <p class="mt-1 text-sm text-medical-muted">Clinician: <%= encounter.clinician.full_name %></p>
+            <% if encounter.clinical_notes.any? { |note| note.status == "signed" } %>
+              <div class="mt-4 space-y-4">
+                <% encounter.clinical_notes.select { |note| note.status == "signed" }.each do |note| %>
+                  <div class="rounded-xl bg-medical-cream p-4">
+                    <h4 class="text-sm font-semibold text-medical-navy"><%= note.note_type.humanize %></h4>
+                    <p class="mt-1 text-xs text-medical-muted">By <%= note.author.full_name %> · <%= note.created_at.in_time_zone(@appointment.practice.timezone).strftime("%d %B %Y at %H:%M") %></p>
+                    <p class="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-medical-ink"><%= note.body %></p>
+                  </div>
+                <% end %>
+              </div>
+            <% else %>
+              <p class="mt-2 text-sm text-medical-muted">No notes recorded for this encounter.</p>
+            <% end %>
+          </article>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="mt-6 rounded-xl bg-medical-cream p-5 text-sm text-medical-muted">No previous clinical encounters recorded at this practice.</p>
+    <% end %>
+  </section>
+</div>

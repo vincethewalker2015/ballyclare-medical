@@ -123,6 +123,11 @@ staff-booked appointments. Guest booking is a separate workflow.
 
 ## Patient Portal: Appointments and Payments
 
+![Patient portal dashboard actions for appointments, payments, receipts and balances](images/user_manual/patient-portal-overview-illustration.svg)
+
+*Patient portal: Use the dashboard to find an appointment, view existing
+appointments, review payment history and receipts, or check outstanding balances.*
+
 ### Viewing appointments
 
 After signing in with an approved patient account, open **View your appointments**
@@ -147,7 +152,7 @@ Public guest booking at **/book** is separate from the authenticated portal.
 
 ### Payment history and receipts
 
-Open **Payment history** in the patient portal to review recorded payments,
+Open **Payment history and receipts** in the patient portal to review recorded payments,
 their status and associated refunds. A receipt is available for a payment
 recorded as successful. A pending or processing payment is not proof that
 the payment has succeeded, and a requested refund is not necessarily complete.

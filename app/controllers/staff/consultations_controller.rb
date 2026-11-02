@@ -3,6 +3,7 @@ module Staff
     before_action :load_authorized_appointment
 
     def show
+      @draft = @appointment.encounter&.clinical_notes&.find_by(note_type: "consultation", status: "draft")
       # Previous notes remain inside this practice; neither administration nor
       # patient-portal endpoints inherit this clinical-record permission.
       @previous_encounters = current_practice.encounters
@@ -31,6 +32,19 @@ module Staff
                   notice: "Consultation started."
     rescue Consultations::Start::InvalidState => error
       redirect_to practice_appointment_consultation_path(@appointment), alert: error.message
+    end
+
+    def draft
+      Consultations::SaveDraft.new(
+        appointment: @appointment, clinician: current_staff_member, user: current_user,
+        body: params.require(:clinical_note).fetch(:body),
+        lock_version: params.require(:clinical_note).fetch(:lock_version)
+      ).call
+      redirect_to practice_appointment_consultation_path(@appointment), notice: "Draft saved."
+    rescue Consultations::SaveDraft::Conflict
+      redirect_to practice_appointment_consultation_path(@appointment), alert: "Draft changed elsewhere. Reload and review before saving again."
+    rescue Consultations::SaveDraft::InvalidState
+      redirect_to practice_appointment_consultation_path(@appointment), alert: "This consultation is not open for editing."
     end
 
     private

@@ -58,4 +58,55 @@ RSpec.describe "Staff practice selection", type: :request do
 
     expect(response).to have_http_status(:forbidden)
   end
+
+  describe "booking isolation after switching practices" do
+    let!(:home_slot) { create(:appointment_slot, practice: home) }
+    let!(:sibling_slot) { create(:appointment_slot, practice: sibling) }
+
+    before do
+      patch practice_selection_path, params: { practice_id: sibling.id }
+      expect(response).to redirect_to(practice_appointments_path)
+    end
+
+    it "rejects a patient from the home practice even with a valid selected-practice slot" do
+      expect {
+        post practice_appointments_path, params: {
+          patient_id: home_patient.id,
+          appointment_slot_id: sibling_slot.id
+        }
+      }.not_to change(Appointment, :count)
+
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "rejects a slot from the home practice even with a selected-practice patient" do
+      expect {
+        post practice_appointments_path, params: {
+          patient_id: sibling_patient.id,
+          appointment_slot_id: home_slot.id
+        }
+      }.not_to change(Appointment, :count)
+
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "rejects a patient from an unrelated medical group" do
+      expect {
+        post practice_appointments_path, params: {
+          patient_id: outside_patient.id,
+          appointment_slot_id: sibling_slot.id
+        }
+      }.not_to change(Appointment, :count)
+
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "does not expose the home practice appointment after switching" do
+      home_appointment = create(:appointment, practice: home)
+
+      get practice_appointment_path(home_appointment)
+
+      expect(response).to have_http_status(:not_found)
+    end
+  end
 end

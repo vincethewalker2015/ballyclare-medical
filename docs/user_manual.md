@@ -245,11 +245,28 @@ unapproved connection cannot view or update the profile.
 
 ## Appointment Diary
 
-All active staff can view the appointment diary and open appointment details.
-Basic Staff have read-only access: they cannot book appointments, change
-appointment statuses, manage patients or availability, or take payments.
-Staff Admins, Staff Clinicians and Senior Staff Admins can perform these
-operational tasks.
+Open **Appointments** to view the selected practice's diary. Use the diary's
+date, view and clinician controls to find the appointments you need. Select an
+appointment to review its patient, clinician, status, financial details and
+available actions. Check the selected practice before searching for an
+appointment: switching practices changes which diary is displayed.
+
+All active staff can view the appointment diary and permitted appointment
+details. Basic Staff have read-only access: they cannot book appointments,
+change appointment statuses, manage patients or availability, or take payments.
+Staff Admins, Staff Clinicians and Senior Staff Admins can perform permitted
+operational tasks. Staff Clinicians see only appointments assigned to their
+own active clinician membership at the selected practice; they cannot open
+another clinician's appointment details by using its URL.
+
+### Changing appointment status
+
+Open an appointment and use the available status controls. The application
+shows only permitted transitions and records changes in the appointment
+activity history. A pending or processing payment can prevent certain changes;
+wait for its outcome to be confirmed before retrying. Do not mark a
+consultation complete unless the required clinical workflow has actually
+taken place; the clinician consultation workspace is still planned for Phase 6.
 
 ## Booking an Appointment
 
@@ -405,11 +422,26 @@ Only suitably authorised administrators can perform these actions, and reconcili
 
 ## Clinician Availability
 
-Clinician availability determines which appointment slots may be booked.
-Only available slots can be selected during staff appointment booking.
-Staff Clinicians can create, edit and cancel only their own availability.
-Staff Admins and Senior Staff Admins can manage availability across the practice.
-Basic Staff cannot manage availability.
+Open **Availability** in the selected practice to review upcoming availability
+blocks. Select **New availability** to choose a clinician, date, start and end
+times, slot duration and whether the slots are bookable online. Save the block
+to generate appointment slots for staff booking. Times are entered in the
+selected practice's configured timezone.
+
+To change an existing block, select its edit action, update the details and
+save. To remove future availability, use its cancel action. Changes may be
+refused when they conflict with existing availability, appointments or active
+booking holds; read the displayed error before making a new selection.
+
+**Bookable online** controls whether the availability is offered for online
+booking. Staff booking can use otherwise eligible slots that are not offered
+online.
+
+Staff Clinicians can view, create, edit and cancel only their own availability
+at the selected practice. Staff Admins and Senior Staff Admins can manage
+availability across that practice. Basic Staff cannot manage availability.
+If a clinician has no active local membership at a selected practice, they
+cannot manage another clinician's availability there.
 
 ## User and Staff Administration
 
@@ -439,7 +471,7 @@ birth, then save the new patient record.*
 their responsibilities; access level determines their administrative permissions.*
 
 The staff directory is currently available at `/practice/staff_members`.
-It lists staff members associated with the signed-in user's practice.
+It lists staff members associated with the **currently selected practice**.
 
 A staff member's type (doctor, nurse or administrator) describes their
 responsibilities. Their *access level* separately determines administrative
@@ -520,7 +552,10 @@ through **Edit access** by a Senior Staff Admin.
 ### Deactivating and reactivating staff
 
 Authorised administrators can select **Deactivate** beside an active staff
-member in the staff directory and confirm the action. The colleague remains
+member in the staff directory and confirm the action. The application blocks
+deactivation of a clinician with future non-cancelled appointments; review
+and resolve those appointments first. It also protects the last active
+Senior Staff Admin from deactivation. The colleague remains
 listed with an **Inactive** badge and a **Reactivate** action. Deactivation
 blocks their access to protected practice pages without deleting their
 staff record or appointment history.

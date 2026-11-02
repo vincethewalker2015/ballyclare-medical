@@ -95,6 +95,26 @@
     <% end %>
   </section>
 
+  <% if @appointment.status == "completed" && @signed_note.present? %>
+    <section aria-labelledby="patient-release" class="rounded-2xl border border-medical-border bg-white p-6 shadow-sm sm:p-8">
+      <h2 id="patient-release" class="text-lg font-semibold text-medical-navy">Release a patient document</h2>
+      <p class="mt-2 text-sm text-medical-muted">Write a separate patient-facing document. The signed internal note is never released automatically. Review carefully before publishing.</p>
+      <%= form_with url: release_document_practice_appointment_consultation_path(@appointment), method: :post, scope: :clinical_document_release, class: "mt-5 space-y-4" do |form| %>
+        <div>
+          <%= form.label :title, "Document title", class: "block text-sm font-semibold text-medical-navy" %>
+          <%= form.text_field :title, required: true, maxlength: 200, class: "mt-2 block w-full rounded-xl border border-medical-border bg-white px-4 py-3 text-sm text-medical-ink focus:ring-2 focus:ring-medical-teal" %>
+        </div>
+        <div>
+          <%= form.label :body, "Patient-facing information", class: "block text-sm font-semibold text-medical-navy" %>
+          <%= form.text_area :body, rows: 8, required: true, class: "mt-2 block w-full rounded-xl border border-medical-border bg-white px-4 py-3 text-sm text-medical-ink focus:ring-2 focus:ring-medical-teal" %>
+        </div>
+        <%= form.submit "Release document to patient",
+          data: { turbo_confirm: "Release this document to the patient's portal? It cannot be edited after release." },
+          class: "cursor-pointer rounded-full bg-medical-navy px-6 py-3 text-sm font-semibold text-white hover:bg-medical-navy-deep focus:ring-2 focus:ring-medical-teal" %>
+      <% end %>
+    </section>
+  <% end %>
+
   <section aria-labelledby="clinical-history" class="rounded-2xl border border-medical-border bg-white p-6 shadow-sm sm:p-8">
     <h2 id="clinical-history" class="text-lg font-semibold text-medical-navy">Previous clinical encounters</h2>
     <p class="mt-1 text-sm leading-6 text-medical-muted">Clinical records from this practice only. Notes are not automatically shared with patients.</p>

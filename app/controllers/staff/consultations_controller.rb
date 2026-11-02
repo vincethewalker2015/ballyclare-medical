@@ -1,16 +1,8 @@
 module Staff
   class ConsultationsController < BaseController
+    before_action :load_authorized_appointment
+
     def show
-      # A consultation is a clinician-only record, regardless of administrative role.
-      return head :forbidden unless current_staff_member.access_level == "staff_clinician" &&
-        current_staff_member.staff_type.in?(%w[doctor nurse])
-
-      @appointment = current_practice.appointments
-        .includes(:patient, :clinician, :appointment_slot, :encounter)
-        .find(params[:appointment_id])
-
-      return head :forbidden unless @appointment.clinician_id == current_staff_member.id
-
       # Previous notes remain inside this practice; neither administration nor
       # patient-portal endpoints inherit this clinical-record permission.
       @previous_encounters = current_practice.encounters
@@ -26,6 +18,32 @@ module Staff
         action: "clinical.consultation_viewed",
         metadata: { staff_member_id: current_staff_member.id }
       )
+    end
+
+    def create
+      Consultations::Start.new(
+        appointment: @appointment,
+        clinician: current_staff_member,
+        user: current_user
+      ).call
+
+      redirect_to practice_appointment_consultation_path(@appointment),
+                  notice: "Consultation started."
+    rescue Consultations::Start::InvalidState => error
+      redirect_to practice_appointment_consultation_path(@appointment), alert: error.message
+    end
+
+    private
+
+    def load_authorized_appointment
+      return head :forbidden unless current_staff_member.access_level == "staff_clinician" &&
+        current_staff_member.staff_type.in?(%w[doctor nurse])
+
+      @appointment = current_practice.appointments
+        .includes(:patient, :clinician, :appointment_slot, :encounter)
+        .find(params[:appointment_id])
+
+      head :forbidden unless @appointment.clinician_id == current_staff_member.id
     end
   end
 end

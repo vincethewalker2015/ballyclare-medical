@@ -440,8 +440,13 @@ Only suitably authorised administrators can perform these actions, and reconcili
 
 ## Clinician Availability
 
+![Simplified Add availability form with clinician, date, times, duration and online booking option](images/user_manual/clinician-availability-illustration.svg)
+
+*Clinician availability: Choose the clinician, date, start and end times,
+appointment duration and whether patients may book the generated slots online.*
+
 Open **Availability** in the selected practice to review upcoming availability
-blocks. Select **New availability** to choose a clinician, date, start and end
+blocks. Select **Add availability** to choose a clinician, date, start and end
 times, slot duration and whether the slots are bookable online. Save the block
 to generate appointment slots for staff booking. Times are entered in the
 selected practice's configured timezone.
@@ -451,7 +456,7 @@ save. To remove future availability, use its cancel action. Changes may be
 refused when they conflict with existing availability, appointments or active
 booking holds; read the displayed error before making a new selection.
 
-**Bookable online** controls whether the availability is offered for online
+**Allow online booking** controls whether the availability is offered for online
 booking. Staff booking can use otherwise eligible slots that are not offered
 online.
 

@@ -13,6 +13,7 @@ module PatientPortal
         metadata: { patient_id: link.patient_id, patient_account_id: current_patient_account.id }
       )
 
+      @patient_link = link
       @releases = ClinicalDocumentRelease
         .where(practice_id: link.practice_id, patient_id: link.patient_id)
         .order(released_at: :desc)

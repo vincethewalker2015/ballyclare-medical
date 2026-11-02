@@ -131,6 +131,19 @@ RSpec.describe Payments::HandleSucceeded do
         expect(payment.paid_at).to eq(original_paid_at)
       end
 
+      it "does not attach an unrelated Stripe intent to an existing payment" do
+        allow(payment_intent).to receive(:id).and_return("pi_unrelated")
+        allow(payment_intent).to receive(:metadata).and_return({ "payment_id" => payment.id.to_s })
+
+        expect {
+          described_class.new(payment_intent: payment_intent).call
+        }.to raise_error(Payments::HandleSucceeded::PaymentNotFound)
+
+        expect(payment.reload.provider_payment_id).to eq("pi_test_123")
+        expect(payment.status).to eq("processing")
+        expect(payment.appointment).to be_nil
+      end
+
       it "rejects an amount mismatch" do
         allow(payment_intent)
           .to receive(:amount_received)

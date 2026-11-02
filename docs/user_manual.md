@@ -245,8 +245,11 @@ unapproved connection cannot view or update the profile.
 
 ## Appointment Diary
 
-Open **Appointments** to view the selected practice's diary. Use the diary's
-date, view and clinician controls to find the appointments you need. Select an
+Open **Appointments** to view the selected practice's diary. Use **Today**,
+**Tomorrow**, **Upcoming**, **Past** or **Payment due** to choose a diary
+view. Select **Choose date** to display a specific day. On a day view,
+switch between **Visual diary** and **List**. Where available, choose a
+**Clinician** and select **Apply** to filter the diary. Select an
 appointment to review its patient, clinician, status, financial details and
 available actions. Check the selected practice before searching for an
 appointment: switching practices changes which diary is displayed.

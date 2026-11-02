@@ -23,7 +23,7 @@ RSpec.describe "Patient portal dashboard", type: :request do
     source = response.parsed_body.at_css("turbo-cable-stream-source")
     expect(source).to be_present
     expect(Turbo::StreamsChannel.verified_stream_name(source["signed-stream-name"])).to eq(
-      Turbo::StreamsChannel.send(:stream_name_from, [link, :portal_access])
+      Turbo::StreamsChannel.send(:stream_name_from, [account, :portal_access])
     )
   end
 
@@ -32,11 +32,11 @@ RSpec.describe "Patient portal dashboard", type: :request do
     link = approved_link(account: account, patient: patient)
 
     expect(Turbo::StreamsChannel).to receive(:broadcast_refresh_to).with(link, :clinical_documents)
-    expect(Turbo::StreamsChannel).to receive(:broadcast_refresh_to).with(link, :portal_access)
+    expect(Turbo::StreamsChannel).to receive(:broadcast_refresh_to).with(account, :portal_access)
     link.update!(status: "revoked")
   end
 
-  it "does not subscribe a revoked dashboard to patient access updates" do
+  it "keeps a revoked dashboard subscribed so reinstatement can refresh it" do
     patient = create(:patient)
     link = approved_link(account: account, patient: patient)
     link.update!(status: "revoked")
@@ -45,7 +45,20 @@ RSpec.describe "Patient portal dashboard", type: :request do
     get patient_portal_path
 
     expect(response.body).to include("Patient portal access unavailable")
-    expect(response.parsed_body.at_css("turbo-cable-stream-source")).to be_nil
+    source = response.parsed_body.at_css("turbo-cable-stream-source")
+    expect(source).to be_present
+    expect(Turbo::StreamsChannel.verified_stream_name(source["signed-stream-name"])).to eq(
+      Turbo::StreamsChannel.send(:stream_name_from, [account, :portal_access])
+    )
+  end
+
+  it "broadcasts a dashboard refresh when a revoked link is reinstated" do
+    patient = create(:patient)
+    link = approved_link(account: account, patient: patient)
+    link.update!(status: "revoked")
+
+    expect(Turbo::StreamsChannel).to receive(:broadcast_refresh_to).with(account, :portal_access)
+    link.update!(status: "approved")
   end
 
   it "redirects unauthenticated visitors" do

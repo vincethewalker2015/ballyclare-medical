@@ -37,6 +37,14 @@ class StaffMember < ApplicationRecord
 
   validates :user_id, uniqueness: { scope: :practice_id }
 
+  # A staff membership grants access to practices in its own medical group.
+  # Role-specific permissions remain enforced by the existing access checks.
+  def can_access_practice?(target_practice)
+    active? &&
+      target_practice.present? &&
+      practice.medical_group_id == target_practice.medical_group_id
+  end
+
   # Operational access excludes basic staff. Clinical access will be used
   # when consultation notes, tests and medical records gain staff routes.
   def operational_access?

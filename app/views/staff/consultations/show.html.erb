@@ -54,7 +54,7 @@
       </p>
     <% else %>
       <p class="mt-2 text-sm leading-6 text-medical-muted">
-        Consultation not yet started. Starting and documenting consultations will be available in the next Phase 6 milestone.
+        Consultation not yet started. Mark the patient as arrived before starting.
       </p>
     <% end %>
     <% if @appointment.status == "arrived" && @appointment.encounter.nil? %>
@@ -78,6 +78,19 @@
           </div>
           <%= form.submit "Save draft", class: "cursor-pointer rounded-full bg-medical-navy px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-medical-navy-deep focus:outline-none focus:ring-2 focus:ring-medical-teal focus:ring-offset-2" %>
         <% end %>
+        <% if @draft.present? %>
+          <%= button_to "Sign note and complete consultation",
+            sign_and_complete_practice_appointment_consultation_path(@appointment),
+            method: :post, params: { clinical_note: { lock_version: @draft.lock_version } },
+            form: { data: { turbo_confirm: "Sign this clinical note and complete the consultation? This cannot be undone." } },
+            class: "mt-4 cursor-pointer rounded-full bg-medical-teal px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-medical-teal-dark focus:outline-none focus:ring-2 focus:ring-medical-teal focus:ring-offset-2" %>
+        <% end %>
+      </div>
+    <% elsif @signed_note.present? %>
+      <div class="mt-6 rounded-xl border border-medical-border bg-medical-cream p-5">
+        <h3 class="font-semibold text-medical-navy">Signed consultation note</h3>
+        <p class="mt-1 text-xs text-medical-muted">Signed <%= @signed_note.signed_at&.in_time_zone(@appointment.practice.timezone)&.strftime("%d %B %Y at %H:%M") || "before signing timestamps were recorded" %> · Read only</p>
+        <p class="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-medical-ink"><%= @signed_note.body %></p>
       </div>
     <% end %>
   </section>

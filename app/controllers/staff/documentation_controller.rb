@@ -22,6 +22,8 @@ module Staff
 
     def image
       image_path = case params[:image]
+      when "patient-portal-overview-illustration.svg"
+        Rails.root.join("docs/images/user_manual/patient-portal-overview-illustration.svg")
       when "clinician-availability-illustration.svg"
         Rails.root.join("docs/images/user_manual/clinician-availability-illustration.svg")
       when "appointment-booking-illustration.svg"

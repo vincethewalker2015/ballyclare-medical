@@ -758,7 +758,8 @@ Patients sign in using their separate patient account. A confirmed email
 address alone does not grant access; the practice must approve the correct
 account-to-patient connection.
 
-Visit **/patient-portal/clinical-documents** to open **Your clinical
+From the patient portal dashboard select **Clinical documents**, or visit
+**/patient-portal/clinical-documents**, to open **Your clinical
 documents**. The page lists the released document title, release date and
 patient-facing text. When nothing has been released, it displays
 **No clinical documents have been released to you yet.**
@@ -767,6 +768,13 @@ Internal draft notes, signed consultation notes and other patients'
 documents do not appear. If the patient connection is revoked, the
 portal displays **Patient portal access unavailable** instead of the
 documents. Approved document-list access is audited.
+
+### Visual walkthrough note
+
+The patient portal dashboard includes a **Clinical documents** card.
+After the clinician confirms release, check for the success message,
+then sign in as the approved patient and open that card. Confirm the
+released document is present. The clinical note remains private.
 
 ### Visual acceptance checklist
 

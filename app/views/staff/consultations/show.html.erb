@@ -94,9 +94,9 @@
               · <%= encounter.encounter_type.humanize %>
             </h3>
             <p class="mt-1 text-sm text-medical-muted">Clinician: <%= encounter.clinician.full_name %></p>
-            <% if encounter.clinical_notes.any? %>
+            <% if encounter.clinical_notes.any? { |note| note.status == "signed" } %>
               <div class="mt-4 space-y-4">
-                <% encounter.clinical_notes.each do |note| %>
+                <% encounter.clinical_notes.select { |note| note.status == "signed" }.each do |note| %>
                   <div class="rounded-xl bg-medical-cream p-4">
                     <h4 class="text-sm font-semibold text-medical-navy"><%= note.note_type.humanize %></h4>
                     <p class="mt-1 text-xs text-medical-muted">By <%= note.author.full_name %> · <%= note.created_at.in_time_zone(@appointment.practice.timezone).strftime("%d %B %Y at %H:%M") %></p>

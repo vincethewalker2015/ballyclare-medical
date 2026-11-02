@@ -23,8 +23,14 @@ RSpec.describe "Clinician consultation entry", type: :request do
   end
 
   it "displays previous encounters and notes from the same practice" do
-    previous = create(:encounter, practice: practice, patient: appointment.patient)
-    note = create(:clinical_note, encounter: previous, patient: appointment.patient, author: previous.clinician, body: "Prior clinical observation")
+    previous = Encounter.create!(
+      practice: practice, patient: appointment.patient, clinician: clinician,
+      encounter_type: "consultation", started_at: 2.days.ago
+    )
+    note = ClinicalNote.create!(
+      encounter: previous, patient: appointment.patient, author: clinician,
+      note_type: "consultation", body: "Prior clinical observation"
+    )
 
     get practice_appointment_consultation_path(appointment)
 
@@ -33,8 +39,16 @@ RSpec.describe "Clinician consultation entry", type: :request do
   end
 
   it "does not show sibling-practice clinical notes even for the same medical group" do
-    sibling_encounter = create(:encounter, practice: sibling)
-    create(:clinical_note, encounter: sibling_encounter, patient: sibling_encounter.patient, author: sibling_encounter.clinician, body: "Sibling practice private note")
+    sibling_patient = create(:patient, practice: sibling)
+    sibling_clinician = create(:staff_member, practice: sibling, staff_type: "doctor", access_level: "staff_clinician")
+    sibling_encounter = Encounter.create!(
+      practice: sibling, patient: sibling_patient, clinician: sibling_clinician,
+      encounter_type: "consultation", started_at: 2.days.ago
+    )
+    ClinicalNote.create!(
+      encounter: sibling_encounter, patient: sibling_patient, author: sibling_clinician,
+      note_type: "consultation", body: "Sibling practice private note"
+    )
 
     get practice_appointment_consultation_path(appointment)
 

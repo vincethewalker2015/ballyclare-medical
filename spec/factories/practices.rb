@@ -1,5 +1,6 @@
 FactoryBot.define do
   factory :practice do
+    medical_group
     sequence(:name) { |n| "Practice #{n}" }
     timezone { "Europe/London" }
     currency { "GBP" }

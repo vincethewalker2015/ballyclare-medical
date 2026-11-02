@@ -15,7 +15,7 @@ module Staff
     end
 
     def set_current_staff_member
-      @current_staff_member = current_user.staff_members.first
+      @current_staff_member = current_user.staff_members.where(active: true).order(:created_at, :id).first
 
       return if @current_staff_member&.active?
 
@@ -26,6 +26,19 @@ module Staff
       return if performed?
 
       @current_practice = current_staff_member.practice
+
+      if session[:staff_practice_id].present?
+        selected_practice = Practice.find_by(id: session[:staff_practice_id])
+
+        selected_membership = current_user.staff_members.where(active: true, practice_id: selected_practice&.id).first
+
+        if current_staff_member.can_access_practice?(selected_practice) && selected_membership
+          @current_practice = selected_practice
+          @current_staff_member = selected_membership
+        else
+          session.delete(:staff_practice_id)
+        end
+      end
     end
   end
 end

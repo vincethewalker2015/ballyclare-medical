@@ -30,6 +30,12 @@ module Payments
           if hold.guest_booking && !GuestBookings::PracticeConsistency.valid?(guest: hold.guest_booking, slot: slot)
             raise SlotUnavailable, "Practice or clinician mismatch"
           end
+          unless slot.clinician.practice_id == slot.practice_id &&
+                 slot.availability_block.practice_id == slot.practice_id &&
+                 slot.availability_block.clinician_id == slot.clinician_id
+            raise SlotUnavailable, "Slot clinician or availability practice mismatch"
+          end
+
           if hold.patient && hold.patient.practice_id != slot.practice_id
             raise SlotUnavailable, "Patient and slot practice mismatch"
           end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_30_110000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_01_210000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -177,7 +177,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_30_110000) do
     t.index ["practice_id", "clinician_type"], name: "index_consultation_fees_on_practice_id_and_clinician_type", unique: true
     t.index ["practice_id"], name: "index_consultation_fees_on_practice_id"
     t.check_constraint "amount_cents > 0", name: "consultation_fees_positive_amount"
-    t.check_constraint "clinician_type::text = ANY (ARRAY['doctor'::character varying, 'nurse'::character varying]::text[])", name: "consultation_fees_clinician_type"
+    t.check_constraint "clinician_type::text = ANY (ARRAY['doctor'::character varying::text, 'nurse'::character varying::text])", name: "consultation_fees_clinician_type"
   end
 
   create_table "encounters", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -222,6 +222,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_30_110000) do
     t.check_constraint "status::text = 'completed'::text OR first_name IS NOT NULL AND btrim(first_name::text) <> ''::text AND last_name IS NOT NULL AND btrim(last_name::text) <> ''::text AND date_of_birth IS NOT NULL AND email IS NOT NULL AND btrim(email::text) <> ''::text AND phone IS NOT NULL AND btrim(phone::text) <> ''::text AND consultation_reason IS NOT NULL AND btrim(consultation_reason) <> ''::text", name: "guest_bookings_active_details_present"
   end
 
+  create_table "medical_groups", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "name", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
   create_table "patient_account_links", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "practice_id", null: false
     t.uuid "patient_id", null: false
@@ -239,7 +245,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_30_110000) do
     t.index ["practice_id"], name: "index_patient_account_links_on_practice_id"
     t.index ["verified_by_id"], name: "index_patient_account_links_on_verified_by_id"
     t.check_constraint "status::text <> 'approved'::text OR verified_by_id IS NOT NULL AND verified_at IS NOT NULL AND approved_at IS NOT NULL AND verification_method IS NOT NULL", name: "patient_account_links_approval_requires_verification"
-    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying, 'approved'::character varying, 'revoked'::character varying]::text[])", name: "patient_account_links_valid_status"
+    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying::text, 'approved'::character varying::text, 'revoked'::character varying::text])", name: "patient_account_links_valid_status"
   end
 
   create_table "patient_accounts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -322,7 +328,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_30_110000) do
     t.index ["practice_id", "patient_number"], name: "index_patients_on_practice_id_and_patient_number", unique: true
     t.index ["practice_id"], name: "index_patients_on_practice_id"
     t.index ["user_id"], name: "index_patients_on_user_id", unique: true, where: "(user_id IS NOT NULL)"
-    t.check_constraint "patient_type::text = ANY (ARRAY['practice'::character varying, 'external'::character varying]::text[])", name: "patients_patient_type_valid"
+    t.check_constraint "patient_type::text = ANY (ARRAY['practice'::character varying::text, 'external'::character varying::text])", name: "patients_patient_type_valid"
   end
 
   create_table "payments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -371,6 +377,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_30_110000) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.uuid "medical_group_id", null: false
+    t.index ["medical_group_id"], name: "index_practices_on_medical_group_id"
     t.index ["name"], name: "index_practices_on_name", unique: true
   end
 
@@ -666,6 +674,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_30_110000) do
   add_foreign_key "payments", "appointments"
   add_foreign_key "payments", "guest_bookings"
   add_foreign_key "payments", "patients"
+  add_foreign_key "practices", "medical_groups"
   add_foreign_key "refunds", "payments"
   add_foreign_key "refunds", "users", column: "requested_by_id"
   add_foreign_key "solid_queue_batch_executions", "solid_queue_batches", column: "batch_id", on_delete: :cascade

@@ -97,6 +97,38 @@ RSpec.describe Appointments::Reschedule do
     expect(appointment.reload.appointment_slot).to eq(replacement)
   end
 
+  it "rejects staff rescheduling once the original appointment has started" do
+    appointment.appointment_slot.update!(
+      starts_at: 5.minutes.ago, ends_at: 15.minutes.from_now
+    )
+    original_slot_id = appointment.appointment_slot_id
+
+    expect {
+      expect {
+        described_class.new(appointment: appointment, replacement_slot: replacement,
+          staff_user: staff_user).call
+      }.to raise_error(described_class::NotAllowed, /already started/)
+    }.not_to change(AuditEvent, :count)
+
+    expect(appointment.reload.appointment_slot_id).to eq(original_slot_id)
+  end
+
+  it "rejects patient rescheduling immediately after portal access is revoked" do
+    account = create(:patient_account, confirmed_at: Time.current)
+    link = PatientAccountLink.create!(
+      patient_account: account, patient: appointment.patient, practice: practice,
+      status: "approved", approved_at: Time.current, verified_at: Time.current,
+      verification_method: "in_person",
+      verified_by: create(:staff_member, practice: practice, access_level: "staff_admin")
+    )
+    link.update!(status: "revoked")
+
+    expect {
+      described_class.new(appointment: appointment, replacement_slot: replacement,
+        patient_account: account).call
+    }.to raise_error(described_class::NotAllowed, /not approved/)
+  end
+
   it "rejects an active hold on the replacement slot" do
     create(:appointment_hold, appointment_slot: replacement,
       patient: appointment.patient, expires_at: 10.minutes.from_now)

@@ -196,6 +196,23 @@ RSpec.describe Payments::CompleteBooking do
       expect(AppointmentHold.exists?(hold.id)).to be(true)
     end
 
+    it "rejects a paid booking with inconsistent availability ownership" do
+      foreign_practice = create(:practice)
+      foreign_clinician = create(:staff_member, practice: foreign_practice,
+        staff_type: appointment_slot.clinician.staff_type)
+      foreign_availability = create(:availability_block,
+        practice: foreign_practice, clinician: foreign_clinician)
+
+      appointment_slot.update_columns(availability_block_id: foreign_availability.id)
+
+      expect {
+        described_class.new(payment: payment).call
+      }.to raise_error(Payments::CompleteBooking::SlotUnavailable, /practice mismatch/)
+
+      expect(payment.reload.appointment_id).to be_nil
+      expect(AppointmentHold.exists?(hold.id)).to be(true)
+    end
+
     it "rejects a booking when the availability has been cancelled" do
       appointment_slot.availability_block.update!(
         cancelled_at: Time.current

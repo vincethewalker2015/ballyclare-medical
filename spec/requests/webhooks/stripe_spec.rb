@@ -15,6 +15,52 @@ RSpec.describe "Stripe webhooks", type: :request do
   end
 
   describe "POST /webhooks/stripe" do
+    def signed_stripe_request(payload, secret: webhook_secret, timestamp: Time.now.to_i)
+      signed_content = "#{timestamp}.#{payload}"
+      signature = OpenSSL::HMAC.hexdigest("SHA256", secret, signed_content)
+      post "/webhooks/stripe", params: payload,
+        headers: {
+          "Stripe-Signature" => "t=#{timestamp},v1=#{signature}",
+          "CONTENT_TYPE" => "application/json"
+        }
+    end
+
+    it "verifies a genuinely signed Stripe payload without mocking verification" do
+      payload = { id: "evt_signed_test", object: "event",
+        type: "payment_intent.created", data: { object: { id: "pi_signed_test", object: "payment_intent" } } }.to_json
+
+      expect(Payments::HandleSucceeded).not_to receive(:new)
+      signed_stripe_request(payload)
+
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "rejects a tampered payload even when the signature was valid for the original body" do
+      original = { id: "evt_original", object: "event",
+        type: "payment_intent.created", data: { object: { id: "pi_original", object: "payment_intent" } } }.to_json
+      tampered = original.sub("evt_original", "evt_modified")
+      timestamp = Time.now.to_i
+      signature = OpenSSL::HMAC.hexdigest("SHA256", webhook_secret, "#{timestamp}.#{original}")
+
+      expect(Payments::HandleSucceeded).not_to receive(:new)
+      post "/webhooks/stripe", params: tampered,
+        headers: {
+          "Stripe-Signature" => "t=#{timestamp},v1=#{signature}",
+          "CONTENT_TYPE" => "application/json"
+        }
+
+      expect(response).to have_http_status(:bad_request)
+    end
+
+    it "rejects a correctly signed but stale Stripe timestamp" do
+      payload = { id: "evt_stale", object: "event",
+        type: "payment_intent.created", data: { object: { id: "pi_stale", object: "payment_intent" } } }.to_json
+
+      signed_stripe_request(payload, timestamp: 1.hour.ago.to_i)
+
+      expect(response).to have_http_status(:bad_request)
+    end
+
     it "accepts a valid Stripe event" do
       payment_intent = double(
         id: "pi_test_123"
@@ -97,6 +143,62 @@ RSpec.describe "Stripe webhooks", type: :request do
       expect(payment.appointment).to be_present
       expect(payment.appointment.appointment_slot).to eq(slot)
       expect(payment.appointment.appointment_charges.first.amount_cents).to eq(5000)
+    end
+
+    it "processes duplicate refund.updated events only once" do
+      payment = create(:payment, status: "succeeded", amount_cents: 5000,
+        currency: "GBP", paid_at: Time.current)
+      refund = create(:refund, payment: payment, amount_cents: 2000,
+        currency: "GBP", status: "processing", provider_refund_id: "re_webhook_duplicate")
+      stripe_refund = Stripe::Refund.construct_from(
+        id: "re_webhook_duplicate", object: "refund", amount: 2000,
+        currency: "gbp", status: "succeeded"
+      )
+      event = instance_double(Stripe::Event, type: "refund.updated",
+        data: double(object: stripe_refund))
+      allow(Stripe::Webhook).to receive(:construct_event).and_return(event)
+
+      deliver = lambda do
+        post "/webhooks/stripe", params: "{}",
+          headers: { "Stripe-Signature" => "test-signature",
+            "CONTENT_TYPE" => "application/json" }
+        expect(response).to have_http_status(:ok)
+      end
+
+      deliver.call
+      first_refunded_at = refund.reload.refunded_at
+      expect(refund.status).to eq("succeeded")
+      expect(first_refunded_at).to be_present
+
+      expect { deliver.call }.not_to change { refund.reload.attributes }
+      expect(refund.refunded_at).to eq(first_refunded_at)
+    end
+
+    it "preserves an appointment-linked processing payment when failure is redelivered" do
+      payment = create(:payment, provider: "stripe", status: "processing",
+        provider_payment_id: "pi_failed_duplicate", amount_cents: 5000,
+        currency: "GBP")
+      intent = instance_double(Stripe::PaymentIntent,
+        id: "pi_failed_duplicate", amount: 5000, currency: "gbp",
+        status: "requires_payment_method")
+      event = instance_double(Stripe::Event, type: "payment_intent.payment_failed",
+        data: double(object: intent))
+      allow(Stripe::Webhook).to receive(:construct_event).and_return(event)
+
+      deliver = lambda do
+        post "/webhooks/stripe", params: "{}",
+          headers: { "Stripe-Signature" => "test-signature",
+            "CONTENT_TYPE" => "application/json" }
+        expect(response).to have_http_status(:ok)
+      end
+
+      deliver.call
+      expect(payment.reload.appointment_id).to be_present
+      expect(payment.status).to eq("processing")
+      original_attributes = payment.attributes
+
+      expect { deliver.call }.not_to change { payment.reload.attributes }
+      expect(payment.attributes).to eq(original_attributes)
     end
 
     it "rejects an invalid Stripe signature" do

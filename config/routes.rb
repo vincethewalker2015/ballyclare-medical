@@ -46,13 +46,14 @@ Rails.application.routes.draw do
   get "/docs/user_manual", to: "staff/documentation#user_manual", as: :user_manual
   get "/docs/images/user_manual/:image", to: "staff/documentation#image",
       as: :user_manual_image, format: false,
-      constraints: { image: /[a-z0-9-]+\.png/ }
+      constraints: { image: /[a-z0-9-]+\.(?:png|svg)/ }
 
   # Reveal health status on /up that returns 200 if the app boots
   # with no exceptions, otherwise 500.
   get "up" => "rails/health#show", as: :rails_health_check
 
   scope "/practice", module: "staff", as: "practice" do
+  patch "/select-practice", to: "practice_selections#update", as: :selection
   resource :stripe_outage, path: "stripe-outage", only: %i[show create update], controller: "stripe_outages"
   resource :consultation_fees, only: %i[edit update], controller: "consultation_fees"
   resources :refunds, only: %i[index]

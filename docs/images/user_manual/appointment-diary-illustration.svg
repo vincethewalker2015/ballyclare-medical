@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="520" viewBox="0 0 1100 520" role="img" aria-labelledby="title desc">
+<title id="title">Appointment diary controls</title>
+<desc id="desc">Simplified illustration of the Ballyclare Medical appointment diary, showing Today, Tomorrow, Upcoming, Past, Payment due, Choose date, clinician filter, and Visual diary and List controls.</desc>
+<rect width="1100" height="520" rx="20" fill="#f6f9fb"/>
+<rect x="24" y="22" width="1052" height="476" rx="18" fill="#fff" stroke="#d6e2e8" stroke-width="2"/>
+<text x="58" y="74" fill="#123c58" font-size="33" font-family="Arial,sans-serif" font-weight="bold">Appointments</text>
+<text x="58" y="104" fill="#617785" font-size="17" font-family="Arial,sans-serif">View the practice diary and clinician appointments.</text>
+<rect x="826" y="46" width="210" height="46" rx="23" fill="#123c58"/>
+<text x="931" y="75" fill="#fff" font-size="17" font-family="Arial,sans-serif" text-anchor="middle" font-weight="bold">Book appointment</text>
+<rect x="58" y="135" width="984" height="330" rx="14" fill="#fff" stroke="#d6e2e8"/>
+<text x="84" y="173" fill="#123c58" font-size="24" font-family="Arial,sans-serif" font-weight="bold">Appointment diary</text>
+<text x="84" y="197" fill="#617785" font-size="15" font-family="Arial,sans-serif">View appointments by scheduled date.</text>
+<rect x="84" y="224" width="932" height="54" rx="10" fill="#edf3f4"/>
+<rect x="91" y="230" width="94" height="42" rx="8" fill="#fff" stroke="#cddde4"/>
+<g fill="#123c58" font-family="Arial,sans-serif" font-size="16" text-anchor="middle">
+<text x="138" y="256" font-weight="bold">Today</text><text x="239" y="256">Tomorrow</text><text x="357" y="256">Upcoming</text><text x="463" y="256">Past</text><text x="573" y="256">Payment due</text><text x="715" y="256">Choose date</text>
+</g>
+<rect x="806" y="231" width="199" height="40" rx="8" fill="#fff" stroke="#cddde4"/>
+<text x="820" y="256" fill="#123c58" font-family="Arial,sans-serif" font-size="16">Clinician: All</text>
+<text x="84" y="325" fill="#617785" font-family="Arial,sans-serif" font-size="16">Selected day · 3 appointments</text>
+<rect x="760" y="297" width="242" height="43" rx="9" fill="#edf3f4"/>
+<rect x="765" y="301" width="128" height="35" rx="7" fill="#fff" stroke="#cddde4"/>
+<text x="829" y="324" fill="#123c58" font-family="Arial,sans-serif" font-size="15" text-anchor="middle">Visual diary</text>
+<text x="946" y="324" fill="#123c58" font-family="Arial,sans-serif" font-size="15" text-anchor="middle">List</text>
+<rect x="84" y="355" width="918" height="74" rx="10" fill="#f3f8fa" stroke="#d6e2e8"/>
+<text x="106" y="385" fill="#123c58" font-family="Arial,sans-serif" font-size="17" font-weight="bold">Clinician appointments</text>
+<text x="106" y="411" fill="#617785" font-family="Arial,sans-serif" font-size="15">Choose a date, diary view and clinician to see the matching appointments.</text>
+<text x="58" y="483" fill="#617785" font-family="Arial,sans-serif" font-size="13">Illustration — simplified interface; not patient data</text>
+</svg>

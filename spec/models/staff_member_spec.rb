@@ -121,6 +121,37 @@ RSpec.describe StaffMember do
     end
   end
 
+  describe "medical group practice access" do
+    let(:group) { create(:medical_group) }
+    let(:home_practice) { create(:practice, medical_group: group) }
+    let(:sibling_practice) { create(:practice, medical_group: group) }
+    let(:unrelated_practice) { create(:practice) }
+    let(:member) { create(:staff_member, practice: home_practice) }
+
+    it "allows an active staff member to access their own practice" do
+      expect(member.can_access_practice?(home_practice)).to be true
+    end
+
+    it "allows an active staff member to access a sibling practice in the group" do
+      expect(member.can_access_practice?(sibling_practice)).to be true
+    end
+
+    it "denies access to practices in another medical group" do
+      expect(member.can_access_practice?(unrelated_practice)).to be false
+    end
+
+    it "denies access to an unspecified practice" do
+      expect(member.can_access_practice?(nil)).to be false
+    end
+
+    it "denies access when the staff membership is inactive" do
+      member.update!(active: false)
+
+      expect(member.can_access_practice?(home_practice)).to be false
+      expect(member.can_access_practice?(sibling_practice)).to be false
+    end
+  end
+
   describe "practice-specific access levels" do
     it "defaults new staff members to ordinary staff access" do
       staff_member = create(:staff_member)

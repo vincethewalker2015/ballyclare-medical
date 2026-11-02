@@ -7,8 +7,10 @@ Ballyclare Medical. It is being expanded as new features become available.
 
 - [Getting Started](#getting-started)
 - [Signing In](#signing-in)
+- [Working Across Multiple Practices](#working-across-multiple-practices)
 - [Patients](#patients)
 - [Patient Portal: Registration and Access](#patient-portal-registration-and-access)
+- [Patient Portal: Appointments and Payments](#patient-portal-appointments-and-payments)
 - [Patient Portal: Appointment Changes](#patient-portal-appointment-changes)
 - [Patient Portal: Profile Management](#patient-portal-profile-management)
 - [Appointment Diary](#appointment-diary)
@@ -33,6 +35,66 @@ members receive password-setting instructions when an administrator
 creates their account, provided outgoing email is configured. If you
 cannot remember your password, use **Forgot password?** on the sign-in
 page. Never share account credentials.
+
+## Working Across Multiple Practices
+
+A medical group can contain multiple practices. Each practice retains its own
+patients, appointment slots, appointments, payments and clinical records.
+
+### Selecting a working practice
+
+![Simplified three-step illustration of selecting and switching practices](images/user_manual/practice-switching-illustration.svg)
+
+*Practice switching: Select an authorised practice, switch, and work with that
+practice's appointment diary and patient records.*
+
+If your medical group contains more than one practice, the staff interface
+shows a practice selector. Choose the location you want to work with; the
+application switches to that practice's appointment diary. The selected
+practice determines which practice's patient and appointment records are
+displayed in staff workflows.
+
+You can only switch to practices in your authorised medical group. A practice
+in a different group cannot be selected through the staff interface. If a
+previously selected practice is no longer authorised, the application falls
+back to your home practice.
+
+### Staff roles and clinician diaries
+
+Staff can use their account to switch between practices in the same medical
+group, subject to their active staff status and role. If you have a separate
+active staff membership at the selected practice, its role and clinician
+identity apply there.
+
+- **Administrators:** Can manage permitted operational workflows for the
+  selected practice. This does not grant access to another medical group.
+- **Clinicians:** Appointment diaries and availability remain restricted to
+  the clinician's own records. If you have no local clinician membership,
+  the selected practice's diary does not reveal other clinicians' appointments.
+- **Other staff:** Available actions depend on the access level assigned to
+  your active staff membership.
+
+### Patient records and bookings
+
+Patient searches, appointment bookings and appointment details remain scoped
+to the **selected practice**. Switching practices does not transfer patients,
+slots or appointments between locations. To book at another practice, first
+select that practice and use a patient record and available slot belonging
+to that location.
+
+Patient portal identity verification and account approvals remain
+practice-specific.
+
+### Clinical confidentiality
+
+Clinical encounters and notes must refer to patients and clinicians associated
+with the correct practice. The application validates these relationships.
+Staff-facing consultation and clinical-note workflows are still under
+development; practice switching does not itself grant access to clinical notes.
+
+If you cannot see an expected appointment or availability record, check the
+selected practice and your assigned role. Contact a practice administrator
+rather than attempting to access records through another location.
 
 ## Patients
 
@@ -59,6 +121,51 @@ practice. Staff must use the authorised approval or reinstatement process.
 Patients without a portal account can still have practice records and
 staff-booked appointments. Guest booking is a separate workflow.
 
+## Patient Portal: Appointments and Payments
+
+![Patient portal dashboard actions for appointments, payments, receipts and balances](images/user_manual/patient-portal-overview-illustration.svg)
+
+*Patient portal: Use the dashboard to find an appointment, view existing
+appointments, review payment history and receipts, or check outstanding balances.*
+
+### Viewing appointments
+
+After signing in with an approved patient account, open **View your appointments**
+to see upcoming appointments and past or cancelled appointments. The history
+includes completed and cancelled bookings where applicable. Appointment details
+are limited to the patient record approved for your account at that practice.
+
+If the portal reports that access is unavailable, contact the practice to
+check the identity-verification and account-approval process. Do not create
+a second account to bypass an outstanding approval.
+
+### Booking online
+
+The authenticated patient portal provides online appointment selection and
+payment. An available time may be held temporarily while payment is completed;
+a hold alone is **not** a confirmed appointment. Follow the payment and
+confirmation screens, and check the appointment list for the final booking
+result. If payment status is uncertain, do not repeatedly submit payment;
+contact the practice for assistance.
+
+Public guest booking at **/book** is separate from the authenticated portal.
+
+### Payment history and receipts
+
+Open **Payment history and receipts** in the patient portal to review recorded payments,
+their status and associated refunds. A receipt is available for a payment
+recorded as successful. A pending or processing payment is not proof that
+the payment has succeeded, and a requested refund is not necessarily complete.
+
+### Paying an outstanding balance
+
+For an appointment with an outstanding balance, use its **outstanding payment**
+option in the patient portal to review the amount and proceed to secure payment.
+The amount is calculated from the appointment's recorded charges, payments
+and refunds. If a payment is already being processed, wait for its result
+rather than attempting another payment. If secure payments are temporarily
+unavailable, try again later or contact the practice.
+
 ## Patient Portal: Appointment Changes
 
 ### Cancelling an appointment (P2.1)
@@ -67,7 +174,8 @@ staff-booked appointments. Guest booking is a separate workflow.
 2. Find an upcoming **Booked** or **Confirmed** appointment.
 3. If its start time is at least **24 hours away**, select **Cancel appointment**
    and confirm the action.
-4. Return to appointment history. The appointment moves from **Upcoming appointments**\n   to **Past and cancelled appointments**, where it is marked **Cancelled**.
+4. Return to appointment history. The appointment moves from **Upcoming appointments**
+   to **Past and cancelled appointments**, where it is marked **Cancelled**.
 
 Cancellation is unavailable within 24 hours of the appointment start,
 after the appointment has started, or for an appointment in an ineligible
@@ -79,14 +187,23 @@ Eligible successful payments trigger an automatic refund request; the
 refund may take additional time to be confirmed by Stripe. The payment
 and refund records remain in the financial history. A pending or
 processing payment blocks cancellation until its outcome is known.
-The patient portal initially confirms that an eligible refund has been\nrequested. Under **Past and cancelled appointments**, paid cancellations\nshow the latest recorded refund outcome: **Refund pending**, **Refund\ncompleted**, or **Refund failed — contact your practice**. The status\nupdates automatically while the appointment-history page is open; if the\nlive connection is interrupted, refresh the page to retrieve the latest\nrecorded status.\n\n**Do not assume a refund has completed merely because cancellation succeeded.**
+The patient portal initially confirms that an eligible refund has been
+requested. Under **Past and cancelled appointments**, paid cancellations
+show the latest recorded refund outcome: **Refund pending**, **Refund
+completed**, or **Refund failed — contact your practice**. The status
+updates automatically while the appointment-history page is open; if the
+live connection is interrupted, refresh the page to retrieve the latest
+recorded status.
+
+**Do not assume a refund has completed merely because cancellation succeeded.**
 See [Payments and Refunds](#payments-and-refunds).
 
 ### Rescheduling an appointment (P2.2)
 
 1. From **View your appointments**, select **Reschedule** for an upcoming
    booked or confirmed appointment at least **24 hours** before it starts.
-2. Choose a replacement appointment from the date-grouped available-time\n   cards. Each card identifies the time and clinician.
+2. Choose a replacement appointment from the date-grouped available-time
+   cards. Each card identifies the time and clinician.
 3. Submit the change and check the updated appointment history.
 
 Patients may choose a different clinician only when the replacement
@@ -108,7 +225,9 @@ must reach a final state before rescheduling.
 Authorised operational staff can open an eligible appointment in the
 practice and use **Reschedule**. Staff can override the patient's
 24-hour notice restriction, including on the same day, **but cannot
-reschedule an appointment after its original start time**. The original
+reschedule an appointment after its original start time**. Same-day
+rescheduling is allowed only while the original appointment has not started
+and the replacement slot is still in the future. The original
 appointment must still be booked or confirmed. The replacement must be
 future, available, within the same practice and with the same clinician
 type. Staff Clinicians are restricted to their own appointments; Basic
@@ -136,13 +255,43 @@ unapproved connection cannot view or update the profile.
 
 ## Appointment Diary
 
-All active staff can view the appointment diary and open appointment details.
-Basic Staff have read-only access: they cannot book appointments, change
-appointment statuses, manage patients or availability, or take payments.
-Staff Admins, Staff Clinicians and Senior Staff Admins can perform these
-operational tasks.
+![Simplified appointment diary showing date, view and clinician controls](images/user_manual/appointment-diary-illustration.svg)
+
+*Appointment diary: Choose a date or view, filter by clinician where permitted,
+and switch between visual and list layouts for a selected day.*
+
+Open **Appointments** to view the selected practice's diary. Use **Today**,
+**Tomorrow**, **Upcoming**, **Past** or **Payment due** to choose a diary
+view. Select **Choose date** to display a specific day. On a day view,
+switch between **Visual diary** and **List**. Where available, choose a
+**Clinician** and select **Apply** to filter the diary. Select an
+appointment to review its patient, clinician, status, financial details and
+available actions. Check the selected practice before searching for an
+appointment: switching practices changes which diary is displayed.
+
+All active staff can view the appointment diary and permitted appointment
+details. Basic Staff have read-only access: they cannot book appointments,
+change appointment statuses, manage patients or availability, or take payments.
+Staff Admins, Staff Clinicians and Senior Staff Admins can perform permitted
+operational tasks. Staff Clinicians see only appointments assigned to their
+own active clinician membership at the selected practice; they cannot open
+another clinician's appointment details by using its URL.
+
+### Changing appointment status
+
+Open an appointment and use the available status controls. The application
+shows only permitted transitions and records changes in the appointment
+activity history. A pending or processing payment can prevent certain changes;
+wait for its outcome to be confirmed before retrying. Do not mark a
+consultation complete unless the required clinical workflow has actually
+taken place; the clinician consultation workspace is still planned for Phase 6.
 
 ## Booking an Appointment
+
+![Simplified staff booking form with patient, clinician, date, time and fee](images/user_manual/appointment-booking-illustration.svg)
+
+*Staff appointment booking: Select the patient, clinician, date and available
+time, then review the consultation fee before confirming the booking.*
 
 Staff Admins, Staff Clinicians and Senior Staff Admins can book appointments
 on behalf of patients. Basic Staff can view the diary but cannot book.
@@ -171,9 +320,10 @@ the already-created appointment.
 If the chosen time has become unavailable, choose another available slot.
 The server checks availability again when the booking is submitted.
 
-The existing backend also supports temporary appointment holds for
-payment-before-booking workflows. A patient-facing self-booking portal is
-**planned** and should not be confused with the current staff booking page.
+The authenticated patient portal supports patient booking with temporary appointment
+holds and payment before confirmation. This is separate from staff-assisted
+booking, where payment at booking is optional. Public guest booking at
+**/book** is a separate workflow.
 
 ## Cancelling an Appointment
 
@@ -295,11 +445,31 @@ Only suitably authorised administrators can perform these actions, and reconcili
 
 ## Clinician Availability
 
-Clinician availability determines which appointment slots may be booked.
-Only available slots can be selected during staff appointment booking.
-Staff Clinicians can create, edit and cancel only their own availability.
-Staff Admins and Senior Staff Admins can manage availability across the practice.
-Basic Staff cannot manage availability.
+![Simplified Add availability form with clinician, date, times, duration and online booking option](images/user_manual/clinician-availability-illustration.svg)
+
+*Clinician availability: Choose the clinician, date, start and end times,
+appointment duration and whether patients may book the generated slots online.*
+
+Open **Availability** in the selected practice to review upcoming availability
+blocks. Select **Add availability** to choose a clinician, date, start and end
+times, slot duration and whether the slots are bookable online. Save the block
+to generate appointment slots for staff booking. Times are entered in the
+selected practice's configured timezone.
+
+To change an existing block, select its edit action, update the details and
+save. To remove future availability, use its cancel action. Changes may be
+refused when they conflict with existing availability, appointments or active
+booking holds; read the displayed error before making a new selection.
+
+**Allow online booking** controls whether the availability is offered for online
+booking. Staff booking can use otherwise eligible slots that are not offered
+online.
+
+Staff Clinicians can view, create, edit and cancel only their own availability
+at the selected practice. Staff Admins and Senior Staff Admins can manage
+availability across that practice. Basic Staff cannot manage availability.
+If a clinician has no active local membership at a selected practice, they
+cannot manage another clinician's availability there.
 
 ## User and Staff Administration
 
@@ -329,7 +499,7 @@ birth, then save the new patient record.*
 their responsibilities; access level determines their administrative permissions.*
 
 The staff directory is currently available at `/practice/staff_members`.
-It lists staff members associated with the signed-in user's practice.
+It lists staff members associated with the **currently selected practice**.
 
 A staff member's type (doctor, nurse or administrator) describes their
 responsibilities. Their *access level* separately determines administrative
@@ -410,7 +580,10 @@ through **Edit access** by a Senior Staff Admin.
 ### Deactivating and reactivating staff
 
 Authorised administrators can select **Deactivate** beside an active staff
-member in the staff directory and confirm the action. The colleague remains
+member in the staff directory and confirm the action. The application blocks
+deactivation of a clinician with future non-cancelled appointments; review
+and resolve those appointments first. It also protects the last active
+Senior Staff Admin from deactivation. The colleague remains
 listed with an **Inactive** badge and a **Reactivate** action. Deactivation
 blocks their access to protected practice pages without deleting their
 staff record or appointment history.
@@ -467,7 +640,13 @@ lost, contact an authorised platform operator for recovery.
 
 **Replacement slot no longer available:** Another appointment or active hold may have taken the slot. Return to the rescheduling page and choose a different available slot. A doctor-to-nurse or nurse-to-doctor change requires cancellation and a new booking.
 
-**Cancelled appointment or refund missing from upcoming list:** Cancelled\nappointments appear under **Past and cancelled appointments**, not\n**Upcoming appointments**. A refund may first show as pending before\nchanging to completed. If the status does not update, refresh the\nappointment-history page; for a failed refund, contact the practice.\n\n**Payment prevents appointment changes:** Wait for a pending or processing payment to settle. Check the existing payment before attempting another transaction or booking.
+**Cancelled appointment or refund missing from upcoming list:** Cancelled
+appointments appear under **Past and cancelled appointments**, not
+**Upcoming appointments**. A refund may first show as pending before
+changing to completed. If the status does not update, refresh the
+appointment-history page; for a failed refund, contact the practice.
+
+**Payment prevents appointment changes:** Wait for a pending or processing payment to settle. Check the existing payment before attempting another transaction or booking.
 
 **Profile email change not reflected:** Open the confirmation email sent to the new address. Until confirmation, the existing email remains the sign-in address. Check junk mail and ask the platform operator to investigate email delivery if necessary.
 

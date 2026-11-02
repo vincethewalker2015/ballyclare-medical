@@ -21,7 +21,8 @@ module Appointments
         .order(:last_name, :first_name)
       @clinician_only_diary = staff_member.access_level == "staff_clinician"
       @selected_clinician_id = clinician_only_diary ? staff_member.id : @clinician_id.presence
-      @selected_clinician = clinicians.find(selected_clinician_id) if selected_clinician_id.present?
+      @selected_clinician = clinicians.find_by(id: selected_clinician_id) if clinician_only_diary
+      @selected_clinician = clinicians.find(selected_clinician_id) if !clinician_only_diary && selected_clinician_id.present?
 
       Time.use_zone(practice.timezone) do
         today = Time.zone.today
@@ -59,7 +60,9 @@ module Appointments
       relation = practice.appointments
         .includes(:patient, :clinician, :appointment_slot)
         .joins(:appointment_slot)
-      relation = relation.where(clinician: selected_clinician) if selected_clinician.present?
+      # Never fall back to an unfiltered diary when a clinician has no membership here.
+      relation = relation.where(clinician_id: staff_member.id) if clinician_only_diary
+      relation = relation.where(clinician: selected_clinician) if !clinician_only_diary && selected_clinician.present?
 
       today_start = Time.zone.local(today.year, today.month, today.day)
       selected_start = Time.zone.local(date.year, date.month, date.day)

@@ -60,6 +60,19 @@ module Staff
       redirect_to practice_appointment_consultation_path(@appointment), alert: error.message
     end
 
+    def release_document
+      Consultations::ReleaseDocument.new(
+        appointment: @appointment, clinician: current_staff_member, user: current_user,
+        title: params.require(:clinical_document_release).fetch(:title),
+        body: params.require(:clinical_document_release).fetch(:body)
+      ).call
+      redirect_to practice_appointment_consultation_path(@appointment), notice: "Document released to the patient portal."
+    rescue Consultations::ReleaseDocument::InvalidState => error
+      redirect_to practice_appointment_consultation_path(@appointment), alert: error.message
+    rescue ActiveRecord::RecordInvalid
+      redirect_to practice_appointment_consultation_path(@appointment), alert: "Enter a title and document text before releasing."
+    end
+
     private
 
     def load_authorized_appointment

@@ -57,7 +57,14 @@
         Consultation not yet started. Starting and documenting consultations will be available in the next Phase 6 milestone.
       </p>
     <% end %>
-    <p class="mt-3 text-sm text-medical-muted">This clinical workspace is currently read-only. No notes or appointment status will be changed here.</p>
+    <% if @appointment.status == "arrived" && @appointment.encounter.nil? %>
+      <%= button_to "Start consultation", practice_appointment_consultation_path(@appointment),
+        method: :post,
+        class: "mt-5 inline-flex cursor-pointer items-center justify-center rounded-full bg-medical-navy px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-medical-navy-deep focus:outline-none focus:ring-2 focus:ring-medical-teal focus:ring-offset-2" %>
+    <% elsif @appointment.encounter.nil? %>
+      <p class="mt-3 text-sm text-medical-muted">Mark the patient as arrived in the appointment before starting.</p>
+    <% end %>
+    <p class="mt-3 text-sm text-medical-muted">Clinical note editing will be introduced in the next Phase 6 milestone.</p>
   </section>
 
   <section aria-labelledby="clinical-history" class="rounded-2xl border border-medical-border bg-white p-6 shadow-sm sm:p-8">

@@ -30,9 +30,11 @@ module Staff
       if session[:staff_practice_id].present?
         selected_practice = Practice.find_by(id: session[:staff_practice_id])
 
-        if current_staff_member.can_access_practice?(selected_practice)
+        selected_membership = current_user.staff_members.where(active: true, practice_id: selected_practice&.id).first
+
+        if current_staff_member.can_access_practice?(selected_practice) && selected_membership
           @current_practice = selected_practice
-          @current_staff_member = current_user.staff_members.where(active: true, practice_id: selected_practice.id).first || current_staff_member
+          @current_staff_member = selected_membership
         else
           session.delete(:staff_practice_id)
         end

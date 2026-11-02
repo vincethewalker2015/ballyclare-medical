@@ -4,6 +4,7 @@ module Staff
 
     def show
       @draft = @appointment.encounter&.clinical_notes&.find_by(note_type: "consultation", status: "draft")
+      @signed_note = @appointment.encounter&.clinical_notes&.find_by(note_type: "consultation", status: "signed")
       # Previous notes remain inside this practice; neither administration nor
       # patient-portal endpoints inherit this clinical-record permission.
       @previous_encounters = current_practice.encounters
@@ -45,6 +46,18 @@ module Staff
       redirect_to practice_appointment_consultation_path(@appointment), alert: "Draft changed elsewhere. Reload and review before saving again."
     rescue Consultations::SaveDraft::InvalidState
       redirect_to practice_appointment_consultation_path(@appointment), alert: "This consultation is not open for editing."
+    end
+
+    def sign_and_complete
+      Consultations::SignAndComplete.new(
+        appointment: @appointment, clinician: current_staff_member, user: current_user,
+        lock_version: params.require(:clinical_note).fetch(:lock_version)
+      ).call
+      redirect_to practice_appointment_consultation_path(@appointment), notice: "Clinical note signed and consultation completed."
+    rescue Consultations::SignAndComplete::Conflict
+      redirect_to practice_appointment_consultation_path(@appointment), alert: "Draft has changed. Review the latest version before signing."
+    rescue Consultations::SignAndComplete::InvalidState => error
+      redirect_to practice_appointment_consultation_path(@appointment), alert: error.message
     end
 
     private

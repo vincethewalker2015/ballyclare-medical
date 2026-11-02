@@ -89,6 +89,7 @@ Rails.application.routes.draw do
   resources :appointments, only: %i[index show new create] do
   resource :consultation, only: %i[show create], controller: "consultations" do
     patch :draft
+    post :sign_and_complete
   end
   resource :reschedule, only: %i[edit update], controller: "appointment_reschedules"
   collection do

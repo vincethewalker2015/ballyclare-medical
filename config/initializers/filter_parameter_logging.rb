@@ -10,5 +10,9 @@ Rails.application.config.filter_parameters += [
   :address_line_1, :address_line_2, :postcode,
   :consultation_reason, :patient_notes, :clinical_notes,
   :cancellation_reason, :symptoms, :medical_history,
-  :patient_number, :nhs_number
+  :patient_number, :nhs_number,
+  # Nested consultation forms use :body, and released documents use :title.
+  # Filter these keys to prevent clinical narratives and patient-facing
+  # documents appearing in request parameter logs or exception reports.
+  :body, :title
 ]

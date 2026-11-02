@@ -270,4 +270,39 @@ RSpec.describe "Clinician consultation entry", type: :request do
       expect(note.reload.status).to eq("draft")
     end
   end
+  describe "releasing patient-facing clinical documents" do
+    before do
+      appointment.update!(status: "arrived")
+      post practice_appointment_consultation_path(appointment)
+      patch draft_practice_appointment_consultation_path(appointment),
+        params: { clinical_note: { body: "Private internal clinical assessment", lock_version: 0 } }
+      note = appointment.reload.encounter.clinical_notes.last
+      post sign_and_complete_practice_appointment_consultation_path(appointment),
+        params: { clinical_note: { lock_version: note.lock_version } }
+    end
+
+    it "releases only explicitly authored patient-facing content and audits the action" do
+      expect {
+        post release_document_practice_appointment_consultation_path(appointment),
+          params: { clinical_document_release: { title: "Visit summary", body: "Follow-up in one week" } }
+      }.to change(ClinicalDocumentRelease, :count).by(1)
+        .and change { AuditEvent.where(action: "clinical.document_released").count }.by(1)
+
+      release = ClinicalDocumentRelease.last
+      expect(release.practice).to eq(practice)
+      expect(release.patient).to eq(appointment.patient)
+      expect(release.body).to eq("Follow-up in one week")
+      expect(release.body).not_to include("Private internal clinical assessment")
+    end
+
+    it "rejects release by administrators" do
+      clinician.update!(access_level: "senior_staff_admin")
+      expect {
+        post release_document_practice_appointment_consultation_path(appointment),
+          params: { clinical_document_release: { title: "Summary", body: "Advice" } }
+      }.not_to change(ClinicalDocumentRelease, :count)
+      expect(response).to have_http_status(:forbidden)
+    end
+  end
+
 end

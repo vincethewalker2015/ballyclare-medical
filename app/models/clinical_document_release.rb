@@ -4,6 +4,14 @@ class ClinicalDocumentRelease < ApplicationRecord
   belongs_to :encounter
   belongs_to :released_by, class_name: "StaffMember"
 
+  after_create_commit :refresh_patient_documents
+
+  def refresh_patient_documents
+    PatientAccountLink.approved.where(practice_id: practice_id, patient_id: patient_id).find_each do |link|
+      Turbo::StreamsChannel.broadcast_refresh_to(link, :clinical_documents)
+    end
+  end
+
   validates :title, :body, :released_at, presence: true
   validate :matching_practice_and_patient
   validate :immutable_after_release, on: :update

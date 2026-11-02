@@ -245,6 +245,11 @@ unapproved connection cannot view or update the profile.
 
 ## Appointment Diary
 
+![Simplified appointment diary showing date, view and clinician controls](images/user_manual/appointment-diary-illustration.svg)
+
+*Appointment diary: Choose a date or view, filter by clinician where permitted,
+and switch between visual and list layouts for a selected day.*
+
 Open **Appointments** to view the selected practice's diary. Use **Today**,
 **Tomorrow**, **Upcoming**, **Past** or **Payment due** to choose a diary
 view. Select **Choose date** to display a specific day. On a day view,

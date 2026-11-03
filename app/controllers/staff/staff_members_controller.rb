@@ -143,20 +143,27 @@ module Staff
       # membership, including when working at a sibling practice.
       return head :forbidden if staff_member.user_id == current_user.id
 
-      # A Chief's clinical membership must not be altered as a side effect of
-      # group ownership. Other authorised administrators may manage its role
-      # without changing the ownership itself.
+      outcome = nil
+      StaffMember.transaction do
+        current_practice.lock!
+        staff_member.lock!
 
-      if requested_access_level != "senior_staff_admin" &&
-         staff_member.access_level == "senior_staff_admin" &&
-         staff_member.active? &&
-         !current_practice.staff_members.where(active: true, access_level: "senior_staff_admin")
-           .where.not(id: staff_member.id).exists?
-        return redirect_to practice_staff_members_path,
-          alert: "The last active senior staff administrator cannot be demoted."
+        if requested_access_level != "senior_staff_admin" &&
+           staff_member.access_level == "senior_staff_admin" &&
+           staff_member.active? &&
+           !current_practice.staff_members.where(active: true, access_level: "senior_staff_admin")
+             .where.not(id: staff_member.id).exists?
+          outcome = :last_senior
+        else
+          outcome = staff_member.update(access_level_params) ? :updated : :invalid
+        end
       end
 
-      if staff_member.update(access_level_params)
+      case outcome
+      when :last_senior
+        redirect_to practice_staff_members_path,
+          alert: "The last active senior staff administrator cannot be demoted."
+      when :updated
         redirect_to practice_staff_members_path, notice: "Staff access level updated."
       else
         redirect_to practice_staff_members_path, alert: staff_member.errors.full_messages.to_sentence

@@ -60,7 +60,7 @@ RSpec.describe "Staff patient creation and portal invitations", type: :request d
     get "#{uri.path}?#{uri.query}"
 
     expect(account.reload).to be_confirmed
-    expect(response).to redirect_to(%r{\A/patients/password/edit\?reset_password_token=})
+    expect(response).to redirect_to(%r{\Ahttps?://[^/]+/patients/password/edit\?reset_password_token=})
     follow_redirect!
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Your email address has been successfully confirmed.", "Set your password")

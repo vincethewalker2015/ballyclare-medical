@@ -22,22 +22,53 @@ module Staff
       render "staff/base/inactive", status: :forbidden
     end
 
+    def group_authority_membership
+      current_user.staff_members.where(active: true, access_level: "senior_staff_admin")
+        .joins(:practice).where(practices: { medical_group_id: current_practice.medical_group_id })
+        .order(:created_at, :id).first
+    end
+
+    def chief_of_current_group?
+      current_practice.medical_group.chief_of_group_id == current_user.id
+    end
+
+    def authorized_practices
+      group = current_practice.medical_group
+      if chief_of_current_group? || group_authority_membership.present?
+        group.practices
+      else
+        group.practices.where(id: current_user.staff_members.where(active: true).select(:practice_id))
+      end
+    end
+
+    def can_administer_current_group?
+      chief_of_current_group? || group_authority_membership.present?
+    end
+
     def set_current_practice
       return if performed?
 
       @current_practice = current_staff_member.practice
+      return if session[:staff_practice_id].blank?
 
-      if session[:staff_practice_id].present?
-        selected_practice = Practice.find_by(id: session[:staff_practice_id])
+      selected_practice = Practice.find_by(id: session[:staff_practice_id])
+      # A group Chief can select any practice in their group; an active senior
+      # membership grants equivalent operational access, not clinical authority.
+      local_membership = current_user.staff_members.where(active: true, practice_id: selected_practice&.id).first
+      senior_membership = current_user.staff_members.where(active: true, access_level: "senior_staff_admin")
+        .joins(:practice).where(practices: { medical_group_id: selected_practice&.medical_group_id })
+        .order(:created_at, :id).first
+      chief_membership = if selected_practice&.medical_group&.chief_of_group_id == current_user.id
+        current_user.staff_members.where(active: true)
+          .joins(:practice).where(practices: { medical_group_id: selected_practice.medical_group_id })
+          .order(:created_at, :id).first
+      end
 
-        selected_membership = current_user.staff_members.where(active: true, practice_id: selected_practice&.id).first
-
-        if current_staff_member.can_access_practice?(selected_practice) && selected_membership
-          @current_practice = selected_practice
-          @current_staff_member = selected_membership
-        else
-          session.delete(:staff_practice_id)
-        end
+      if selected_practice && (local_membership || senior_membership || chief_membership)
+        @current_practice = selected_practice
+        @current_staff_member = senior_membership || local_membership || chief_membership
+      else
+        session.delete(:staff_practice_id)
       end
     end
   end

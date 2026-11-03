@@ -80,7 +80,7 @@ module Staff
       return head :forbidden if staff_member.id == current_staff_member.id
       return head :forbidden if staff_member.user_id == current_practice.medical_group.chief_of_group_id
 
-      unless current_staff_member.access_level == "senior_staff_admin" ||
+      unless can_administer_current_group? ||
              !staff_member.access_level.in?(%w[staff_admin senior_staff_admin])
         return head :forbidden
       end
@@ -119,7 +119,7 @@ module Staff
 
       staff_member = current_practice.staff_members.find(params[:id])
 
-      unless current_staff_member.access_level == "senior_staff_admin" ||
+      unless can_administer_current_group? ||
              !staff_member.access_level.in?(%w[staff_admin senior_staff_admin])
         return head :forbidden
       end
@@ -134,7 +134,7 @@ module Staff
     end
 
     def access_level
-      return head :forbidden unless current_staff_member.access_level == "senior_staff_admin"
+      return head :forbidden unless can_administer_current_group?
 
       staff_member = current_practice.staff_members.find(params[:id])
       requested_access_level = access_level_params[:access_level]
@@ -163,12 +163,12 @@ module Staff
     private
 
     def can_manage_staff_member?(staff_member)
-      current_staff_member.senior_administration_access? ||
+      can_administer_current_group? ||
         !staff_member.access_level.in?(%w[staff_admin senior_staff_admin])
     end
 
     def staff_administrator?
-      current_staff_member.access_level.in?(%w[staff_admin senior_staff_admin])
+      can_administer_current_practice?
     end
 
     def staff_member_params

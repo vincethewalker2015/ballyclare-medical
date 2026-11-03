@@ -66,6 +66,10 @@ module Staff
       patient = if route == "existing_patient"
         current_practice.patients.find(params.require(:patient_id))
       end
+      if patient && PatientAccountLink.exists?(patient_id: patient.id)
+        return redirect_to practice_patient_account_request_path(request_record),
+          alert: "This patient already has a patient portal connection."
+      end
       if route == "new_patient" &&
           [ request_record.first_name, request_record.last_name, request_record.date_of_birth ].any?(&:blank?)
         return redirect_to practice_patient_account_request_path(request_record),

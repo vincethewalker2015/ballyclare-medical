@@ -45,6 +45,10 @@ class PatientAccountLink < ApplicationRecord
   end
 
   def verifier_belongs_to_practice
+    # Preserve historical verification when authority changes after approval.
+    # Recheck authority when a verifier is assigned or the link is approved.
+    return if persisted? && !will_save_change_to_verified_by_id? &&
+      !will_save_change_to_status?(to: "approved")
     return if verified_by.nil? || practice.nil?
     return if verified_by.active? && verified_by.practice_id == practice.id &&
       verified_by.staff_administration_access?

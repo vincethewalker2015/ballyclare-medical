@@ -73,7 +73,7 @@ module Staff
 
       if selected_practice && (local_membership || senior_membership || chief_membership)
         @current_practice = selected_practice
-        @current_staff_member = senior_membership || local_membership || chief_membership
+        @current_staff_member = local_membership || senior_membership || chief_membership
       else
         session.delete(:staff_practice_id)
       end

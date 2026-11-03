@@ -109,4 +109,46 @@ RSpec.describe PatientAccountLink, type: :model do
     expect(link.reload.status).to eq("revoked")
   end
 
+  it "rejects an inactive verifier without a matching approved registration" do
+    account.confirm
+    reviewer = create(:staff_member, practice: practice,
+      access_level: "staff_admin", active: false)
+    link = described_class.new(
+      practice: practice, patient: patient, patient_account: account,
+      status: "approved", verified_by: reviewer,
+      verification_method: "in_person", verified_at: Time.current,
+      approved_at: Time.current
+    )
+
+    expect(link).not_to be_valid
+    expect(link.errors[:verified_by]).to be_present
+  end
+
+  it "rejects historical verification when the registration approver is no longer authorised" do
+    account.confirm
+    reviewer = create(:staff_member, practice: practice, access_level: "staff_admin")
+    approver = create(:staff_member, practice: practice, access_level: "senior_staff_admin")
+    verified_at = Time.current
+    approved_at = Time.current
+    PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account,
+      review_status: "approved", patient_route: "new_patient",
+      reviewed_by: reviewer, approved_by: approver,
+      identity_verified_at: verified_at, approved_at: approved_at,
+      verification_method: "in_person"
+    )
+    reviewer.update!(active: false)
+    approver.update!(active: false)
+
+    link = described_class.new(
+      practice: practice, patient: patient, patient_account: account,
+      status: "approved", verified_by: reviewer,
+      verification_method: "in_person", verified_at: verified_at,
+      approved_at: approved_at
+    )
+
+    expect(link).not_to be_valid
+    expect(link.errors[:verified_by]).to be_present
+  end
+
 end

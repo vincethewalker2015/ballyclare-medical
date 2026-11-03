@@ -2,6 +2,8 @@ module Staff
   class BaseController < ApplicationController
     layout "practice"
 
+    helper_method :authorized_practices
+
     before_action :authenticate_user!
     before_action :set_current_staff_member
     before_action :set_current_practice

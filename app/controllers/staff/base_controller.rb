@@ -25,13 +25,16 @@ module Staff
     end
 
     def group_authority_membership
+      return nil unless current_practice && current_staff_member&.active?
+
       current_user.staff_members.where(active: true, access_level: "senior_staff_admin")
         .joins(:practice).where(practices: { medical_group_id: current_practice.medical_group_id })
         .order(:created_at, :id).first
     end
 
     def chief_of_current_group?
-      current_practice.medical_group.chief_of_group_id == current_user.id
+      current_practice.present? && current_staff_member&.active? &&
+        current_practice.medical_group.chief_of_group_id == current_user.id
     end
 
     def authorized_practices
@@ -44,6 +47,8 @@ module Staff
     end
 
     def can_administer_current_group?
+      return false unless current_practice && current_staff_member&.active?
+
       chief_of_current_group? || group_authority_membership.present?
     end
 

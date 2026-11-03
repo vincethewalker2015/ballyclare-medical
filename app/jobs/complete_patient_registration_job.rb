@@ -42,6 +42,11 @@ class CompletePatientRegistrationJob < ApplicationJob
         raise ArgumentError, "Patient route must be selected before processing"
       end
 
+      # Bind a newly created patient to the verified request before the link
+      # model checks historical reviewer evidence. Both writes share the lock's
+      # transaction and roll back together if link creation fails.
+      request_record.update!(selected_patient: patient) if request_record.patient_route == "new_patient"
+
       if PatientAccountLink.exists?(patient_id: patient.id) ||
           PatientAccountLink.exists?(patient_account_id: request_record.patient_account_id)
         request_record.update!(review_status: "failed", processed_at: Time.current)

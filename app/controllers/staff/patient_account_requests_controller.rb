@@ -96,7 +96,9 @@ module Staff
       end
 
       redirect_to practice_patient_account_request_path(request_record),
-        notice: "Identity verification recorded. Senior Staff Admin approval is required."
+        notice: current_staff_member.senior_administration_access? ?
+          "Identity verification recorded. You can now approve this registration." :
+          "Identity verification recorded. Senior Staff Admin approval is required."
     end
 
     def approve

@@ -34,7 +34,7 @@
         <%= form.date_field :date_of_birth, class: "mt-1 block w-full rounded-lg border border-medical-border p-3" %>
       </div>
 
-      <% if @current_staff_member.staff_administration_access? %>
+      <% if can_administer_current_practice? %>
         <div>
           <h2 id="patient-portal-access-heading" class="mb-3 text-medium font-semibold text-medical-navy">Patient portal access (optional)</h2>
           <div role="group" aria-labelledby="patient-portal-access-heading" class="rounded-xl border border-medical-border bg-medical-teal-soft p-5">

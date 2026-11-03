@@ -70,7 +70,7 @@
               <div class="min-w-0 text-sm leading-tight">
                 <span class="block truncate font-semibold text-medical-navy"><%= @current_staff_member.full_name.presence || current_user.email %></span>
                 <span class="block truncate text-xs text-medical-muted" title="<%= current_user.email %>"><%= current_user.email %></span>
-                <span class="block text-xs font-medium text-medical-teal-dark"><%= @current_staff_member.access_level.humanize.titleize %></span>
+                <span class="block text-xs font-medium text-medical-teal-dark"><%= chief_of_current_group? ? "Chief of Group" : @current_staff_member.access_level.humanize.titleize %></span>
               </div>
             </div>
           <% end %>
@@ -125,7 +125,7 @@
                         class: "flex items-center rounded-xl px-4 py-3 text-sm font-semibold #{controller_name == 'consultation_fees' ? 'bg-medical-teal-soft text-medical-navy' : 'text-medical-muted hover:bg-medical-teal-soft hover:text-medical-navy'}" %>
           <% end %>
 
-          <% if @current_staff_member&.senior_administration_access? %>
+          <% if can_administer_current_group? %>
             <%= link_to "Practices", practice_practices_path,
                         class: "flex items-center rounded-xl px-4 py-3 text-sm font-semibold #{controller_name == 'practices' ? 'bg-medical-teal-soft text-medical-navy' : 'text-medical-muted hover:bg-medical-teal-soft hover:text-medical-navy'}" %>
           <% end %>

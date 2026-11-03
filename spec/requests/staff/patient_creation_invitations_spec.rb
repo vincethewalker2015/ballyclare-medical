@@ -161,5 +161,4 @@ RSpec.describe "Staff patient creation and portal invitations", type: :request d
     }.not_to change(PatientAccount, :count)
     expect(response).to have_http_status(:not_found)
   end
-
 end

@@ -216,6 +216,19 @@ RSpec.describe "Chief of Group appointment", type: :request do
     expect(clinician.reload.access_level).to eq("staff_clinician")
   end
 
+  it "forbids a local Staff Admin from editing a Senior Staff Admin" do
+    local_admin = create(:user)
+    create(:staff_member, user: local_admin, practice: home,
+      staff_type: "administrator", access_level: "staff_admin")
+    senior = admin.staff_members.find_by!(practice: home)
+    sign_out admin
+    sign_in local_admin
+
+    get edit_practice_staff_member_path(senior)
+
+    expect(response).to have_http_status(:forbidden)
+  end
+
   it "rejects candidates from another medical group" do
     outsider = create(:staff_member).user
     patch practice_group_chief_path, params: { user_id: outsider.id }

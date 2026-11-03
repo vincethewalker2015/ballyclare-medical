@@ -36,7 +36,7 @@
 
       <% if @current_staff_member.staff_administration_access? %>
         <fieldset class="rounded-xl border border-medical-border bg-medical-teal-soft p-5">
-          <legend class="px-2 text-base font-semibold text-medical-navy">Patient portal access (optional)</legend>
+          <legend class="rounded-md bg-white px-3 py-1 text-base font-semibold text-medical-navy">Patient portal access (optional)</legend>
           <label class="mt-2 flex items-center gap-3 text-medical-navy">
             <%= check_box_tag "patient[invite_to_portal]", "1", @invite_to_portal, id: "patient_invite_to_portal" %>
             Send a portal invitation to this patient

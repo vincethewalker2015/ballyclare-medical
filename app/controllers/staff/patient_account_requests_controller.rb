@@ -96,13 +96,13 @@ module Staff
       end
 
       redirect_to practice_patient_account_request_path(request_record),
-        notice: current_staff_member.senior_administration_access? ?
+        notice: can_administer_current_group? ?
           "Identity verification recorded. You can now approve this registration." :
           "Identity verification recorded. Senior Staff Admin approval is required."
     end
 
     def approve
-      return head :forbidden unless current_staff_member.senior_administration_access?
+      return head :forbidden unless can_administer_current_group?
 
       request_record = current_practice.patient_registration_requests
         .joins(:patient_account)
@@ -131,7 +131,7 @@ module Staff
     end
 
     def reinstate
-      return head :forbidden unless current_staff_member.senior_administration_access?
+      return head :forbidden unless can_administer_current_group?
 
       link = current_practice.patient_account_links.find(params[:id])
       method = params[:verification_method].to_s
@@ -169,7 +169,7 @@ module Staff
     end
 
     def revoke
-      return head :forbidden unless current_staff_member.senior_administration_access?
+      return head :forbidden unless can_administer_current_group?
 
       link = current_practice.patient_account_links.find(params[:id])
       revoked = false
@@ -193,7 +193,7 @@ module Staff
     private
 
     def require_staff_administrator
-      head :forbidden unless current_staff_member.staff_administration_access?
+      head :forbidden unless can_administer_current_practice?
     end
   end
 end

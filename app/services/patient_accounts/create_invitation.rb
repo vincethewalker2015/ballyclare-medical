@@ -10,7 +10,10 @@ module PatientAccounts
       raise ArgumentError, "You cannot invite patients in another practice." unless patient.practice_id == staff_member.practice_id
       raise ArgumentError, "Administrator access is required." unless staff_member.active? && staff_member.staff_administration_access?
 
-      account = PatientAccount.create!(email: address, password: Devise.friendly_token(48))
+      account = PatientAccount.new(email: address, password: Devise.friendly_token(48))
+      # Send a single activation email after commit, not Devise's separate confirmation email.
+      account.skip_confirmation_notification!
+      account.save!
       PatientRegistrationRequest.create!(
         practice: patient.practice, patient_account: account,
         first_name: patient.first_name, last_name: patient.last_name,

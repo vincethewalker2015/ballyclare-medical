@@ -40,8 +40,8 @@ RSpec.describe "Staff patient creation and portal invitations", type: :request d
     expect(account).not_to be_confirmed
     expect(activation_emails.length).to eq(1)
     expect(ActionMailer::Base.deliveries.count { |mail| mail.to.include?(account.email) }).to eq(1)
-    expect(activation_emails.first.html_part.body.decoded).to include("Confirm email address", "Set your password")
-    expect(activation_emails.first.html_part.body.decoded).to include("/patients/confirmation", "/patients/password/edit")
+    expect(activation_emails.first.html_part.body.decoded).to include("Confirm email address and set password")
+    expect(activation_emails.first.html_part.body.decoded).to include("/patients/confirmation", "reset_password_token=")
     expect(PatientAccountLink.count).to eq(0)
     expect(response).to redirect_to(practice_patient_path(patient))
   end

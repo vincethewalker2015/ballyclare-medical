@@ -31,7 +31,7 @@ RSpec.describe "Patient account requests", type: :request do
     expect(response.body).not_to include(account.email)
   end
 
-  it "shows confirmed registration requests only for the current practice" do
+  it "shows confirmed and unconfirmed registration requests only for the current practice" do
     own_account = create(:patient_account)
     own_account.confirm
     PatientRegistrationRequest.create!(practice: practice, patient_account: own_account)
@@ -49,7 +49,8 @@ RSpec.describe "Patient account requests", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include(own_account.email)
     expect(response.body).not_to include(other_account.email)
-    expect(response.body).not_to include(unconfirmed_account.email)
+    expect(response.body).to include(unconfirmed_account.email)
+    expect(response.body).to include("Awaiting confirmation")
   end
 
   it "lets a practice administrator review a confirmed request without granting access" do

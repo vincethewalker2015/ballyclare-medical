@@ -205,4 +205,57 @@ RSpec.describe PatientAccountLink, type: :model do
     expect(link.errors[:verified_by]).to be_present
   end
 
+  it "rejects historical verification with a changed approval timestamp" do
+    account.confirm
+    reviewer = create(:staff_member, practice: practice, access_level: "staff_admin")
+    approver = create(:staff_member, practice: practice, access_level: "senior_staff_admin")
+    verified_at = 1.day.ago
+    approved_at = Time.current
+    PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account,
+      review_status: "approved", patient_route: "new_patient",
+      reviewed_by: reviewer, approved_by: approver,
+      identity_verified_at: verified_at, approved_at: approved_at,
+      verification_method: "in_person"
+    )
+    reviewer.update!(active: false)
+
+    link = described_class.new(
+      practice: practice, patient: patient, patient_account: account,
+      status: "approved", verified_by: reviewer,
+      verification_method: "in_person", verified_at: verified_at,
+      approved_at: approved_at + 1.hour
+    )
+
+    expect(link).not_to be_valid
+    expect(link.errors[:verified_by]).to be_present
+  end
+
+  it "rejects using another practice's historical registration" do
+    account.confirm
+    other_practice = create(:practice, medical_group: practice.medical_group)
+    reviewer = create(:staff_member, practice: other_practice, access_level: "staff_admin")
+    approver = create(:staff_member, practice: other_practice, access_level: "senior_staff_admin")
+    verified_at = Time.current
+    approved_at = Time.current
+    PatientRegistrationRequest.create!(
+      practice: other_practice, patient_account: account,
+      review_status: "approved", patient_route: "new_patient",
+      reviewed_by: reviewer, approved_by: approver,
+      identity_verified_at: verified_at, approved_at: approved_at,
+      verification_method: "in_person"
+    )
+    reviewer.update!(active: false)
+
+    link = described_class.new(
+      practice: practice, patient: patient, patient_account: account,
+      status: "approved", verified_by: reviewer,
+      verification_method: "in_person", verified_at: verified_at,
+      approved_at: approved_at
+    )
+
+    expect(link).not_to be_valid
+    expect(link.errors[:verified_by]).to be_present
+  end
+
 end

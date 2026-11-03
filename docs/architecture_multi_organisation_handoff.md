@@ -25,11 +25,11 @@ A **customer group can own multiple organisations**. An organisation belongs to 
 - `Patient belongs_to :practice`; records, appointments, consultations and other operational data remain practice-scoped.
 - `PatientAccount` is a separate Devise authentication identity. `PatientAccountLink` is a separately approved link to exactly one practice patient record.
 - `PatientRegistrationRequest` records confirmation, verification, approval and completion status, with a separate asynchronous completion job.
-- The selected staff practice is stored in the session. The selected practice requires an active membership at that practice; sharing a parent group alone is insufficient.
+- The selected staff practice is stored in the session. Ordinary staff require an active local membership; the active Chief of Group or an active Senior Staff Admin may select another practice in the same group for administration. This selection does not grant clinical permissions.
 
 ## Changes in this branch
 
-1. A senior staff administrator can list, create and edit practices within their own medical group through `Staff::PracticesController`. A new practice automatically receives a local senior-administrator membership for its creator. Practice creation, membership and audit are transactional.
+1. The Chief of Group or a Senior Staff Admin can list, create and edit practices within their own medical group through `Staff::PracticesController`. A new practice receives a local Senior Staff Admin membership: the creator if already a Senior Staff Admin, or an existing active group Senior Staff Admin if the creator is a clinician Chief. Practice creation, membership and audit are transactional.
 2. The staff navigation calls the existing registration-request workflow **Patient accounts**. Internal route and model names remain unchanged to avoid unnecessary migrations.
 3. An administrator can invite an existing patient to the portal from the patient's details page.
 4. An administrator can also tick **Send a portal invitation** while creating a patient. The existing patient creation action creates the record and, when selected, the account and request in one database transaction. If invitation creation fails, the new patient record is rolled back.
@@ -47,7 +47,7 @@ Staff selects Organisation
        -> ClientRegistrationRequest (awaiting_review)
        -> Client confirms email and chooses password
        -> administrator verifies identity and correct Organisation/Client record
-       -> senior administrator approves
+       -> Chief of Group or senior administrator approves
        -> completion job creates approved ClientAccountLink
        -> portal may read only approved Organisation/Client data
 ```
@@ -57,8 +57,8 @@ For an existing client, begin at the optional invitation step. Do not duplicate 
 ## Isolation and authorization invariants
 
 - Always load clients via `current_organisation.clients.find(params[:id])`, not `Client.find(params[:id])`.
-- Group ownership does not imply unrestricted cross-organisation data access. Check active local membership, role, and selected organisation on every staff action.
-- Validate that selected clients, approvers and verifiers belong to the organisation on the request.
+- Group ownership does not imply unrestricted cross-organisation clinical data access. The Chief and Senior Staff Admin may administer sibling organisations, but consultation access requires a local Staff Clinician membership and assignment to the appointment. Check active membership, role, and selected organisation on every staff action.
+- Validate that selected clients belong to the organisation on the request. Reviewers may be authorised local administrators, group Senior Staff Admins or the Chief; approval requires active group authority. Preserve recorded historical reviewer identity after a role change, while rechecking approver authority when the completion job runs.
 - An email match, confirmed email or staff-issued invitation is never sufficient proof of client identity.
 - The approved account link is the portal authorization boundary. The portal must scope every query through the approved link's organisation and client IDs.
 - Keep role and staff identities separate from client portal identities. Do not set client passwords on behalf of the client.
@@ -88,4 +88,4 @@ For an existing client, begin at the optional invitation step. Do not duplicate 
 6. Test wrong-group, wrong-organisation, insufficient-role, unconfirmed-email, duplicate-link, rollback and revocation cases.
 7. Verify email delivery and run the full test suite before production use.
 
-**Status:** Code has been committed on `architectural-edits`. This handoff describes the implementation; it does not assert that local Rails tests or email delivery have been verified.
+**Status:** Code has been committed on `architectural-edits`. The user reported 1,208 RSpec examples passing, with 0 failures and 4 pending, after the latest registration retry regression test. Email delivery and production readiness have not been verified.

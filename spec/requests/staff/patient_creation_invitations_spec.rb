@@ -53,7 +53,7 @@ RSpec.describe "Staff patient creation and portal invitations", type: :request d
 
     account = PatientAccount.find_by!(email: "activate@example.com")
     html = Nokogiri::HTML(activation_emails.last.html_part.body.decoded)
-    activation_link = html.at_css("a", text: /Confirm email address and set password/)
+    activation_link = html.css("a").find { |link| link.text.include?("Confirm email address and set password") }
     expect(activation_link).to be_present
 
     uri = URI.parse(activation_link["href"])

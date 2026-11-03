@@ -1,6 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "Staff patient creation and portal invitations", type: :request do
+  include ActiveJob::TestHelper
   let(:practice) { create(:practice) }
   let(:user) { create(:user) }
   let!(:staff) do
@@ -113,9 +114,7 @@ RSpec.describe "Staff patient creation and portal invitations", type: :request d
     }.not_to change(PatientAccount, :count)
     expect(response).to have_http_status(:not_found)
   end
-  it "queues activation so a delivery failure does not undo the patient or registration" do
-    allow(PatientAccounts::SendActivation).to receive(:call!).and_raise(StandardError, "SMTP unavailable")
-
+  it "queues activation independently of mail delivery" do
     expect {
       post practice_patients_path, params: {
         patient: details.merge(invite_to_portal: "1", email: "retry@example.com")
@@ -126,6 +125,17 @@ RSpec.describe "Staff patient creation and portal invitations", type: :request d
     expect(response).to redirect_to(practice_patient_path(Patient.last))
     expect(enqueued_jobs.any? { |job| job[:job] == PatientPortalActivationJob }).to be(true)
     expect(PatientAccount.last).not_to be_confirmed
+  end
+
+  it "retries a failed activation delivery without losing the invitation" do
+    account = create(:patient_account)
+    allow(PatientAccounts::SendActivation).to receive(:call!).and_raise(StandardError, "SMTP unavailable")
+
+    expect {
+      PatientPortalActivationJob.perform_now(account.id)
+    }.to have_enqueued_job(PatientPortalActivationJob).with(account.id)
+
+    expect(account.reload).not_to be_confirmed
   end
 
   it "allows a group Senior Staff Admin to invite a patient at a sibling practice" do

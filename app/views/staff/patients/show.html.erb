@@ -14,7 +14,7 @@
     </dl>
   </section>
 
-  <% if @current_staff_member.staff_administration_access? %>
+  <% if can_administer_current_practice? %>
     <section class="rounded-2xl border border-medical-border bg-white p-6">
       <h2 class="text-xl font-semibold text-medical-navy">Patient portal invitation</h2>
       <% if @patient.patient_account_link %>

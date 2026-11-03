@@ -13,7 +13,14 @@ module Staff
     attr_reader :current_staff_member, :current_practice
 
     def require_operational_access
-      head :forbidden unless current_staff_member.operational_access?
+      return head :forbidden unless current_staff_member.operational_access?
+
+      # A Chief's group-wide practice selection must not turn a clinician
+      # membership at another practice into local patient-record access.
+      return if current_staff_member.practice_id == current_practice.id
+      return if current_staff_member.senior_administration_access?
+
+      head :forbidden
     end
 
     def set_current_staff_member

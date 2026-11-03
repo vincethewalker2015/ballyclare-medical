@@ -280,6 +280,44 @@ RSpec.describe "Patient account requests", type: :request do
     expect(request_record.reload.review_status).to eq("completed")
   end
 
+  it "rejects a registration approver from another medical group" do
+    outsider = create(:staff_member, access_level: "senior_staff_admin")
+    account = create(:patient_account)
+    account.confirm
+
+    request_record = PatientRegistrationRequest.new(
+      practice: practice, patient_account: account,
+      review_status: "approved", approved_by: outsider,
+      reviewed_by: membership, approved_at: Time.current,
+      identity_verified_at: Time.current, verification_method: "in_person",
+      patient_route: "new_patient"
+    )
+
+    expect(request_record).not_to be_valid
+    expect(request_record.errors[:base]).to be_present
+  end
+
+  it "rejects an inactive Chief as a registration approver" do
+    sibling = create(:practice, medical_group: practice.medical_group)
+    chief = create(:user)
+    chief_membership = create(:staff_member, user: chief, practice: sibling,
+      staff_type: "doctor", access_level: "staff_clinician", active: false)
+    practice.medical_group.update!(chief_of_group: chief)
+    account = create(:patient_account)
+    account.confirm
+
+    request_record = PatientRegistrationRequest.new(
+      practice: practice, patient_account: account,
+      review_status: "approved", approved_by: chief_membership,
+      reviewed_by: membership, approved_at: Time.current,
+      identity_verified_at: Time.current, verification_method: "in_person",
+      patient_route: "new_patient"
+    )
+
+    expect(request_record).not_to be_valid
+    expect(request_record.errors[:base]).to be_present
+  end
+
   it "does not complete an approved registration if email confirmation is missing" do
     membership.update!(access_level: "senior_staff_admin")
     account = create(:patient_account)

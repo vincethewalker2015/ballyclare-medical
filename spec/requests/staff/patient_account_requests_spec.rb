@@ -394,6 +394,36 @@ RSpec.describe "Patient account requests", type: :request do
     expect(request_record.reload.review_status).to eq("approved")
   end
 
+  it "preserves a historical reviewer after the reviewing administrator is deactivated" do
+    account = create(:patient_account)
+    account.confirm
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account,
+      review_status: "verified", patient_route: "new_patient",
+      reviewed_by: membership, identity_verified_at: Time.current,
+      verification_method: "in_person"
+    )
+    membership.update!(active: false)
+
+    expect {
+      request_record.update!(review_status: "failed", processed_at: Time.current)
+    }.to change { request_record.reload.review_status }.from("verified").to("failed")
+    expect(request_record.reviewed_by).to eq(membership)
+  end
+
+  it "rejects assigning an inactive administrator as a new reviewer" do
+    account = create(:patient_account)
+    reviewer = create(:staff_member, practice: practice,
+      access_level: "staff_admin", active: false)
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account
+    )
+
+    expect(request_record.update(reviewed_by: reviewer)).to eq(false)
+    expect(request_record.errors[:base]).to be_present
+    expect(request_record.reload.reviewed_by).to be_nil
+  end
+
   it "does not complete an approved registration if email confirmation is missing" do
     membership.update!(access_level: "senior_staff_admin")
     account = create(:patient_account)

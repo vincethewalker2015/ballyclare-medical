@@ -138,6 +138,7 @@ RSpec.describe "Patient account requests", type: :request do
     }.to change(AuditEvent, :count).by(1)
 
     expect(request_record.reload.review_status).to eq("verified")
+    expect(flash[:notice]).to include("Senior Staff Admin approval is required")
     expect(PatientAccountLink.count).to eq(0)
     expect(Patient.count).to eq(0)
   end
@@ -199,6 +200,7 @@ RSpec.describe "Patient account requests", type: :request do
     post verify_practice_patient_account_request_path(request_record),
       params: { patient_route: "new_patient", verification_method: "in_person",
                 identity_checked: "1" }
+    expect(flash[:notice]).to include("You can now approve this registration")
 
     expect {
       post approve_practice_patient_account_request_path(request_record)

@@ -424,6 +424,34 @@ RSpec.describe "Patient account requests", type: :request do
     expect(request_record.reload.reviewed_by).to be_nil
   end
 
+  it "does not create an orphan patient when the account already has a portal link" do
+    membership.update!(access_level: "senior_staff_admin")
+    account = create(:patient_account)
+    account.confirm
+    existing_patient = create(:patient, practice: practice)
+    PatientAccountLink.create!(
+      practice: practice, patient: existing_patient, patient_account: account,
+      status: "approved", verified_by: membership,
+      verification_method: "in_person", verified_at: Time.current,
+      approved_at: Time.current
+    )
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account,
+      review_status: "approved", patient_route: "new_patient",
+      first_name: "Duplicate", last_name: "Registration",
+      date_of_birth: Date.new(1980, 1, 1),
+      reviewed_by: membership, approved_by: membership,
+      approved_at: Time.current, identity_verified_at: Time.current,
+      verification_method: "in_person"
+    )
+
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.not_to change(Patient, :count)
+    expect(request_record.reload.review_status).to eq("failed")
+    expect(PatientAccountLink.where(patient_account: account).count).to eq(1)
+  end
+
   it "does not complete an approved registration if email confirmation is missing" do
     membership.update!(access_level: "senior_staff_admin")
     account = create(:patient_account)

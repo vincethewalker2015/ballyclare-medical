@@ -25,8 +25,11 @@ class PatientRegistrationRequest < ApplicationRecord
 
   def reviewers_belong_to_practice
     [ reviewed_by, approved_by ].compact.each do |staff|
-      next if staff.practice_id == practice_id && staff.active? &&
-        staff.staff_administration_access?
+      next unless staff.active?
+      next if staff.practice_id == practice_id && staff.staff_administration_access?
+      next if staff.practice.medical_group_id == practice.medical_group_id &&
+        (staff.senior_administration_access? ||
+         practice.medical_group.chief_of_group_id == staff.user_id)
 
       errors.add(:base, "reviewers must be active administrators of this practice")
     end

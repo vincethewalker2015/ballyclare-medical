@@ -31,7 +31,7 @@ RSpec.describe "Patient account requests", type: :request do
     expect(response.body).not_to include(account.email)
   end
 
-  it "shows confirmed registration requests only for the current practice" do
+  it "shows confirmed and unconfirmed registration requests only for the current practice" do
     own_account = create(:patient_account)
     own_account.confirm
     PatientRegistrationRequest.create!(practice: practice, patient_account: own_account)
@@ -49,7 +49,8 @@ RSpec.describe "Patient account requests", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include(own_account.email)
     expect(response.body).not_to include(other_account.email)
-    expect(response.body).not_to include(unconfirmed_account.email)
+    expect(response.body).to include(unconfirmed_account.email)
+    expect(response.body).to include("Awaiting confirmation")
   end
 
   it "lets a practice administrator review a confirmed request without granting access" do
@@ -137,6 +138,7 @@ RSpec.describe "Patient account requests", type: :request do
     }.to change(AuditEvent, :count).by(1)
 
     expect(request_record.reload.review_status).to eq("verified")
+    expect(flash[:notice]).to include("Senior Staff Admin approval is required")
     expect(PatientAccountLink.count).to eq(0)
     expect(Patient.count).to eq(0)
   end
@@ -198,6 +200,7 @@ RSpec.describe "Patient account requests", type: :request do
     post verify_practice_patient_account_request_path(request_record),
       params: { patient_route: "new_patient", verification_method: "in_person",
                 identity_checked: "1" }
+    expect(flash[:notice]).to include("You can now approve this registration")
 
     expect {
       post approve_practice_patient_account_request_path(request_record)
@@ -215,6 +218,261 @@ RSpec.describe "Patient account requests", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include(PatientAccountLink.last.patient.patient_number)
     expect(response.body).to include(practice_patient_path(PatientAccountLink.last.patient))
+  end
+
+  it "lets a clinician Chief approve and complete a verified sibling-practice registration" do
+    group = practice.medical_group
+    sibling = create(:practice, medical_group: group)
+    chief = create(:user)
+    create(:staff_member, practice: sibling, user: chief,
+      staff_type: "doctor", access_level: "staff_clinician")
+    group.update!(chief_of_group: chief)
+    account = create(:patient_account)
+    account.confirm
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account,
+      first_name: "Chief", last_name: "Approved",
+      date_of_birth: Date.new(1980, 1, 1),
+      review_status: "verified", patient_route: "new_patient",
+      reviewed_by: membership, identity_verified_at: Time.current,
+      verification_method: "in_person"
+    )
+    sign_in chief
+    patch practice_selection_path, params: { practice_id: practice.id }
+
+    expect {
+      post approve_practice_patient_account_request_path(request_record)
+    }.to have_enqueued_job(CompletePatientRegistrationJob).with(request_record.id)
+
+    expect(request_record.reload.review_status).to eq("approved")
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.to change(PatientAccountLink, :count).by(1)
+    expect(request_record.reload.review_status).to eq("completed")
+    expect(PatientAccountLink.last.practice).to eq(practice)
+  end
+
+  it "lets a sibling-practice Senior Staff Admin approve and complete registration" do
+    group = practice.medical_group
+    sibling = create(:practice, medical_group: group)
+    senior = create(:user)
+    create(:staff_member, practice: sibling, user: senior,
+      access_level: "senior_staff_admin")
+    account = create(:patient_account)
+    account.confirm
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account,
+      first_name: "Senior", last_name: "Approved",
+      date_of_birth: Date.new(1980, 1, 1),
+      review_status: "verified", patient_route: "new_patient",
+      reviewed_by: membership, identity_verified_at: Time.current,
+      verification_method: "in_person"
+    )
+    sign_in senior
+    patch practice_selection_path, params: { practice_id: practice.id }
+
+    post approve_practice_patient_account_request_path(request_record)
+
+    expect(request_record.reload.review_status).to eq("approved")
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.to change(PatientAccountLink, :count).by(1)
+    expect(request_record.reload.review_status).to eq("completed")
+  end
+
+  it "rejects a registration approver from another medical group" do
+    outsider = create(:staff_member, access_level: "senior_staff_admin")
+    account = create(:patient_account)
+    account.confirm
+
+    request_record = PatientRegistrationRequest.new(
+      practice: practice, patient_account: account,
+      review_status: "approved", approved_by: outsider,
+      reviewed_by: membership, approved_at: Time.current,
+      identity_verified_at: Time.current, verification_method: "in_person",
+      patient_route: "new_patient"
+    )
+
+    expect(request_record).not_to be_valid
+    expect(request_record.errors[:base]).to be_present
+  end
+
+  it "rejects an inactive Chief as a registration approver" do
+    sibling = create(:practice, medical_group: practice.medical_group)
+    chief = create(:user)
+    chief_membership = create(:staff_member, user: chief, practice: sibling,
+      staff_type: "doctor", access_level: "staff_clinician", active: false)
+    practice.medical_group.update!(chief_of_group: chief)
+    account = create(:patient_account)
+    account.confirm
+
+    request_record = PatientRegistrationRequest.new(
+      practice: practice, patient_account: account,
+      review_status: "approved", approved_by: chief_membership,
+      reviewed_by: membership, approved_at: Time.current,
+      identity_verified_at: Time.current, verification_method: "in_person",
+      patient_route: "new_patient"
+    )
+
+    expect(request_record).not_to be_valid
+    expect(request_record.errors[:base]).to be_present
+  end
+
+  it "does not process an approval after the Chief's staff membership is deactivated" do
+    sibling = create(:practice, medical_group: practice.medical_group)
+    chief = create(:user)
+    chief_membership = create(:staff_member, user: chief, practice: sibling,
+      staff_type: "doctor", access_level: "staff_clinician")
+    practice.medical_group.update!(chief_of_group: chief)
+    account = create(:patient_account)
+    account.confirm
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account,
+      review_status: "approved", patient_route: "new_patient",
+      first_name: "Inactive", last_name: "Approver",
+      date_of_birth: Date.new(1980, 1, 1),
+      reviewed_by: membership, approved_by: chief_membership,
+      approved_at: Time.current, identity_verified_at: Time.current,
+      verification_method: "in_person"
+    )
+    chief_membership.update!(active: false)
+
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.not_to change(PatientAccountLink, :count)
+    expect(request_record.reload.review_status).to eq("approved")
+  end
+
+  it "does not process an approval after a Senior Staff Admin loses group authority" do
+    sibling = create(:practice, medical_group: practice.medical_group)
+    senior = create(:staff_member, practice: sibling,
+      access_level: "senior_staff_admin")
+    account = create(:patient_account)
+    account.confirm
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account,
+      review_status: "approved", patient_route: "new_patient",
+      first_name: "Former", last_name: "Senior",
+      date_of_birth: Date.new(1980, 1, 1),
+      reviewed_by: membership, approved_by: senior,
+      approved_at: Time.current, identity_verified_at: Time.current,
+      verification_method: "in_person"
+    )
+    senior.update!(access_level: "staff_admin")
+
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.not_to change(PatientAccountLink, :count)
+    expect(request_record.reload.review_status).to eq("approved")
+  end
+
+  it "does not process a former Chief's approval after group ownership transfers" do
+    sibling = create(:practice, medical_group: practice.medical_group)
+    former_chief = create(:user)
+    former_membership = create(:staff_member, user: former_chief, practice: sibling,
+      staff_type: "doctor", access_level: "staff_clinician")
+    new_chief = create(:user)
+    create(:staff_member, user: new_chief, practice: practice,
+      staff_type: "doctor", access_level: "staff_clinician")
+    practice.medical_group.update!(chief_of_group: former_chief)
+    account = create(:patient_account)
+    account.confirm
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account,
+      review_status: "approved", patient_route: "new_patient",
+      first_name: "Transferred", last_name: "Ownership",
+      date_of_birth: Date.new(1980, 1, 1),
+      reviewed_by: membership, approved_by: former_membership,
+      approved_at: Time.current, identity_verified_at: Time.current,
+      verification_method: "in_person"
+    )
+    practice.medical_group.update!(chief_of_group: new_chief)
+
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.not_to change(PatientAccountLink, :count)
+    expect(request_record.reload.review_status).to eq("approved")
+  end
+
+  it "preserves a historical reviewer after the reviewing administrator is deactivated" do
+    account = create(:patient_account)
+    account.confirm
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account,
+      review_status: "verified", patient_route: "new_patient",
+      reviewed_by: membership, identity_verified_at: Time.current,
+      verification_method: "in_person"
+    )
+    membership.update!(active: false)
+
+    expect {
+      request_record.update!(review_status: "failed", processed_at: Time.current)
+    }.to change { request_record.reload.review_status }.from("verified").to("failed")
+    expect(request_record.reviewed_by).to eq(membership)
+  end
+
+  it "rejects assigning an inactive administrator as a new reviewer" do
+    account = create(:patient_account)
+    reviewer = create(:staff_member, practice: practice,
+      access_level: "staff_admin", active: false)
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account
+    )
+
+    expect(request_record.update(reviewed_by: reviewer)).to eq(false)
+    expect(request_record.errors[:base]).to be_present
+    expect(request_record.reload.reviewed_by).to be_nil
+  end
+
+  it "does not create an orphan patient when the account already has a portal link" do
+    membership.update!(access_level: "senior_staff_admin")
+    account = create(:patient_account)
+    account.confirm
+    existing_patient = create(:patient, practice: practice)
+    PatientAccountLink.create!(
+      practice: practice, patient: existing_patient, patient_account: account,
+      status: "approved", verified_by: membership,
+      verification_method: "in_person", verified_at: Time.current,
+      approved_at: Time.current
+    )
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account,
+      review_status: "approved", patient_route: "new_patient",
+      first_name: "Duplicate", last_name: "Registration",
+      date_of_birth: Date.new(1980, 1, 1),
+      reviewed_by: membership, approved_by: membership,
+      approved_at: Time.current, identity_verified_at: Time.current,
+      verification_method: "in_person"
+    )
+
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.not_to change(Patient, :count)
+    expect(request_record.reload.review_status).to eq("failed")
+    expect(PatientAccountLink.where(patient_account: account).count).to eq(1)
+  end
+
+  it "completes an approved registration after its historical reviewer is deactivated" do
+    membership.update!(access_level: "senior_staff_admin")
+    reviewer = create(:staff_member, practice: practice, access_level: "staff_admin")
+    account = create(:patient_account)
+    account.confirm
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account,
+      review_status: "approved", patient_route: "new_patient",
+      first_name: "Historical", last_name: "Reviewer",
+      date_of_birth: Date.new(1980, 1, 1),
+      reviewed_by: reviewer, approved_by: membership,
+      approved_at: Time.current, identity_verified_at: Time.current,
+      verification_method: "in_person"
+    )
+    reviewer.update!(active: false)
+
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.to change(PatientAccountLink, :count).by(1)
+    expect(request_record.reload.review_status).to eq("completed")
+    expect(PatientAccountLink.last.verified_by).to eq(reviewer)
   end
 
   it "does not complete an approved registration if email confirmation is missing" do
@@ -326,6 +584,109 @@ RSpec.describe "Patient account requests", type: :request do
     )
     expect(PatientAccountLink.where(patient_account: second_account)).to be_empty
     expect(request_record.reload.review_status).not_to eq("completed")
+  end
+
+  it "does not duplicate a completed new-patient registration on job retry" do
+    membership.update!(access_level: "senior_staff_admin")
+    account = create(:patient_account)
+    account.confirm
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account,
+      review_status: "approved", patient_route: "new_patient",
+      first_name: "Retry", last_name: "Once",
+      date_of_birth: Date.new(1980, 1, 1),
+      reviewed_by: membership, approved_by: membership,
+      approved_at: Time.current, identity_verified_at: Time.current,
+      verification_method: "in_person"
+    )
+
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.to change(Patient, :count).by(1)
+      .and change(PatientAccountLink, :count).by(1)
+
+    created_patient_id = request_record.reload.selected_patient_id
+    expect(request_record.review_status).to eq("completed")
+    expect(created_patient_id).to eq(PatientAccountLink.find_by!(patient_account: account).patient_id)
+
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.not_to change {
+      [ Patient.count, PatientAccountLink.count,
+       AuditEvent.where(action: "patient_account.approved", auditable_type: "PatientAccountLink").count ]
+    }
+
+    expect(request_record.reload.selected_patient_id).to eq(created_patient_id)
+    expect(request_record.review_status).to eq("completed")
+  end
+
+  it "safely retries a new-patient registration after a transient link failure" do
+    membership.update!(access_level: "senior_staff_admin")
+    account = create(:patient_account)
+    account.confirm
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account,
+      review_status: "approved", patient_route: "new_patient",
+      first_name: "Transient", last_name: "Retry",
+      date_of_birth: Date.new(1980, 1, 1),
+      reviewed_by: membership, approved_by: membership,
+      approved_at: Time.current, identity_verified_at: Time.current,
+      verification_method: "in_person"
+    )
+
+    original_create = PatientAccountLink.method(:create!)
+    attempts = 0
+    allow(PatientAccountLink).to receive(:create!) do |**attributes|
+      attempts += 1
+      if attempts == 1
+        raise ActiveRecord::RecordInvalid.new(PatientAccountLink.new)
+      end
+
+      original_create.call(**attributes)
+    end
+
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.to raise_error(ActiveRecord::RecordInvalid)
+    expect(request_record.reload.selected_patient_id).to be_nil
+    expect(request_record.review_status).to eq("approved")
+
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.to change(Patient, :count).by(1)
+      .and change(PatientAccountLink, :count).by(1)
+
+    expect(request_record.reload.review_status).to eq("completed")
+    expect(request_record.selected_patient_id).to eq(
+      PatientAccountLink.find_by!(patient_account: account).patient_id
+    )
+  end
+
+  it "rolls back a new patient and its registration binding when link creation fails" do
+    membership.update!(access_level: "senior_staff_admin")
+    account = create(:patient_account)
+    account.confirm
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account,
+      review_status: "approved", patient_route: "new_patient",
+      first_name: "Retry", last_name: "Safe",
+      date_of_birth: Date.new(1980, 1, 1),
+      reviewed_by: membership, approved_by: membership,
+      approved_at: Time.current, identity_verified_at: Time.current,
+      verification_method: "in_person"
+    )
+    allow(PatientAccountLink).to receive(:create!)
+      .and_raise(ActiveRecord::RecordInvalid.new(PatientAccountLink.new))
+
+    expect {
+      expect {
+        CompletePatientRegistrationJob.perform_now(request_record.id)
+      }.to raise_error(ActiveRecord::RecordInvalid)
+    }.not_to change(Patient, :count)
+
+    expect(request_record.reload.review_status).to eq("approved")
+    expect(request_record.selected_patient_id).to be_nil
+    expect(PatientAccountLink.where(patient_account: account)).to be_empty
   end
 
   it "handles a database uniqueness conflict after link prechecks" do

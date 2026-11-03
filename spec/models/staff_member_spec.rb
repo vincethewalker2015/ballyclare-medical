@@ -132,7 +132,12 @@ RSpec.describe StaffMember do
       expect(member.can_access_practice?(home_practice)).to be true
     end
 
-    it "allows an active staff member to access a sibling practice in the group" do
+    it "requires local membership for ordinary staff at sibling practices" do
+      expect(member.can_access_practice?(sibling_practice)).to be false
+    end
+
+    it "allows an active senior administrator across their own group" do
+      member.update!(staff_type: "administrator", access_level: "senior_staff_admin")
       expect(member.can_access_practice?(sibling_practice)).to be true
     end
 
@@ -200,6 +205,22 @@ RSpec.describe StaffMember do
 
       expect(staff_member).not_to be_valid
       expect(staff_member.errors[:access_level]).to be_present
+    end
+  end
+  describe "clinical access boundaries" do
+    it "does not grant clinical access through senior administration" do
+      senior = create(:staff_member, staff_type: "administrator",
+        access_level: "senior_staff_admin")
+
+      expect(senior.clinical_access?).to be false
+      expect(senior.staff_administration_access?).to be true
+    end
+
+    it "grants clinical access to a clinician membership" do
+      clinician = create(:staff_member, staff_type: "doctor",
+        access_level: "staff_clinician")
+
+      expect(clinician.clinical_access?).to be true
     end
   end
 end

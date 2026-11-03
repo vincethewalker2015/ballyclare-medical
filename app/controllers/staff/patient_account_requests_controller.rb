@@ -7,7 +7,6 @@ module Staff
       @page = [ params[:page].to_i, 1 ].max
       requests = current_practice.patient_registration_requests
         .joins(:patient_account)
-        .where.not(patient_accounts: { confirmed_at: nil })
       if @request_search.present?
         term = "%#{ActiveRecord::Base.sanitize_sql_like(@request_search)}%"
         requests = requests.where(
@@ -31,8 +30,6 @@ module Staff
       @registration_request = current_practice.patient_registration_requests
         .includes(:patient_account)
         .find(params[:id])
-
-      return head :not_found unless @registration_request.patient_account.confirmed?
 
       @account_link = current_practice.patient_account_links
         .where(patient_account_id: @registration_request.patient_account_id).first
@@ -66,6 +63,10 @@ module Staff
       patient = if route == "existing_patient"
         current_practice.patients.find(params.require(:patient_id))
       end
+      if patient && PatientAccountLink.exists?(patient_id: patient.id)
+        return redirect_to practice_patient_account_request_path(request_record),
+          alert: "This patient already has a patient portal connection."
+      end
       if route == "new_patient" &&
           [ request_record.first_name, request_record.last_name, request_record.date_of_birth ].any?(&:blank?)
         return redirect_to practice_patient_account_request_path(request_record),
@@ -95,11 +96,13 @@ module Staff
       end
 
       redirect_to practice_patient_account_request_path(request_record),
-        notice: "Identity verification recorded. Senior Staff Admin approval is required."
+        notice: can_administer_current_group? ?
+          "Identity verification recorded. You can now approve this registration." :
+          "Identity verification recorded. Senior Staff Admin approval is required."
     end
 
     def approve
-      return head :forbidden unless current_staff_member.senior_administration_access?
+      return head :forbidden unless can_administer_current_group?
 
       request_record = current_practice.patient_registration_requests
         .joins(:patient_account)
@@ -128,7 +131,7 @@ module Staff
     end
 
     def reinstate
-      return head :forbidden unless current_staff_member.senior_administration_access?
+      return head :forbidden unless can_administer_current_group?
 
       link = current_practice.patient_account_links.find(params[:id])
       method = params[:verification_method].to_s
@@ -166,7 +169,7 @@ module Staff
     end
 
     def revoke
-      return head :forbidden unless current_staff_member.senior_administration_access?
+      return head :forbidden unless can_administer_current_group?
 
       link = current_practice.patient_account_links.find(params[:id])
       revoked = false
@@ -190,7 +193,7 @@ module Staff
     private
 
     def require_staff_administrator
-      head :forbidden unless current_staff_member.staff_administration_access?
+      head :forbidden unless can_administer_current_practice?
     end
   end
 end

@@ -64,7 +64,10 @@ Rails.application.routes.draw do
       post :cancel
     end
   end
+  resources :practices, only: %i[index new create edit update]
+  resource :group_chief, only: %i[update], controller: "group_chiefs"
   resources :patients, only: %i[index show new create edit update]
+  post "/patients/:patient_id/portal-invitation", to: "patient_portal_invitations#create", as: :patient_portal_invitation
   resources :patient_account_requests, only: %i[index show] do
     member do
       post :verify

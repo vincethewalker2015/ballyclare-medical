@@ -100,7 +100,10 @@ rather than attempting to access records through another location.
 
 Authorised operational staff can open **Patients** to search or browse
 records for their own practice, register a new patient, and view or edit
-existing patient details. See [Patient records](#patient-records) below
+existing patient details. When a practice administrator registers a patient,
+they can optionally tick **Send a portal invitation** and enter the patient's
+email address in the same form. This uses the existing patient account request
+workflow; it does not grant portal access. See [Patient records](#patient-records) below
 for the registration fields and illustrated instructions.
 
 ## Patient Portal: Registration and Access
@@ -111,6 +114,17 @@ email address does not verify the patient's identity or grant access to a
 clinical record. Practice staff must verify identity and approve the account
 connection through the patient account request workflow before patient-specific
 appointment, payment or profile information becomes available.
+
+Practice administrators can also open an existing patient record and select
+**Invite to patient portal**. An invitation creates an unapproved patient account
+request and sends a single **Activate your patient portal** email containing
+a **Confirm email address and set password** action. Clicking it confirms the
+email address and opens the password-setting form. The patient must choose
+their own password. Invitations
+appear under **Patient accounts**, including those awaiting email confirmation.
+The practice must still verify the patient's identity, select the correct
+existing patient record and obtain senior administrator approval. Never create
+an additional patient record just to provide portal access.
 
 Practice administrators review patient account requests and verify the
 correct practice and patient record. Never approve an account based on an
@@ -482,7 +496,7 @@ patient record or begin a new registration.*
 
 Staff can open **Patients** from the practice navigation to view patients
 registered with their practice. Select **New patient** to register a patient,
-entering a unique patient number, first name, last name and date of birth.
+entering first name, last name and date of birth; the patient number is generated automatically.
 Select a patient from the list to view or edit their details. Patient records
 from other practices are not available through these pages.
 

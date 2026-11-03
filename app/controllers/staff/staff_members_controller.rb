@@ -77,9 +77,10 @@ module Staff
       return head :forbidden unless staff_administrator?
 
       staff_member = current_practice.staff_members.find(params[:id])
-      return head :forbidden if staff_member.id == current_staff_member.id
+      return head :forbidden if staff_member.user_id == current_user.id
+      return head :forbidden if staff_member.user_id == current_practice.medical_group.chief_of_group_id
 
-      unless current_staff_member.access_level == "senior_staff_admin" ||
+      unless can_administer_current_group? ||
              !staff_member.access_level.in?(%w[staff_admin senior_staff_admin])
         return head :forbidden
       end
@@ -118,7 +119,7 @@ module Staff
 
       staff_member = current_practice.staff_members.find(params[:id])
 
-      unless current_staff_member.access_level == "senior_staff_admin" ||
+      unless can_administer_current_group? ||
              !staff_member.access_level.in?(%w[staff_admin senior_staff_admin])
         return head :forbidden
       end
@@ -133,26 +134,36 @@ module Staff
     end
 
     def access_level
-      return head :forbidden unless current_staff_member.access_level == "senior_staff_admin"
+      return head :forbidden unless can_administer_current_group?
 
       staff_member = current_practice.staff_members.find(params[:id])
       requested_access_level = access_level_params[:access_level]
 
-      if staff_member.id == current_staff_member.id &&
-         requested_access_level != "senior_staff_admin"
-        return head :forbidden
+      # Never allow self-promotion or self-demotion through a group authority
+      # membership, including when working at a sibling practice.
+      return head :forbidden if staff_member.user_id == current_user.id
+
+      outcome = nil
+      StaffMember.transaction do
+        current_practice.lock!
+        staff_member.lock!
+
+        if requested_access_level != "senior_staff_admin" &&
+           staff_member.access_level == "senior_staff_admin" &&
+           staff_member.active? &&
+           !current_practice.staff_members.where(active: true, access_level: "senior_staff_admin")
+             .where.not(id: staff_member.id).exists?
+          outcome = :last_senior
+        else
+          outcome = staff_member.update(access_level_params) ? :updated : :invalid
+        end
       end
 
-      if requested_access_level != "senior_staff_admin" &&
-         staff_member.access_level == "senior_staff_admin" &&
-         staff_member.active? &&
-         !current_practice.staff_members.where(active: true, access_level: "senior_staff_admin")
-           .where.not(id: staff_member.id).exists?
-        return redirect_to practice_staff_members_path,
+      case outcome
+      when :last_senior
+        redirect_to practice_staff_members_path,
           alert: "The last active senior staff administrator cannot be demoted."
-      end
-
-      if staff_member.update(access_level_params)
+      when :updated
         redirect_to practice_staff_members_path, notice: "Staff access level updated."
       else
         redirect_to practice_staff_members_path, alert: staff_member.errors.full_messages.to_sentence
@@ -162,12 +173,12 @@ module Staff
     private
 
     def can_manage_staff_member?(staff_member)
-      current_staff_member.senior_administration_access? ||
+      can_administer_current_group? ||
         !staff_member.access_level.in?(%w[staff_admin senior_staff_admin])
     end
 
     def staff_administrator?
-      current_staff_member.access_level.in?(%w[staff_admin senior_staff_admin])
+      can_administer_current_practice?
     end
 
     def staff_member_params

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_02_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_03_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -247,6 +247,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_02_150000) do
     t.string "name", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.uuid "chief_of_group_id"
+    t.index ["chief_of_group_id"], name: "index_medical_groups_on_chief_of_group_id", unique: true
   end
 
   create_table "patient_account_links", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -683,6 +685,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_02_150000) do
   add_foreign_key "guest_bookings", "appointment_slots"
   add_foreign_key "guest_bookings", "patients"
   add_foreign_key "guest_bookings", "practices"
+  add_foreign_key "medical_groups", "users", column: "chief_of_group_id"
   add_foreign_key "patient_account_links", "patient_accounts"
   add_foreign_key "patient_account_links", "patients"
   add_foreign_key "patient_account_links", "practices"

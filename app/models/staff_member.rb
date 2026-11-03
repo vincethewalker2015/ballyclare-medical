@@ -37,12 +37,13 @@ class StaffMember < ApplicationRecord
 
   validates :user_id, uniqueness: { scope: :practice_id }
 
-  # A staff membership grants access to practices in its own medical group.
-  # Role-specific permissions remain enforced by the existing access checks.
+  # Only a senior administrator has group-wide authority through a membership.
+  # Other staff must hold a local active membership.
   def can_access_practice?(target_practice)
-    active? &&
-      target_practice.present? &&
-      practice.medical_group_id == target_practice.medical_group_id
+    active? && target_practice.present? &&
+      (practice_id == target_practice.id ||
+        (senior_administration_access? &&
+          practice.medical_group_id == target_practice.medical_group_id))
   end
 
   # Operational access excludes basic staff. Clinical access will be used
@@ -52,7 +53,7 @@ class StaffMember < ApplicationRecord
   end
 
   def clinical_access?
-    access_level.in?(%w[staff_clinician senior_staff_admin])
+    access_level == "staff_clinician" && staff_type.in?(%w[doctor nurse])
   end
 
   def staff_administration_access?

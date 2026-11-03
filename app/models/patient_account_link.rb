@@ -20,7 +20,12 @@ class PatientAccountLink < ApplicationRecord
 
   scope :approved, -> { where(status: "approved") }
 
+  after_create_commit :refresh_portal_on_first_approval, if: :approved?
   after_update_commit :refresh_documents_when_revoked, if: :saved_change_to_status?
+
+  def refresh_portal_on_first_approval
+    Turbo::StreamsChannel.broadcast_refresh_to(patient_account, :portal_access)
+  end
 
   def refresh_documents_when_revoked
     Turbo::StreamsChannel.broadcast_refresh_to(self, :clinical_documents) if status == "revoked"
@@ -40,11 +45,47 @@ class PatientAccountLink < ApplicationRecord
   end
 
   def verifier_belongs_to_practice
+    # Preserve historical verification when authority changes after approval.
+    # Recheck authority when a verifier is assigned or the link is approved.
+    return if persisted? && !will_save_change_to_verified_by_id? &&
+      !will_save_change_to_status?(to: "approved")
     return if verified_by.nil? || practice.nil?
-    return if verified_by.practice_id == practice.id && verified_by.active? &&
+    # A registration's recorded identity check remains historical evidence even
+    # if its reviewer has since left. Only trust an already-approved request,
+    # and require its approver to retain current group authority.
+    return if new_record? && approved? && historical_registration_verification?
+    return if verified_by.active? && verified_by.practice_id == practice.id &&
       verified_by.staff_administration_access?
+    return if verified_by.active? &&
+      verified_by.practice.medical_group_id == practice.medical_group_id &&
+      (verified_by.senior_administration_access? ||
+       practice.medical_group.chief_of_group_id == verified_by.user_id)
 
     errors.add(:verified_by, "must be an active practice administrator")
+  end
+
+
+  def historical_registration_verification?
+    request_record = PatientRegistrationRequest.find_by(
+      practice_id: practice.id,
+      patient_account_id: patient_account_id,
+      reviewed_by_id: verified_by_id,
+      verification_method: verification_method,
+      identity_verified_at: verified_at,
+      approved_at: approved_at,
+      review_status: %w[approved processing]
+    )
+    return false unless request_record
+    # Both routes must bind the verified registration to the actual patient.
+    # For new patients, the completion job records the created patient first.
+    return false unless request_record.patient_route.in?(PatientRegistrationRequest::PATIENT_ROUTES)
+    return false unless request_record.selected_patient_id == patient_id
+
+    approver = request_record.approved_by
+    approver&.active? &&
+      approver.practice.medical_group_id == practice.medical_group_id &&
+      (approver.senior_administration_access? ||
+       practice.medical_group.chief_of_group_id == approver.user_id)
   end
 
   def account_is_confirmed_before_approval

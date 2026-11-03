@@ -1,0 +1,41 @@
+<% content_for :title, "Practices | Ballyclare Medical" %>
+<div class="mx-auto max-w-4xl">
+  <h1 class="text-3xl font-semibold text-medical-navy">Practices in your medical group</h1>
+  <p class="mt-3 text-medical-muted">Each practice has separate patient records, staff memberships and appointments.</p>
+  <%= link_to "Add practice", new_practice_practice_path, class: "mt-6 inline-flex rounded-full bg-medical-navy px-6 py-3 font-semibold text-white" %>
+  <section class="mt-7 rounded-2xl border border-medical-border bg-white p-6">
+    <h2 class="text-xl font-semibold text-medical-navy">Chief of Group</h2>
+    <p class="mt-2 text-sm text-medical-muted">
+      <% if @group.chief_of_group.present? %>
+        Current Chief: <strong><%= @group.chief_of_group.email %></strong>
+      <% else %>
+        No Chief of Group has been appointed.
+      <% end %>
+    </p>
+    <% if chief_of_current_group? || (@group.chief_of_group_id.nil? && group_authority_membership.present?) %>
+      <p class="mt-3 text-sm text-medical-muted">
+        <% if @group.chief_of_group_id.nil? %>
+          A Senior Staff Admin may appoint the first Chief.
+        <% else %>
+          Only the current Chief may transfer this position.
+        <% end %>
+        Candidates must have an active staff membership in this medical group.
+      </p>
+      <%= form_with url: practice_group_chief_path, method: :patch, class: "mt-4 flex flex-wrap items-center gap-3" do |form| %>
+        <%= form.label :user_id, "Appoint Chief of Group", class: "text-sm font-semibold" %>
+        <%= form.select :user_id, options_from_collection_for_select(@chief_candidates, :id, :email), { prompt: "Select a staff account" }, class: "rounded-lg border border-medical-border px-3 py-2", required: true %>
+        <%= form.submit @group.chief_of_group_id.nil? ? "Appoint Chief" : "Transfer Chief position",
+              data: { turbo_confirm: "Confirm this Chief of Group change? This grants group-wide administrative authority." },
+              class: "rounded-full bg-medical-navy px-5 py-2 font-semibold text-white" %>
+      <% end %>
+    <% end %>
+  </section>
+  <ul class="mt-7 divide-y divide-medical-border rounded-2xl border border-medical-border bg-white px-6">
+    <% @practices.each do |practice| %>
+      <li class="flex items-center justify-between gap-4 py-5">
+        <span class="font-semibold text-medical-navy"><%= practice.name %></span>
+        <%= link_to "Edit details", edit_practice_practice_path(practice), class: "text-medical-teal-dark underline" %>
+      </li>
+    <% end %>
+  </ul>
+</div>

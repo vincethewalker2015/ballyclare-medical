@@ -1,7 +1,7 @@
 <% content_for :title, "Review patient registration | Ballyclare Medical" %>
 
 <div class="mx-auto max-w-3xl">
-  <%= link_to "Back to patient account requests", practice_patient_account_requests_path,
+  <%= link_to "Back to patient accounts", practice_patient_account_requests_path,
     class: "font-semibold text-medical-teal-dark" %>
 
   <h1 class="mt-6 text-3xl font-semibold text-medical-navy">Review patient registration</h1>
@@ -17,7 +17,7 @@
     <p class="text-sm font-semibold text-medical-muted">Confirmed account email</p>
     <p class="mt-2 text-lg text-medical-navy"><%= @registration_request.patient_account.email %></p>
     <p class="mt-5 text-sm font-semibold text-medical-muted">Email confirmed</p>
-    <p class="mt-2"><%= l(@registration_request.patient_account.confirmed_at, format: :long) %></p>
+    <p class="mt-2"><%= @registration_request.patient_account.confirmed_at ? l(@registration_request.patient_account.confirmed_at, format: :long) : "Awaiting confirmation" %></p>
     <p class="mt-5 text-sm font-semibold text-medical-muted">Registration status</p>
     <p class="mt-2"><%= @registration_request.review_status.humanize %></p>
     <% if @registration_request.review_status == "completed" %>
@@ -38,11 +38,11 @@
       <h2 class="text-xl font-semibold text-medical-navy">Patient portal access</h2>
       <p class="mt-2 text-sm text-medical-muted">Portal access status: <strong><%= @account_link.status.humanize %></strong></p>
       <p class="mt-2 text-sm text-medical-muted">Clinical record: <%= @account_link.patient.patient_number %></p>
-      <% if @current_staff_member.senior_administration_access? && @account_link.approved? %>
+      <% if can_administer_current_group? && @account_link.approved? %>
         <%= button_to "Revoke patient portal access", revoke_practice_patient_account_request_path(@account_link),
           method: :patch, form: { data: { turbo_confirm: "Revoke this patient's access to their clinical record through the portal?" } },
           class: "mt-5 cursor-pointer rounded-full border border-red-300 px-5 py-3 text-sm font-semibold text-red-800" %>
-      <% elsif @current_staff_member.senior_administration_access? && @account_link.status == "revoked" %>
+      <% elsif can_administer_current_group? && @account_link.status == "revoked" %>
         <p class="mt-4 text-sm text-medical-muted">Before reinstating access, independently verify the patient's identity and ownership of this account using an approved practice procedure.</p>
         <%= form_with url: reinstate_practice_patient_account_request_path(@account_link), method: :patch, class: "mt-5 space-y-4" do |form| %>
           <div>
@@ -60,7 +60,7 @@
           <%= form.submit "Reinstate patient portal access", data: { turbo_confirm: "Reinstate access to the linked clinical record?" }, class: "cursor-pointer rounded-full bg-medical-navy px-6 py-3 font-semibold text-white" %>
         <% end %>
       <% else %>
-        <p class="mt-4 text-sm text-medical-muted">Only a Senior Staff Admin can change patient portal access.</p>
+        <p class="mt-4 text-sm text-medical-muted">Only the Chief of Group or a Senior Staff Admin can change patient portal access.</p>
       <% end %>
     </section>
   <% elsif @registration_request.review_status == "completed" %>
@@ -115,10 +115,10 @@
         <p class="mt-2 text-medical-muted">Verified by <%= @registration_request.reviewed_by.full_name %> on <%= l(@registration_request.identity_verified_at, format: :long) %>.</p>
       <% end %>
     <% end %>
-    <% if @registration_request.review_status == "verified" && @current_staff_member.senior_administration_access? %>
+    <% if @registration_request.review_status == "verified" && can_administer_current_group? %>
       <%= button_to "Approve patient registration", approve_practice_patient_account_request_path(@registration_request), method: :post, class: "mt-5 cursor-pointer rounded-full bg-medical-teal px-6 py-3 font-semibold text-white", form: { data: { confirm_action: "patient_registration" } }, data: { turbo_confirm: "Approve this verified request and create or connect the clinical patient record?" , confirm_action: "patient_registration" } %>
     <% elsif @registration_request.review_status == "verified" %>
-      <p class="mt-4 text-medical-muted">Awaiting Senior Staff Admin approval.</p>
+      <p class="mt-4 text-medical-muted">Awaiting Chief of Group or Senior Staff Admin approval.</p>
     <% end %>
   </div>
 </div>

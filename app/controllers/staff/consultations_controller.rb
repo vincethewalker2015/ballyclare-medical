@@ -76,7 +76,8 @@ module Staff
     private
 
     def load_authorized_appointment
-      return head :forbidden unless current_staff_member.access_level == "staff_clinician" &&
+      return head :forbidden unless current_staff_member.practice_id == current_practice.id &&
+        current_staff_member.access_level == "staff_clinician" &&
         current_staff_member.staff_type.in?(%w[doctor nurse])
 
       @appointment = current_practice.appointments

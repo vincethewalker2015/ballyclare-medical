@@ -43,7 +43,7 @@ module Staff
     private
 
     def require_fee_administrator
-      head :forbidden unless current_staff_member.staff_administration_access?
+      head :forbidden unless can_administer_current_practice?
     end
 
     def load_fees

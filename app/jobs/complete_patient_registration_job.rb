@@ -10,10 +10,24 @@ class CompletePatientRegistrationJob < ApplicationJob
       return if request_record.review_status == "completed"
       return unless request_record.review_status.in?(%w[approved processing])
       return unless request_record.patient_account.confirmed?
-      return unless request_record.approved_by&.senior_administration_access?
+      approver = request_record.approved_by
+      return unless approver&.active?
+      return unless approver.practice.medical_group_id == request_record.practice.medical_group_id
+      return unless approver.senior_administration_access? ||
+        request_record.practice.medical_group.chief_of_group_id == approver.user_id
       return unless request_record.reviewed_by.present? &&
         request_record.identity_verified_at.present? &&
         PatientAccountLink::VERIFICATION_METHODS.include?(request_record.verification_method)
+
+      # Check before creating a new clinical record; a duplicate account must
+      # not leave an orphan patient behind when processing is rejected.
+      if PatientAccountLink.exists?(patient_account_id: request_record.patient_account_id)
+        request_record.update!(review_status: "failed", processed_at: Time.current)
+        Rails.logger.warn(
+          "Patient registration account already linked: request=#{request_record.id}"
+        )
+        return
+      end
 
       patient = if request_record.patient_route == "existing_patient"
         request_record.practice.patients.find(request_record.selected_patient_id)
@@ -27,6 +41,11 @@ class CompletePatientRegistrationJob < ApplicationJob
       else
         raise ArgumentError, "Patient route must be selected before processing"
       end
+
+      # Bind a newly created patient to the verified request before the link
+      # model checks historical reviewer evidence. Both writes share the lock's
+      # transaction and roll back together if link creation fails.
+      request_record.update!(selected_patient: patient) if request_record.patient_route == "new_patient"
 
       if PatientAccountLink.exists?(patient_id: patient.id) ||
           PatientAccountLink.exists?(patient_account_id: request_record.patient_account_id)

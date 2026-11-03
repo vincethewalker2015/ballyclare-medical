@@ -1,0 +1,19 @@
+<%= form_with model: @practice, url: @practice.persisted? ? practice_practice_path(@practice) : practice_practices_path, class: "space-y-5" do |form| %>
+  <% if @practice.errors.any? %>
+    <div role="alert" class="rounded-xl border border-red-200 bg-red-50 p-4 text-red-800">
+      <%= @practice.errors.full_messages.to_sentence %>
+    </div>
+  <% end %>
+  <% { name: "Practice name", phone: "Telephone", email: "Email", address_line_1: "Address line 1",
+      address_line_2: "Address line 2", city: "City", region: "Region",
+      postal_code: "Postcode", country_code: "Country code", timezone: "Timezone",
+      currency: "Currency" }.each do |attribute, description| %>
+    <div>
+      <%= form.label attribute, description, class: "block font-semibold text-medical-navy" %>
+      <%= form.text_field attribute, required: %i[name country_code timezone currency].include?(attribute),
+          class: "mt-2 w-full rounded-xl border border-medical-border bg-white px-4 py-3" %>
+    </div>
+  <% end %>
+  <%= form.submit @practice.persisted? ? "Save practice" : "Create practice",
+      class: "rounded-full bg-medical-navy px-6 py-3 font-semibold text-white" %>
+<% end %>

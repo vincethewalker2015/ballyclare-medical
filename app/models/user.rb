@@ -8,6 +8,9 @@ class User < ApplicationRecord
   has_many :user_roles, dependent: :destroy
   has_many :roles, through: :user_roles
 
+  has_one :chief_medical_group, class_name: "MedicalGroup",
+    foreign_key: :chief_of_group_id, dependent: :restrict_with_error
+
   has_many :staff_members, dependent: :restrict_with_error
 
   has_one :patient, dependent: :nullify

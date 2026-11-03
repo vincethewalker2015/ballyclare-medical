@@ -5,6 +5,26 @@ RSpec.describe PatientAccountLink, type: :model do
   let(:patient) { create(:patient, practice: practice) }
   let(:account) { create(:patient_account) }
 
+  it "broadcasts a portal refresh when an approved link is first created" do
+    account.confirm
+    staff = create(:staff_member, practice: practice, access_level: "staff_admin")
+
+    expect(Turbo::StreamsChannel).to receive(:broadcast_refresh_to)
+      .with(account, :portal_access)
+
+    described_class.create!(
+      practice: practice, patient: patient, patient_account: account,
+      status: "approved", verified_by: staff,
+      verification_method: "in_person", verified_at: Time.current,
+      approved_at: Time.current
+    )
+  end
+
+  it "does not broadcast a portal approval refresh for a pending link" do
+    expect(Turbo::StreamsChannel).not_to receive(:broadcast_refresh_to)
+    described_class.create!(practice: practice, patient: patient, patient_account: account)
+  end
+
   it "keeps a newly created link pending" do
     link = described_class.create!(practice: practice, patient: patient, patient_account: account)
     expect(link.status).to eq("pending")

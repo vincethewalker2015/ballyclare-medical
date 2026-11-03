@@ -201,6 +201,21 @@ RSpec.describe "Chief of Group appointment", type: :request do
     expect(response).to have_http_status(:forbidden)
   end
 
+  it "denies a clinician Chief consultation access at a sibling practice" do
+    clinician = candidate.staff_members.find_by!(practice: sibling)
+    clinician.update!(staff_type: "doctor", access_level: "staff_clinician")
+    group.update!(chief_of_group: candidate)
+    appointment = create(:appointment, practice: home)
+    sign_out admin
+    sign_in candidate
+
+    patch practice_selection_path, params: { practice_id: home.id }
+    get practice_appointment_consultation_path(appointment)
+
+    expect(response).to have_http_status(:forbidden)
+    expect(clinician.reload.access_level).to eq("staff_clinician")
+  end
+
   it "rejects candidates from another medical group" do
     outsider = create(:staff_member).user
     patch practice_group_chief_path, params: { user_id: outsider.id }

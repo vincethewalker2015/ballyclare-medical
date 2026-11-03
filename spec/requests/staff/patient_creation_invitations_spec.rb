@@ -11,6 +11,10 @@ RSpec.describe "Staff patient creation and portal invitations", type: :request d
 
   before { sign_in user }
 
+  def activation_emails
+    ActionMailer::Base.deliveries.select { |mail| mail.subject.include?("Activate your patient portal") }
+  end
+
   it "creates a practice patient without requiring a portal account" do
     expect { post practice_patients_path, params: { patient: details } }
       .to change(Patient, :count).by(1)
@@ -34,6 +38,10 @@ RSpec.describe "Staff patient creation and portal invitations", type: :request d
       first_name: patient.first_name, last_name: patient.last_name,
       date_of_birth: patient.date_of_birth, review_status: "awaiting_review")
     expect(account).not_to be_confirmed
+    expect(activation_emails.length).to eq(1)
+    expect(ActionMailer::Base.deliveries.count { |mail| mail.to.include?(account.email) }).to eq(1)
+    expect(activation_emails.first.html_part.body.decoded).to include("Confirm email address", "Set your password")
+    expect(activation_emails.first.html_part.body.decoded).to include("/patients/confirmation", "/patients/password/edit")
     expect(PatientAccountLink.count).to eq(0)
     expect(response).to redirect_to(practice_patient_path(patient))
   end
@@ -67,6 +75,8 @@ RSpec.describe "Staff patient creation and portal invitations", type: :request d
     expect(Patient.count).to eq(1)
     expect(PatientAccountLink.count).to eq(0)
     expect(PatientRegistrationRequest.last.review_status).to eq("awaiting_review")
+    expect(activation_emails.length).to eq(1)
+    expect(ActionMailer::Base.deliveries.count { |mail| mail.to.include?("existing@example.com") }).to eq(1)
   end
 
   it "cannot invite a patient belonging to another practice" do

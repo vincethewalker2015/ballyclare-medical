@@ -634,9 +634,16 @@ RSpec.describe "Patient account requests", type: :request do
       verification_method: "in_person"
     )
 
-    allow(PatientAccountLink).to receive(:create!).and_raise(
-      ActiveRecord::RecordInvalid.new(PatientAccountLink.new)
-    ).once.and_call_original
+    original_create = PatientAccountLink.method(:create!)
+    attempts = 0
+    allow(PatientAccountLink).to receive(:create!) do |**attributes|
+      attempts += 1
+      if attempts == 1
+        raise ActiveRecord::RecordInvalid.new(PatientAccountLink.new)
+      end
+
+      original_create.call(**attributes)
+    end
 
     expect {
       CompletePatientRegistrationJob.perform_now(request_record.id)

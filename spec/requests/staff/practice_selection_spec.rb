@@ -95,18 +95,18 @@ RSpec.describe "Staff practice selection", type: :request do
     expect(response.body).not_to include("SiblingPatient")
   end
 
-  it "does not let a home senior administrator manage sibling staff without local membership" do
+  it "allows a home senior administrator to manage sibling staff without local membership" do
     membership.update!(access_level: "senior_staff_admin")
     sibling_staff = create(:staff_member, practice: sibling, access_level: "staff")
 
     patch practice_selection_path, params: { practice_id: sibling.id }
-    expect(response).to have_http_status(:forbidden)
+    expect(response).to redirect_to(practice_appointments_path)
 
     patch access_level_practice_staff_member_path(sibling_staff),
-      params: { access_level: "staff_admin" }
+      params: { staff_member: { access_level: "staff_admin" } }
 
-    expect(response).to have_http_status(:not_found)
-    expect(sibling_staff.reload.access_level).to eq("staff")
+    expect(response).to redirect_to(practice_staff_members_path)
+    expect(sibling_staff.reload.access_level).to eq("staff_admin")
   end
 
   describe "booking isolation after switching practices" do

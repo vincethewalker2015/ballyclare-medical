@@ -229,6 +229,24 @@ RSpec.describe "Chief of Group appointment", type: :request do
     expect(response).to have_http_status(:forbidden)
   end
 
+  it "forbids portal invitations from a clinician Chief without admin membership" do
+    clinician = candidate.staff_members.find_by!(practice: sibling)
+    clinician.update!(staff_type: "doctor", access_level: "staff_clinician")
+    group.update!(chief_of_group: candidate)
+    sign_out admin
+    sign_in candidate
+
+    expect {
+      post practice_patients_path, params: { patient: {
+        first_name: "Portal", last_name: "Candidate",
+        date_of_birth: "1990-01-01",
+        invite_to_portal: "1", email: "portal-candidate@example.com"
+      } }
+    }.not_to change { PatientAccount.count }
+
+    expect(response).to have_http_status(:forbidden)
+  end
+
   it "rejects candidates from another medical group" do
     outsider = create(:staff_member).user
     patch practice_group_chief_path, params: { user_id: outsider.id }

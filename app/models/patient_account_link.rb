@@ -46,8 +46,12 @@ class PatientAccountLink < ApplicationRecord
 
   def verifier_belongs_to_practice
     return if verified_by.nil? || practice.nil?
-    return if verified_by.practice_id == practice.id && verified_by.active? &&
+    return if verified_by.active? && verified_by.practice_id == practice.id &&
       verified_by.staff_administration_access?
+    return if verified_by.active? &&
+      verified_by.practice.medical_group_id == practice.medical_group_id &&
+      (verified_by.senior_administration_access? ||
+       practice.medical_group.chief_of_group_id == verified_by.user_id)
 
     errors.add(:verified_by, "must be an active practice administrator")
   end

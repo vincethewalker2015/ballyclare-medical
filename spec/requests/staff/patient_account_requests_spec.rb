@@ -366,6 +366,34 @@ RSpec.describe "Patient account requests", type: :request do
     expect(request_record.reload.review_status).to eq("approved")
   end
 
+  it "does not process a former Chief's approval after group ownership transfers" do
+    sibling = create(:practice, medical_group: practice.medical_group)
+    former_chief = create(:user)
+    former_membership = create(:staff_member, user: former_chief, practice: sibling,
+      staff_type: "doctor", access_level: "staff_clinician")
+    new_chief = create(:user)
+    create(:staff_member, user: new_chief, practice: practice,
+      staff_type: "doctor", access_level: "staff_clinician")
+    practice.medical_group.update!(chief_of_group: former_chief)
+    account = create(:patient_account)
+    account.confirm
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account,
+      review_status: "approved", patient_route: "new_patient",
+      first_name: "Transferred", last_name: "Ownership",
+      date_of_birth: Date.new(1980, 1, 1),
+      reviewed_by: membership, approved_by: former_membership,
+      approved_at: Time.current, identity_verified_at: Time.current,
+      verification_method: "in_person"
+    )
+    practice.medical_group.update!(chief_of_group: new_chief)
+
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.not_to change(PatientAccountLink, :count)
+    expect(request_record.reload.review_status).to eq("approved")
+  end
+
   it "does not complete an approved registration if email confirmation is missing" do
     membership.update!(access_level: "senior_staff_admin")
     account = create(:patient_account)

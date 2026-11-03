@@ -151,6 +151,30 @@ RSpec.describe "Chief of Group appointment", type: :request do
     expect(clinician.reload.access_level).to eq("staff_clinician")
   end
 
+  it "prevents a clinician Chief from promoting their own membership" do
+    clinician = candidate.staff_members.find_by!(practice: sibling)
+    clinician.update!(staff_type: "doctor", access_level: "staff_clinician")
+    group.update!(chief_of_group: candidate)
+    sign_out admin
+    sign_in candidate
+
+    patch access_level_practice_staff_member_path(clinician),
+      params: { staff_member: { access_level: "senior_staff_admin" } }
+
+    expect(response).to have_http_status(:forbidden)
+    expect(clinician.reload.access_level).to eq("staff_clinician")
+  end
+
+  it "prevents a senior administrator from changing their own access level" do
+    membership = admin.staff_members.find_by!(practice: home)
+
+    patch access_level_practice_staff_member_path(membership),
+      params: { staff_member: { access_level: "staff_admin" } }
+
+    expect(response).to have_http_status(:forbidden)
+    expect(membership.reload.access_level).to eq("senior_staff_admin")
+  end
+
   it "rejects candidates from another medical group" do
     outsider = create(:staff_member).user
     patch practice_group_chief_path, params: { user_id: outsider.id }

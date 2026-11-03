@@ -76,4 +76,37 @@ RSpec.describe PatientAccountLink, type: :model do
     expect(link.verified_by).to eq(chief_membership)
   end
 
+  it "rejects replacing a historical verifier with an unauthorised staff member" do
+    account.confirm
+    original = create(:staff_member, practice: practice, access_level: "staff_admin")
+    outsider = create(:staff_member, access_level: "staff_admin")
+    link = described_class.create!(
+      practice: practice, patient: patient, patient_account: account,
+      status: "approved", verified_by: original,
+      verification_method: "in_person", verified_at: Time.current,
+      approved_at: Time.current
+    )
+
+    expect(link.update(verified_by: outsider)).to eq(false)
+    expect(link.errors[:verified_by]).to be_present
+    expect(link.reload.verified_by).to eq(original)
+  end
+
+  it "rejects reinstating a revoked link when its former verifier has lost authority" do
+    account.confirm
+    staff = create(:staff_member, practice: practice, access_level: "staff_admin")
+    link = described_class.create!(
+      practice: practice, patient: patient, patient_account: account,
+      status: "approved", verified_by: staff,
+      verification_method: "in_person", verified_at: Time.current,
+      approved_at: Time.current
+    )
+    link.update!(status: "revoked")
+    staff.update!(active: false)
+
+    expect(link.update(status: "approved")).to eq(false)
+    expect(link.errors[:verified_by]).to be_present
+    expect(link.reload.status).to eq("revoked")
+  end
+
 end

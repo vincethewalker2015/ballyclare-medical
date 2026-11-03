@@ -42,6 +42,34 @@ RSpec.describe "Chief of Group appointment", type: :request do
     expect(group.reload.chief_of_group).to eq(admin)
   end
 
+  it "allows a clinician Chief to manage the group without changing clinical membership" do
+    clinician_membership = candidate.staff_members.find_by!(practice: sibling)
+    clinician_membership.update!(staff_type: "doctor", access_level: "staff_clinician")
+    group.update!(chief_of_group: candidate)
+    sign_out admin
+    sign_in candidate
+
+    get practice_practices_path
+    expect(response).to have_http_status(:ok)
+    expect(clinician_membership.reload.access_level).to eq("staff_clinician")
+    expect(clinician_membership.staff_type).to eq("doctor")
+  end
+
+  it "does not give a clinician Chief consultation access in a sibling practice" do
+    clinician_membership = candidate.staff_members.find_by!(practice: sibling)
+    clinician_membership.update!(staff_type: "doctor", access_level: "staff_clinician")
+    group.update!(chief_of_group: candidate)
+    appointment = create(:appointment, practice: home)
+    sign_out admin
+    sign_in candidate
+
+    patch practice_selection_path, params: { practice_id: home.id }
+    expect(response).to redirect_to(practice_appointments_path)
+
+    get practice_appointment_consultation_path(appointment)
+    expect(response).to have_http_status(:forbidden)
+  end
+
   it "rejects candidates from another medical group" do
     outsider = create(:staff_member).user
     patch practice_group_chief_path, params: { user_id: outsider.id }

@@ -33,7 +33,7 @@ module Staff
     private
 
     def require_senior_administrator
-      head :forbidden unless current_staff_member.senior_administration_access?
+      head :forbidden unless can_administer_current_group?
     end
   end
 end

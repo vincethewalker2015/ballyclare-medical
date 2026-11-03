@@ -5,7 +5,8 @@ module PatientAccounts
     def self.call!(account:)
       raise ArgumentError, "Account already confirmed" if account.confirmed?
 
-      confirmation_token = account.send(:generate_confirmation_token!)
+      account.send(:generate_confirmation_token!)
+      confirmation_token = account.instance_variable_get(:@raw_confirmation_token)
       password_token = account.send(:set_reset_password_token)
 
       PatientPortalActivationMailer.invitation(

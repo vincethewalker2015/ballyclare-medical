@@ -48,7 +48,7 @@ module Staff
         return render :new, status: :unprocessable_content
       end
 
-      account&.send_reset_password_instructions
+      PatientAccounts::SendActivation.call!(account: account) if account
       if account
         redirect_to practice_patient_path(@patient),
           notice: "Patient created and portal invitation sent. Identity verification and senior approval are still required."

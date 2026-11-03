@@ -24,9 +24,11 @@ RSpec.describe "Staff patient creation and portal invitations", type: :request d
 
   it "reuses the registration request workflow when inviting a newly created patient" do
     expect {
-      post practice_patients_path, params: {
-        patient: details.merge(invite_to_portal: "1", email: "new.patient@example.com")
-      }
+      perform_enqueued_jobs do
+        post practice_patients_path, params: {
+          patient: details.merge(invite_to_portal: "1", email: "new.patient@example.com")
+        }
+      end
     }.to change(Patient, :count).by(1)
       .and change(PatientAccount, :count).by(1)
       .and change(PatientRegistrationRequest, :count).by(1)
@@ -47,9 +49,11 @@ RSpec.describe "Staff patient creation and portal invitations", type: :request d
   end
 
   it "confirms the invited patient's email and redirects directly to set a password" do
-    post practice_patients_path, params: {
-      patient: details.merge(invite_to_portal: "1", email: "activate@example.com")
-    }
+    perform_enqueued_jobs do
+      post practice_patients_path, params: {
+        patient: details.merge(invite_to_portal: "1", email: "activate@example.com")
+      }
+    end
 
     account = PatientAccount.find_by!(email: "activate@example.com")
     html = Nokogiri::HTML(activation_emails.last.html_part.body.decoded)
@@ -91,7 +95,9 @@ RSpec.describe "Staff patient creation and portal invitations", type: :request d
   it "invites an existing patient without creating a second clinical record or granting access" do
     patient = create(:patient, practice: practice)
     expect {
-      post practice_patient_portal_invitation_path(patient), params: { email: "existing@example.com" }
+      perform_enqueued_jobs do
+        post practice_patient_portal_invitation_path(patient), params: { email: "existing@example.com" }
+      end
     }.to change(PatientRegistrationRequest, :count).by(1)
     expect(Patient.count).to eq(1)
     expect(PatientAccountLink.count).to eq(0)
@@ -107,4 +113,43 @@ RSpec.describe "Staff patient creation and portal invitations", type: :request d
     }.not_to change(PatientAccount, :count)
     expect(response).to have_http_status(:not_found)
   end
+  it "queues activation so a delivery failure does not undo the patient or registration" do
+    allow(PatientAccounts::SendActivation).to receive(:call!).and_raise(StandardError, "SMTP unavailable")
+
+    expect {
+      post practice_patients_path, params: {
+        patient: details.merge(invite_to_portal: "1", email: "retry@example.com")
+      }
+    }.to change(PatientAccount, :count).by(1)
+      .and change(PatientRegistrationRequest, :count).by(1)
+
+    expect(response).to redirect_to(practice_patient_path(Patient.last))
+    expect(enqueued_jobs.any? { |job| job[:job] == PatientPortalActivationJob }).to be(true)
+    expect(PatientAccount.last).not_to be_confirmed
+  end
+
+  it "allows a group Senior Staff Admin to invite a patient at a sibling practice" do
+    staff.update!(access_level: "senior_staff_admin")
+    sibling = create(:practice, medical_group: practice.medical_group)
+    patient = create(:patient, practice: sibling)
+    patch practice_selection_path, params: { practice_id: sibling.id }
+
+    expect {
+      post practice_patient_portal_invitation_path(patient), params: { email: "sibling@example.com" }
+    }.to change(PatientRegistrationRequest, :count).by(1)
+
+    expect(response).to redirect_to(practice_patient_path(patient))
+    expect(PatientRegistrationRequest.last.practice).to eq(sibling)
+  end
+
+  it "does not allow a group Senior Staff Admin to invite patients in another group" do
+    staff.update!(access_level: "senior_staff_admin")
+    outsider = create(:patient, practice: create(:practice))
+
+    expect {
+      post practice_patient_portal_invitation_path(outsider), params: { email: "outside@example.com" }
+    }.not_to change(PatientAccount, :count)
+    expect(response).to have_http_status(:not_found)
+  end
+
 end

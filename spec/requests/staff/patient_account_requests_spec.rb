@@ -620,6 +620,41 @@ RSpec.describe "Patient account requests", type: :request do
     expect(request_record.review_status).to eq("completed")
   end
 
+  it "safely retries a new-patient registration after a transient link failure" do
+    membership.update!(access_level: "senior_staff_admin")
+    account = create(:patient_account)
+    account.confirm
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account,
+      review_status: "approved", patient_route: "new_patient",
+      first_name: "Transient", last_name: "Retry",
+      date_of_birth: Date.new(1980, 1, 1),
+      reviewed_by: membership, approved_by: membership,
+      approved_at: Time.current, identity_verified_at: Time.current,
+      verification_method: "in_person"
+    )
+
+    allow(PatientAccountLink).to receive(:create!).and_raise(
+      ActiveRecord::RecordInvalid.new(PatientAccountLink.new)
+    ).once.and_call_original
+
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.to raise_error(ActiveRecord::RecordInvalid)
+    expect(request_record.reload.selected_patient_id).to be_nil
+    expect(request_record.review_status).to eq("approved")
+
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.to change(Patient, :count).by(1)
+      .and change(PatientAccountLink, :count).by(1)
+
+    expect(request_record.reload.review_status).to eq("completed")
+    expect(request_record.selected_patient_id).to eq(
+      PatientAccountLink.find_by!(patient_account: account).patient_id
+    )
+  end
+
   it "rolls back a new patient and its registration binding when link creation fails" do
     membership.update!(access_level: "senior_staff_admin")
     account = create(:patient_account)

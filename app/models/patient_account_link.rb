@@ -76,9 +76,10 @@ class PatientAccountLink < ApplicationRecord
       review_status: %w[approved processing]
     )
     return false unless request_record
-    return false unless request_record.patient_route == "new_patient" ||
-      (request_record.patient_route == "existing_patient" &&
-       request_record.selected_patient_id == patient_id)
+    # Both routes must bind the verified registration to the actual patient.
+    # For new patients, the completion job records the created patient first.
+    return false unless request_record.patient_route.in?(PatientRegistrationRequest::PATIENT_ROUTES)
+    return false unless request_record.selected_patient_id == patient_id
 
     approver = request_record.approved_by
     approver&.active? &&

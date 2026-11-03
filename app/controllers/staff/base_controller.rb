@@ -2,7 +2,7 @@ module Staff
   class BaseController < ApplicationController
     layout "practice"
 
-    helper_method :authorized_practices, :chief_of_current_group?, :can_administer_current_group?
+    helper_method :authorized_practices, :chief_of_current_group?, :can_administer_current_group?, :can_administer_current_practice?
 
     before_action :authenticate_user!
     before_action :set_current_staff_member
@@ -44,6 +44,11 @@ module Staff
       else
         group.practices.where(id: current_user.staff_members.where(active: true).select(:practice_id))
       end
+    end
+
+    def can_administer_current_practice?
+      current_staff_member&.active? &&
+        (current_staff_member.staff_administration_access? || chief_of_current_group?)
     end
 
     def can_administer_current_group?

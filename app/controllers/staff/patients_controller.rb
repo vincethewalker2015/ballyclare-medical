@@ -20,16 +20,37 @@ module Staff
 
     def new
       @patient = current_practice.patients.new
+      @invite_to_portal = false
     end
 
     def create
       @patient = current_practice.patients.new(patient_params)
+      @invite_to_portal = params.dig(:patient, :invite_to_portal) == "1"
+      email = params.dig(:patient, :email).to_s.strip
+      account = nil
 
-      if @patient.save
-        redirect_to practice_patients_path, notice: "Patient created successfully."
-      else
-        render :new, status: :unprocessable_content
+      if @invite_to_portal && !current_staff_member.staff_administration_access?
+        return head :forbidden
       end
+
+      begin
+        Patient.transaction do
+          @patient.save!
+          if @invite_to_portal
+            account = PatientAccounts::CreateInvitation.call!(
+              patient: @patient, email: email, staff_member: current_staff_member
+            )
+          end
+        end
+      rescue ArgumentError, ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique => error
+        @patient.errors.add(:base, error.message) if error.is_a?(ArgumentError)
+        @patient.errors.add(:base, "Could not create the patient and invitation.") if @patient.errors.empty?
+        return render :new, status: :unprocessable_content
+      end
+
+      account&.send_reset_password_instructions
+      redirect_to practice_patient_path(@patient),
+        notice: account ? "Patient created and portal invitation sent. Identity verification and senior approval are still required." : "Patient created successfully."
     end
 
     def show

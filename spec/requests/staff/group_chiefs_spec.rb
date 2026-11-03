@@ -266,6 +266,16 @@ RSpec.describe "Chief of Group appointment", type: :request do
     expect(response).to have_http_status(:ok)
   end
 
+  it "accepts an active clinician Chief as a group registration approver" do
+    group.update!(chief_of_group: candidate)
+    clinician = candidate.staff_members.find_by!(practice: sibling)
+    clinician.update!(staff_type: "doctor", access_level: "staff_clinician")
+    request_record = build(:patient_registration_request, practice: home,
+      approved_by: clinician)
+
+    expect(request_record).to be_valid
+  end
+
   it "rejects candidates from another medical group" do
     outsider = create(:staff_member).user
     patch practice_group_chief_path, params: { user_id: outsider.id }

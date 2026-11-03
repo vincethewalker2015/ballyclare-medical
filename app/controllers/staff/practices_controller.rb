@@ -27,11 +27,10 @@ module Staff
       administrator = if current_staff_member.access_level == "senior_staff_admin"
         current_staff_member
       else
-        group.practices.joins(:staff_members)
-          .where(staff_members: { active: true, access_level: "senior_staff_admin" })
-          .order("staff_members.created_at", "staff_members.id")
-          .first&.staff_members&.where(active: true, access_level: "senior_staff_admin")
-          &.order(:created_at, :id)&.first
+        StaffMember.joins(:practice)
+          .where(active: true, access_level: "senior_staff_admin",
+            practices: { medical_group_id: group.id })
+          .order(:created_at, :id).first
       end
 
       unless administrator

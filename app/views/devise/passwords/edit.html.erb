@@ -1,25 +1,45 @@
-<h2>Change your password</h2>
+<% content_for :title, "Set your password | Ballyclare Medical" %>
 
-<%= form_for(resource, as: resource_name, url: password_path(resource_name), html: { method: :put }) do |f| %>
-  <%= render "devise/shared/error_messages", resource: resource %>
-  <%= f.hidden_field :reset_password_token %>
+<main class="mx-auto max-w-lg px-6 py-16 sm:py-24">
+  <header class="mb-8 text-center">
+    <p class="mb-3 text-sm font-semibold uppercase tracking-[0.16em] text-medical-teal">
+      <%= resource_name == :patient_account ? "Patient portal" : "Account security" %>
+    </p>
+    <h1 class="text-3xl font-semibold tracking-tight text-medical-navy">Set your password</h1>
+    <p class="mt-3 text-base leading-7 text-medical-muted">
+      Choose a secure password for your Ballyclare Medical account.
+    </p>
+  </header>
 
-  <div class="field">
-    <p><%= f.label :password, "New password" %></p>
-    <% if @minimum_password_length %>
-      <p><em>(<%= @minimum_password_length %> characters minimum)</em></p>
+  <div class="rounded-2xl border border-medical-border bg-white p-8 shadow-sm">
+    <%= form_for(resource, as: resource_name, url: password_path(resource_name),
+          html: { method: :put, class: "space-y-6" }) do |f| %>
+      <%= render "devise/shared/error_messages", resource: resource %>
+      <%= f.hidden_field :reset_password_token %>
+
+      <div>
+        <%= f.label :password, "New password", class: "mb-2 block text-sm font-semibold text-medical-navy" %>
+        <%= f.password_field :password, autofocus: true, autocomplete: "new-password",
+              required: true, minlength: @minimum_password_length,
+              class: "block w-full rounded-xl border border-medical-border bg-white px-4 py-3 text-base text-medical-ink shadow-sm outline-none transition focus:border-medical-teal focus:ring-4 focus:ring-medical-teal/10" %>
+        <% if @minimum_password_length %>
+          <p class="mt-2 text-sm text-medical-muted">At least <%= @minimum_password_length %> characters.</p>
+        <% end %>
+      </div>
+
+      <div>
+        <%= f.label :password_confirmation, "Confirm new password", class: "mb-2 block text-sm font-semibold text-medical-navy" %>
+        <%= f.password_field :password_confirmation, autocomplete: "new-password", required: true,
+              class: "block w-full rounded-xl border border-medical-border bg-white px-4 py-3 text-base text-medical-ink shadow-sm outline-none transition focus:border-medical-teal focus:ring-4 focus:ring-medical-teal/10" %>
+      </div>
+
+      <%= f.submit "Set my password",
+            class: "w-full cursor-pointer rounded-full bg-medical-navy px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-medical-navy-deep focus:outline-none focus:ring-2 focus:ring-medical-teal focus:ring-offset-2" %>
     <% end %>
-    <p><%= f.password_field :password, autofocus: true, autocomplete: "new-password" %></p>
   </div>
 
-  <div class="field">
-    <p><%= f.label :password_confirmation, "Confirm new password" %></p>
-    <p><%= f.password_field :password_confirmation, autocomplete: "new-password" %></p>
-  </div>
-
-  <div class="actions">
-    <%= f.submit "Change my password" %>
-  </div>
-<% end %>
-
-<%= render "devise/shared/links" %>
+  <p class="mt-6 text-center text-sm text-medical-muted">
+    <%= link_to "Back to sign in", new_session_path(resource_name),
+          class: "font-semibold text-medical-teal-dark hover:underline" %>
+  </p>
+</main>

@@ -46,6 +46,27 @@ RSpec.describe "Staff patient creation and portal invitations", type: :request d
     expect(response).to redirect_to(practice_patient_path(patient))
   end
 
+  it "confirms the invited patient's email and redirects directly to set a password" do
+    post practice_patients_path, params: {
+      patient: details.merge(invite_to_portal: "1", email: "activate@example.com")
+    }
+
+    account = PatientAccount.find_by!(email: "activate@example.com")
+    html = Nokogiri::HTML(activation_emails.last.html_part.body.decoded)
+    activation_link = html.at_css("a", text: /Confirm email address and set password/)
+    expect(activation_link).to be_present
+
+    uri = URI.parse(activation_link["href"])
+    get "#{uri.path}?#{uri.query}"
+
+    expect(account.reload).to be_confirmed
+    expect(response).to redirect_to(%r{\\A/patients/password/edit\\?reset_password_token=})
+    follow_redirect!
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Your email address has been successfully confirmed.", "Set your password")
+    expect(PatientAccountLink.count).to eq(0)
+  end
+
   it "does not create a patient if the requested portal email is already registered" do
     create(:patient_account, email: "taken@example.com")
     expect {

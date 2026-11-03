@@ -107,6 +107,38 @@ RSpec.describe "Chief of Group appointment", type: :request do
     expect(response).to have_http_status(:unprocessable_content)
   end
 
+  it "lets a clinician Chief access administrative pages without gaining clinical access" do
+    clinician = candidate.staff_members.find_by!(practice: sibling)
+    clinician.update!(staff_type: "doctor", access_level: "staff_clinician")
+    group.update!(chief_of_group: candidate)
+    sign_out admin
+    sign_in candidate
+
+    get edit_practice_consultation_fees_path
+    expect(response).to have_http_status(:ok)
+
+    get practice_refunds_path
+    expect(response).to have_http_status(:ok)
+
+    get practice_patient_account_requests_path
+    expect(response).to have_http_status(:ok)
+
+    expect(clinician.reload.access_level).to eq("staff_clinician")
+  end
+
+  it "does not grant a non-Chief clinician administrative access" do
+    clinician = candidate.staff_members.find_by!(practice: sibling)
+    clinician.update!(staff_type: "doctor", access_level: "staff_clinician")
+    sign_out admin
+    sign_in candidate
+
+    get edit_practice_consultation_fees_path
+    expect(response).to have_http_status(:forbidden)
+
+    get practice_refunds_path
+    expect(response).to have_http_status(:forbidden)
+  end
+
   it "rejects candidates from another medical group" do
     outsider = create(:staff_member).user
     patch practice_group_chief_path, params: { user_id: outsider.id }

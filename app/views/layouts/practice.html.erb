@@ -49,7 +49,7 @@
 
         <div class="flex min-w-0 items-center justify-end gap-8">
           <% if @current_staff_member.present? && @current_practice.present? %>
-            <% group_practices = @current_staff_member.practice.medical_group.practices.order(:name) %>
+            <% group_practices = @current_staff_member.practice.medical_group.practices.where(id: current_user.staff_members.where(active: true).select(:practice_id)).order(:name) %>
             <% if group_practices.size > 1 %>
               <%= form_with url: practice_selection_path, method: :patch, class: "flex items-center gap-2" do |form| %>
                 <%= form.label :practice_id, "Working at", class: "text-xs font-semibold text-medical-muted" %>

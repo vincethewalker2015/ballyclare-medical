@@ -175,6 +175,32 @@ RSpec.describe "Chief of Group appointment", type: :request do
     expect(membership.reload.access_level).to eq("senior_staff_admin")
   end
 
+  it "does not give a clinician Chief sibling patient-record access" do
+    clinician = candidate.staff_members.find_by!(practice: sibling)
+    clinician.update!(staff_type: "doctor", access_level: "staff_clinician")
+    group.update!(chief_of_group: candidate)
+    sign_out admin
+    sign_in candidate
+
+    patch practice_selection_path, params: { practice_id: home.id }
+    get practice_patients_path
+
+    expect(response).to have_http_status(:forbidden)
+  end
+
+  it "does not give a clinician Chief sibling appointment diary access" do
+    clinician = candidate.staff_members.find_by!(practice: sibling)
+    clinician.update!(staff_type: "doctor", access_level: "staff_clinician")
+    group.update!(chief_of_group: candidate)
+    sign_out admin
+    sign_in candidate
+
+    patch practice_selection_path, params: { practice_id: home.id }
+    get practice_appointments_path
+
+    expect(response).to have_http_status(:forbidden)
+  end
+
   it "rejects candidates from another medical group" do
     outsider = create(:staff_member).user
     patch practice_group_chief_path, params: { user_id: outsider.id }

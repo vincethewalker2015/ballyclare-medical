@@ -220,6 +220,66 @@ RSpec.describe "Patient account requests", type: :request do
     expect(response.body).to include(practice_patient_path(PatientAccountLink.last.patient))
   end
 
+  it "lets a clinician Chief approve and complete a verified sibling-practice registration" do
+    group = practice.medical_group
+    sibling = create(:practice, medical_group: group)
+    chief = create(:user)
+    create(:staff_member, practice: sibling, user: chief,
+      staff_type: "doctor", access_level: "staff_clinician")
+    group.update!(chief_of_group: chief)
+    account = create(:patient_account)
+    account.confirm
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account,
+      first_name: "Chief", last_name: "Approved",
+      date_of_birth: Date.new(1980, 1, 1),
+      review_status: "verified", patient_route: "new_patient",
+      reviewed_by: membership, identity_verified_at: Time.current,
+      verification_method: "in_person"
+    )
+    sign_in chief
+    patch practice_selection_path, params: { practice_id: practice.id }
+
+    expect {
+      post approve_practice_patient_account_request_path(request_record)
+    }.to have_enqueued_job(CompletePatientRegistrationJob).with(request_record.id)
+
+    expect(request_record.reload.review_status).to eq("approved")
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.to change(PatientAccountLink, :count).by(1)
+    expect(request_record.reload.review_status).to eq("completed")
+    expect(PatientAccountLink.last.practice).to eq(practice)
+  end
+
+  it "lets a sibling-practice Senior Staff Admin approve and complete registration" do
+    group = practice.medical_group
+    sibling = create(:practice, medical_group: group)
+    senior = create(:user)
+    create(:staff_member, practice: sibling, user: senior,
+      access_level: "senior_staff_admin")
+    account = create(:patient_account)
+    account.confirm
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account,
+      first_name: "Senior", last_name: "Approved",
+      date_of_birth: Date.new(1980, 1, 1),
+      review_status: "verified", patient_route: "new_patient",
+      reviewed_by: membership, identity_verified_at: Time.current,
+      verification_method: "in_person"
+    )
+    sign_in senior
+    patch practice_selection_path, params: { practice_id: practice.id }
+
+    post approve_practice_patient_account_request_path(request_record)
+
+    expect(request_record.reload.review_status).to eq("approved")
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.to change(PatientAccountLink, :count).by(1)
+    expect(request_record.reload.review_status).to eq("completed")
+  end
+
   it "does not complete an approved registration if email confirmation is missing" do
     membership.update!(access_level: "senior_staff_admin")
     account = create(:patient_account)

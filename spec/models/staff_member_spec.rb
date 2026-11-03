@@ -207,4 +207,21 @@ RSpec.describe StaffMember do
       expect(staff_member.errors[:access_level]).to be_present
     end
   end
+  describe "clinical access boundaries" do
+    it "does not grant clinical access through senior administration" do
+      senior = create(:staff_member, staff_type: "administrator",
+        access_level: "senior_staff_admin")
+
+      expect(senior.clinical_access?).to be false
+      expect(senior.staff_administration_access?).to be true
+    end
+
+    it "grants clinical access to a clinician membership" do
+      clinician = create(:staff_member, staff_type: "doctor",
+        access_level: "staff_clinician")
+
+      expect(clinician.clinical_access?).to be true
+    end
+  end
+
 end

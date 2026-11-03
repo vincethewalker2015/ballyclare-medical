@@ -3,18 +3,18 @@ module Staff
     before_action :require_senior_administrator
 
     def index
-      @practices = current_staff_member.practice.medical_group.practices.order(:name)
+      @practices = current_practice.medical_group.practices.order(:name)
     end
 
     def new
-      @practice = current_staff_member.practice.medical_group.practices.new(
+      @practice = current_practice.medical_group.practices.new(
         timezone: current_practice.timezone, currency: current_practice.currency,
         country_code: current_practice.country_code
       )
     end
 
     def create
-      group = current_staff_member.practice.medical_group
+      group = current_practice.medical_group
       @practice = group.practices.new(practice_params)
       @practice.active = true
 
@@ -55,11 +55,11 @@ module Staff
     private
 
     def group_practices
-      current_staff_member.practice.medical_group.practices
+      current_practice.medical_group.practices
     end
 
     def require_senior_administrator
-      head :forbidden unless current_staff_member.senior_administration_access?
+      head :forbidden unless can_administer_current_group?
     end
 
     def practice_params

@@ -77,7 +77,7 @@ module Staff
       return head :forbidden unless staff_administrator?
 
       staff_member = current_practice.staff_members.find(params[:id])
-      return head :forbidden if staff_member.id == current_staff_member.id
+      return head :forbidden if staff_member.user_id == current_user.id
       return head :forbidden if staff_member.user_id == current_practice.medical_group.chief_of_group_id
 
       unless can_administer_current_group? ||
@@ -139,10 +139,13 @@ module Staff
       staff_member = current_practice.staff_members.find(params[:id])
       requested_access_level = access_level_params[:access_level]
 
-      if staff_member.id == current_staff_member.id &&
-         requested_access_level != "senior_staff_admin"
-        return head :forbidden
-      end
+      # Never allow self-promotion or self-demotion through a group authority
+      # membership, including when working at a sibling practice.
+      return head :forbidden if staff_member.user_id == current_user.id
+
+      # A Chief's clinical membership must not be altered as a side effect of
+      # group ownership. Other authorised administrators may manage its role
+      # without changing the ownership itself.
 
       if requested_access_level != "senior_staff_admin" &&
          staff_member.access_level == "senior_staff_admin" &&

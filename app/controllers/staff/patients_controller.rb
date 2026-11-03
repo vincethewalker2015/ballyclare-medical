@@ -49,8 +49,12 @@ module Staff
       end
 
       account&.send_reset_password_instructions
-      redirect_to practice_patient_path(@patient),
-        notice: account ? "Patient created and portal invitation sent. Identity verification and senior approval are still required." : "Patient created successfully."
+      if account
+        redirect_to practice_patient_path(@patient),
+          notice: "Patient created and portal invitation sent. Identity verification and senior approval are still required."
+      else
+        redirect_to practice_patients_path, notice: "Patient created successfully."
+      end
     end
 
     def show

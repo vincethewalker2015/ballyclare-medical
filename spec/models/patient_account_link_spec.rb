@@ -54,4 +54,26 @@ RSpec.describe PatientAccountLink, type: :model do
       verification_method: "in_person", verified_at: Time.current, approved_at: Time.current)
     expect(link).not_to be_valid
   end
+  it "allows revocation after the verifying Chief transfers ownership" do
+    account.confirm
+    chief = create(:user)
+    chief_membership = create(:staff_member, practice: practice, user: chief,
+      staff_type: "doctor", access_level: "staff_clinician")
+    replacement = create(:user)
+    create(:staff_member, practice: practice, user: replacement,
+      staff_type: "doctor", access_level: "staff_clinician")
+    practice.medical_group.update!(chief_of_group: chief)
+    link = described_class.create!(
+      practice: practice, patient: patient, patient_account: account,
+      status: "approved", verified_by: chief_membership,
+      verification_method: "in_person", verified_at: Time.current,
+      approved_at: Time.current
+    )
+    practice.medical_group.update!(chief_of_group: replacement)
+
+    expect { link.update!(status: "revoked") }.to change { link.reload.status }
+      .from("approved").to("revoked")
+    expect(link.verified_by).to eq(chief_membership)
+  end
+
 end

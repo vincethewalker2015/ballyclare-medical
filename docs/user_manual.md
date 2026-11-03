@@ -118,8 +118,9 @@ appointment, payment or profile information becomes available.
 Practice administrators can also open an existing patient record and select
 **Invite to patient portal**. An invitation creates an unapproved patient account
 request and sends a single **Activate your patient portal** email containing
-both **Confirm email address** and **Set your password** actions. The patient
-must complete both steps (in either order) and choose their own password. Invitations
+a **Confirm email address and set password** action. Clicking it confirms the
+email address and opens the password-setting form. The patient must choose
+their own password. Invitations
 appear under **Patient accounts**, including those awaiting email confirmation.
 The practice must still verify the patient's identity, select the correct
 existing patient record and obtain senior administrator approval. Never create

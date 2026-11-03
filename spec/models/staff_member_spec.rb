@@ -132,7 +132,12 @@ RSpec.describe StaffMember do
       expect(member.can_access_practice?(home_practice)).to be true
     end
 
-    it "allows an active staff member to access a sibling practice in the group" do
+    it "requires local membership for ordinary staff at sibling practices" do
+      expect(member.can_access_practice?(sibling_practice)).to be false
+    end
+
+    it "allows an active senior administrator across their own group" do
+      member.update!(staff_type: "administrator", access_level: "senior_staff_admin")
       expect(member.can_access_practice?(sibling_practice)).to be true
     end
 

@@ -70,6 +70,43 @@ RSpec.describe "Chief of Group appointment", type: :request do
     expect(response).to have_http_status(:forbidden)
   end
 
+  it "lets a clinician Chief create a practice with a group senior administrator" do
+    clinician = candidate.staff_members.find_by!(practice: sibling)
+    clinician.update!(staff_type: "doctor", access_level: "staff_clinician")
+    group.update!(chief_of_group: candidate)
+    sign_out admin
+    sign_in candidate
+
+    expect {
+      post practice_practices_path, params: { practice: {
+        name: "New Group Practice", timezone: sibling.timezone,
+        currency: sibling.currency, country_code: sibling.country_code
+      } }
+    }.to change { group.practices.count }.by(1)
+
+    expect(response).to redirect_to(practice_practices_path)
+    created = group.practices.find_by!(name: "New Group Practice")
+    expect(created.staff_members.find_by!(user: admin).access_level).to eq("senior_staff_admin")
+    expect(created.staff_members.where(user: candidate)).to be_empty
+    expect(clinician.reload.access_level).to eq("staff_clinician")
+  end
+
+  it "does not create an unadministered practice when no active senior admin exists" do
+    group.update!(chief_of_group: candidate)
+    admin.staff_members.update_all(active: false)
+    sign_out admin
+    sign_in candidate
+
+    expect {
+      post practice_practices_path, params: { practice: {
+        name: "Unadministered Practice", timezone: sibling.timezone,
+        currency: sibling.currency, country_code: sibling.country_code
+      } }
+    }.not_to change { group.practices.count }
+
+    expect(response).to have_http_status(:unprocessable_content)
+  end
+
   it "rejects candidates from another medical group" do
     outsider = create(:staff_member).user
     patch practice_group_chief_path, params: { user_id: outsider.id }

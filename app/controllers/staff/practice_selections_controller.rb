@@ -1,12 +1,8 @@
 module Staff
   class PracticeSelectionsController < BaseController
     def update
-      practice = current_staff_member.practice.medical_group.practices.find_by(id: params[:practice_id])
-
-      unless current_staff_member.can_access_practice?(practice) &&
-          current_user.staff_members.exists?(practice_id: practice&.id, active: true)
-        return head :forbidden
-      end
+      practice = authorized_practices.find_by(id: params[:practice_id])
+      return head :forbidden unless practice
 
       session[:staff_practice_id] = practice.id
       redirect_to practice_appointments_path, notice: "Practice switched successfully."

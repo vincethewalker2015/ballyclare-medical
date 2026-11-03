@@ -1,6 +1,7 @@
 module Staff
   class AppointmentsController < BaseController
     before_action :require_operational_access, except: %i[index show]
+    before_action :require_local_diary_access, only: %i[index show]
     def index
       @practice = current_practice
       diary = Appointments::StaffDiary.new(
@@ -185,6 +186,13 @@ module Staff
     end
 
     private
+
+    def require_local_diary_access
+      return if current_staff_member.practice_id == current_practice.id
+      return if current_staff_member.senior_administration_access?
+
+      head :forbidden
+    end
 
     def load_booking_options
       options = Booking::StaffBookingOptions.new(

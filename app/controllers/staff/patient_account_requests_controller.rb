@@ -31,8 +31,6 @@ module Staff
         .includes(:patient_account)
         .find(params[:id])
 
-      return head :not_found unless @registration_request.patient_account.confirmed?
-
       @account_link = current_practice.patient_account_links
         .where(patient_account_id: @registration_request.patient_account_id).first
 

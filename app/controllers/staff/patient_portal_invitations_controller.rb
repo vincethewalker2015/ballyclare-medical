@@ -10,7 +10,7 @@ module Staff
           patient: patient, email: params[:email], staff_member: current_staff_member
         )
       end
-      account.send_reset_password_instructions
+      PatientAccounts::SendActivation.call!(account: account)
       redirect_to practice_patient_path(patient),
         notice: "Invitation sent. The patient must confirm their email and set a password before identity review."
     rescue ArgumentError, ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique => error

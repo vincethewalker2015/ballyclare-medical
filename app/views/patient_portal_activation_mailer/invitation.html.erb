@@ -6,15 +6,10 @@
     </div>
     <div style="padding:32px;">
       <h1 style="font-size:25px;margin:0 0 18px;color:#173451;">Activate your patient portal</h1>
-      <p style="font-size:16px;line-height:1.6;">Your practice has invited you to create a secure patient portal account. Complete both steps below to activate your login.</p>
-      <h2 style="font-size:18px;margin:26px 0 8px;">1. Confirm your email address</h2>
-      <p style="font-size:15px;line-height:1.6;">Verify that this email address belongs to you.</p>
-      <p style="margin:20px 0 28px;"><%= link_to "Confirm email address", @confirmation_url, style: "display:inline-block;background:#173451;color:#ffffff;text-decoration:none;padding:14px 24px;border-radius:24px;font-weight:bold;" %></p>
-      <div style="border-top:1px solid #dce3e0;"></div>
-      <h2 style="font-size:18px;margin:26px 0 8px;">2. Set your password</h2>
-      <p style="font-size:15px;line-height:1.6;">Choose your own secure password to sign in.</p>
-      <p style="margin:20px 0 28px;"><%= link_to "Set your password", @password_url, style: "display:inline-block;background:#173451;color:#ffffff;text-decoration:none;padding:14px 24px;border-radius:24px;font-weight:bold;" %></p>
-      <p style="font-size:14px;line-height:1.6;color:#607483;">Both steps are required, but you can complete them in either order. Your practice must separately verify your identity and approve access before you can view medical records.</p>
+      <p style="font-size:16px;line-height:1.6;">Your practice has invited you to create a secure patient portal account. Confirm your email and choose a password to activate your login.</p>
+      <p style="font-size:15px;line-height:1.6;">Select the button below to confirm your email address and go straight to the secure password form.</p>
+      <p style="margin:24px 0 28px;"><%= link_to "Confirm email address and set password", @activation_url, style: "display:inline-block;background:#173451;color:#ffffff;text-decoration:none;padding:14px 24px;border-radius:24px;font-weight:bold;" %></p>
+      <p style="font-size:14px;line-height:1.6;color:#607483;">Your practice must separately verify your identity and approve access before you can view medical records.</p>
       <p style="font-size:14px;line-height:1.6;color:#607483;">If you were not expecting this invitation, you can safely ignore it.</p>
     </div>
   </div>

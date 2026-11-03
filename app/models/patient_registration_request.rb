@@ -24,13 +24,17 @@ class PatientRegistrationRequest < ApplicationRecord
   end
 
   def reviewers_belong_to_practice
-    [ reviewed_by, approved_by ].compact.each do |staff|
+    { reviewed_by: reviewed_by, approved_by: approved_by }.each do |role, staff|
+      next unless staff
+      # Historical review and approval records remain valid after a role change.
+      # Newly assigned reviewers and approvers must still hold current authority.
+      next if persisted? && !will_save_change_to_attribute?("#{role}_id")
       next if staff.active? && staff.practice_id == practice_id && staff.staff_administration_access?
       next if staff.active? && staff.practice.medical_group_id == practice.medical_group_id &&
         (staff.senior_administration_access? ||
          practice.medical_group.chief_of_group_id == staff.user_id)
 
-      errors.add(:base, "reviewers must be active administrators of this practice")
+      errors.add(:base, "reviewers and approvers must have active administrative authority")
     end
   end
 end

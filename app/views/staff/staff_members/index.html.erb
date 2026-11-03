@@ -65,7 +65,7 @@
                   class: "whitespace-nowrap rounded-lg border border-medical-border px-3 py-2 text-xs font-semibold text-medical-navy",
                   form: { data: { turbo_confirm: "Reactivate this staff member? Their practice access will be restored.", confirm_action: "reactivate" } } %>
               <% end %>
-              <% if staff_member.active? && @current_staff_member.id != staff_member.id &&
+              <% if staff_member.active? && staff_member.user_id != current_user.id &&
                     staff_member.user_id != @current_practice.medical_group.chief_of_group_id &&
                     (can_administer_current_group? ||
                      (@current_staff_member.access_level == "staff_admin" &&
@@ -74,7 +74,7 @@
                   class: "whitespace-nowrap rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700",
                   form: { data: { turbo_confirm: "Deactivate this staff member? Their access will be blocked.", confirm_action: "deactivate" } } %>
               <% end %>
-              <% if can_administer_current_group? && staff_member.id != @current_staff_member.id %>
+              <% if can_administer_current_group? && staff_member.user_id != current_user.id %>
                 <details class="group relative">
                   <summary class="inline-flex cursor-pointer list-none rounded-lg border border-medical-border px-3 py-2 text-xs font-semibold text-medical-navy hover:bg-medical-teal-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-medical-teal">
                     <span class="group-open:hidden">Edit access</span>

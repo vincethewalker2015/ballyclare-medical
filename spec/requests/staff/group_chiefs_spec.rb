@@ -247,6 +247,25 @@ RSpec.describe "Chief of Group appointment", type: :request do
     expect(response).to have_http_status(:forbidden)
   end
 
+  it "lets a clinician Chief administer staff in a sibling practice" do
+    group.update!(chief_of_group: candidate)
+    sign_out admin
+    sign_in candidate
+    patch practice_selection_path, params: { practice_id: home.id }
+
+    get new_practice_staff_member_path
+
+    expect(response).to have_http_status(:ok)
+  end
+
+  it "lets a group Senior Staff Admin administer staff in a sibling practice" do
+    patch practice_selection_path, params: { practice_id: sibling.id }
+
+    get new_practice_staff_member_path
+
+    expect(response).to have_http_status(:ok)
+  end
+
   it "rejects candidates from another medical group" do
     outsider = create(:staff_member).user
     patch practice_group_chief_path, params: { user_id: outsider.id }

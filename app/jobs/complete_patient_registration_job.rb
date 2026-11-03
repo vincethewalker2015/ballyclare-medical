@@ -10,7 +10,11 @@ class CompletePatientRegistrationJob < ApplicationJob
       return if request_record.review_status == "completed"
       return unless request_record.review_status.in?(%w[approved processing])
       return unless request_record.patient_account.confirmed?
-      return unless request_record.approved_by&.senior_administration_access?
+      approver = request_record.approved_by
+      return unless approver&.active?
+      return unless approver.practice.medical_group_id == request_record.practice.medical_group_id
+      return unless approver.senior_administration_access? ||
+        request_record.practice.medical_group.chief_of_group_id == approver.user_id
       return unless request_record.reviewed_by.present? &&
         request_record.identity_verified_at.present? &&
         PatientAccountLink::VERIFICATION_METHODS.include?(request_record.verification_method)

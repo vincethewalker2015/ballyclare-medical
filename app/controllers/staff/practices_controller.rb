@@ -22,12 +22,28 @@ module Staff
       @practice = group.practices.new(practice_params)
       @practice.active = true
 
-      # An additional practice needs a local administrator to make it operable.
+      # A clinician Chief retains their clinical membership. Assign an existing
+      # group Senior Staff Admin to the new practice for local administration.
+      administrator = if current_staff_member.access_level == "senior_staff_admin"
+        current_staff_member
+      else
+        group.practices.joins(:staff_members)
+          .where(staff_members: { active: true, access_level: "senior_staff_admin" })
+          .order("staff_members.created_at", "staff_members.id")
+          .first&.staff_members&.where(active: true, access_level: "senior_staff_admin")
+          &.order(:created_at, :id)&.first
+      end
+
+      unless administrator
+        @practice.errors.add(:base, "An active Senior Staff Admin is required to set up a new practice")
+        return render :new, status: :unprocessable_content
+      end
+
       Practice.transaction do
         @practice.save!
-        current_staff_member.user.staff_members.create!(
-          practice: @practice, first_name: current_staff_member.first_name,
-          last_name: current_staff_member.last_name, staff_type: "administrator",
+        administrator.user.staff_members.create!(
+          practice: @practice, first_name: administrator.first_name,
+          last_name: administrator.last_name, staff_type: "administrator",
           access_level: "senior_staff_admin", active: true
         )
         AuditEvent.create!(practice: @practice, user: current_user,

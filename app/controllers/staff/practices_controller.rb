@@ -4,6 +4,10 @@ module Staff
 
     def index
       @practices = current_practice.medical_group.practices.order(:name)
+      @group = current_practice.medical_group
+      @chief_candidates = User.joins(staff_members: :practice)
+        .where(staff_members: { active: true }, practices: { medical_group_id: @group.id })
+        .distinct.order(:email)
     end
 
     def new

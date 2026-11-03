@@ -53,7 +53,7 @@ class StaffMember < ApplicationRecord
   end
 
   def clinical_access?
-    access_level.in?(%w[staff_clinician senior_staff_admin])
+    access_level == "staff_clinician" && staff_type.in?(%w[doctor nurse])
   end
 
   def staff_administration_access?

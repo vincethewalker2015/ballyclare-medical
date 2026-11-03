@@ -17,7 +17,7 @@
     <p class="text-sm font-semibold text-medical-muted">Confirmed account email</p>
     <p class="mt-2 text-lg text-medical-navy"><%= @registration_request.patient_account.email %></p>
     <p class="mt-5 text-sm font-semibold text-medical-muted">Email confirmed</p>
-    <p class="mt-2"><%= l(@registration_request.patient_account.confirmed_at, format: :long) %></p>
+    <p class="mt-2"><%= @registration_request.patient_account.confirmed_at ? l(@registration_request.patient_account.confirmed_at, format: :long) : "Awaiting confirmation" %></p>
     <p class="mt-5 text-sm font-semibold text-medical-muted">Registration status</p>
     <p class="mt-2"><%= @registration_request.review_status.humanize %></p>
     <% if @registration_request.review_status == "completed" %>

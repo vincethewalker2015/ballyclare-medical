@@ -78,6 +78,7 @@ module Staff
 
       staff_member = current_practice.staff_members.find(params[:id])
       return head :forbidden if staff_member.id == current_staff_member.id
+      return head :forbidden if staff_member.user_id == current_practice.medical_group.chief_of_group_id
 
       unless current_staff_member.access_level == "senior_staff_admin" ||
              !staff_member.access_level.in?(%w[staff_admin senior_staff_admin])

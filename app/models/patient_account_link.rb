@@ -50,6 +50,10 @@ class PatientAccountLink < ApplicationRecord
     return if persisted? && !will_save_change_to_verified_by_id? &&
       !will_save_change_to_status?(to: "approved")
     return if verified_by.nil? || practice.nil?
+    # A registration's recorded identity check remains historical evidence even
+    # if its reviewer has since left. Only trust an already-approved request,
+    # and require its approver to retain current group authority.
+    return if new_record? && approved? && historical_registration_verification?
     return if verified_by.active? && verified_by.practice_id == practice.id &&
       verified_by.staff_administration_access?
     return if verified_by.active? &&
@@ -58,6 +62,29 @@ class PatientAccountLink < ApplicationRecord
        practice.medical_group.chief_of_group_id == verified_by.user_id)
 
     errors.add(:verified_by, "must be an active practice administrator")
+  end
+
+
+  def historical_registration_verification?
+    request_record = PatientRegistrationRequest.find_by(
+      practice_id: practice.id,
+      patient_account_id: patient_account_id,
+      reviewed_by_id: verified_by_id,
+      verification_method: verification_method,
+      identity_verified_at: verified_at,
+      approved_at: approved_at,
+      review_status: %w[approved processing]
+    )
+    return false unless request_record
+    return false unless request_record.patient_route == "new_patient" ||
+      (request_record.patient_route == "existing_patient" &&
+       request_record.selected_patient_id == patient_id)
+
+    approver = request_record.approved_by
+    approver&.active? &&
+      approver.practice.medical_group_id == practice.medical_group_id &&
+      (approver.senior_administration_access? ||
+       practice.medical_group.chief_of_group_id == approver.user_id)
   end
 
   def account_is_confirmed_before_approval

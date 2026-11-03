@@ -10,9 +10,9 @@ module Staff
           patient: patient, email: params[:email], staff_member: current_staff_member
         )
       end
-      PatientAccounts::SendActivation.call!(account: account)
+      PatientPortalActivationJob.perform_later(account.id)
       redirect_to practice_patient_path(patient),
-        notice: "Invitation sent. The patient must confirm their email and set a password before identity review."
+        notice: "Invitation queued. The patient must confirm their email and set a password before identity review."
     rescue ArgumentError, ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique => error
       redirect_to practice_patient_path(patient),
         alert: error.is_a?(ArgumentError) ? error.message : "Could not create an invitation. Check whether an account already exists for this email."

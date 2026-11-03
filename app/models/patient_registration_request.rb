@@ -25,9 +25,8 @@ class PatientRegistrationRequest < ApplicationRecord
 
   def reviewers_belong_to_practice
     [ reviewed_by, approved_by ].compact.each do |staff|
-      next unless staff.active?
-      next if staff.practice_id == practice_id && staff.staff_administration_access?
-      next if staff.practice.medical_group_id == practice.medical_group_id &&
+      next if staff.active? && staff.practice_id == practice_id && staff.staff_administration_access?
+      next if staff.active? && staff.practice.medical_group_id == practice.medical_group_id &&
         (staff.senior_administration_access? ||
          practice.medical_group.chief_of_group_id == staff.user_id)
 

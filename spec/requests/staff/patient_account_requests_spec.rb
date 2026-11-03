@@ -586,6 +586,40 @@ RSpec.describe "Patient account requests", type: :request do
     expect(request_record.reload.review_status).not_to eq("completed")
   end
 
+  it "does not duplicate a completed new-patient registration on job retry" do
+    membership.update!(access_level: "senior_staff_admin")
+    account = create(:patient_account)
+    account.confirm
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account,
+      review_status: "approved", patient_route: "new_patient",
+      first_name: "Retry", last_name: "Once",
+      date_of_birth: Date.new(1980, 1, 1),
+      reviewed_by: membership, approved_by: membership,
+      approved_at: Time.current, identity_verified_at: Time.current,
+      verification_method: "in_person"
+    )
+
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.to change(Patient, :count).by(1)
+      .and change(PatientAccountLink, :count).by(1)
+
+    created_patient_id = request_record.reload.selected_patient_id
+    expect(request_record.review_status).to eq("completed")
+    expect(created_patient_id).to eq(PatientAccountLink.find_by!(patient_account: account).patient_id)
+
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.not_to change {
+      [Patient.count, PatientAccountLink.count,
+       AuditEvent.where(action: "patient_account.approved", auditable_type: "PatientAccountLink").count]
+    }
+
+    expect(request_record.reload.selected_patient_id).to eq(created_patient_id)
+    expect(request_record.review_status).to eq("completed")
+  end
+
   it "rolls back a new patient and its registration binding when link creation fails" do
     membership.update!(access_level: "senior_staff_admin")
     account = create(:patient_account)

@@ -48,10 +48,10 @@ module Staff
         return render :new, status: :unprocessable_content
       end
 
-      PatientAccounts::SendActivation.call!(account: account) if account
+      PatientPortalActivationJob.perform_later(account.id) if account
       if account
         redirect_to practice_patient_path(@patient),
-          notice: "Patient created and portal invitation sent. Identity verification and senior approval are still required."
+          notice: "Patient created and portal invitation queued. Identity verification and senior approval are still required."
       else
         redirect_to practice_patients_path, notice: "Patient created successfully."
       end

@@ -41,4 +41,20 @@ RSpec.describe MedicalGroup, type: :model do
       practice.update_columns(medical_group_id: SecureRandom.uuid)
     }.to raise_error(ActiveRecord::InvalidForeignKey)
   end
+  it "allows one Chief of Group to be assigned to a medical group" do
+    chief = create(:user)
+    group = create(:medical_group, chief_of_group: chief)
+
+    expect(group.reload.chief_of_group).to eq(chief)
+    expect(chief.reload.chief_medical_group).to eq(group)
+  end
+
+  it "prevents assigning the same Chief of Group to two medical groups" do
+    chief = create(:user)
+    create(:medical_group, chief_of_group: chief)
+
+    expect {
+      create(:medical_group, chief_of_group: chief)
+    }.to raise_error(ActiveRecord::RecordNotUnique)
+  end
 end

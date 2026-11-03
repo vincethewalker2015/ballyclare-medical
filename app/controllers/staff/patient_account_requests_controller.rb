@@ -7,7 +7,6 @@ module Staff
       @page = [ params[:page].to_i, 1 ].max
       requests = current_practice.patient_registration_requests
         .joins(:patient_account)
-        .where.not(patient_accounts: { confirmed_at: nil })
       if @request_search.present?
         term = "%#{ActiveRecord::Base.sanitize_sql_like(@request_search)}%"
         requests = requests.where(

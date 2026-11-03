@@ -612,8 +612,8 @@ RSpec.describe "Patient account requests", type: :request do
     expect {
       CompletePatientRegistrationJob.perform_now(request_record.id)
     }.not_to change {
-      [Patient.count, PatientAccountLink.count,
-       AuditEvent.where(action: "patient_account.approved", auditable_type: "PatientAccountLink").count]
+      [ Patient.count, PatientAccountLink.count,
+       AuditEvent.where(action: "patient_account.approved", auditable_type: "PatientAccountLink").count ]
     }
 
     expect(request_record.reload.selected_patient_id).to eq(created_patient_id)

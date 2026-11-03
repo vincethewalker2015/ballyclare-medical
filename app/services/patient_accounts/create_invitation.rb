@@ -7,7 +7,10 @@ module PatientAccounts
       raise ArgumentError, "Enter a valid patient email address." unless Devise.email_regexp.match?(address)
       raise ArgumentError, "This patient already has a portal connection." if patient.patient_account_link.present?
       raise ArgumentError, "This email already has a patient portal account." if PatientAccount.exists?(email: address)
-      raise ArgumentError, "You cannot invite patients in another practice." unless patient.practice_id == staff_member.practice_id
+      raise ArgumentError, "You cannot invite patients in another practice." unless
+        patient.practice_id == staff_member.practice_id ||
+        (staff_member.senior_administration_access? &&
+         staff_member.practice.medical_group_id == patient.practice.medical_group_id)
       raise ArgumentError, "Administrator access is required." unless staff_member.active? && staff_member.staff_administration_access?
 
       account = PatientAccount.new(email: address, password: Devise.friendly_token(48))

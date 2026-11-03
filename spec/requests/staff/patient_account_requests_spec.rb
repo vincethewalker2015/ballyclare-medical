@@ -452,6 +452,29 @@ RSpec.describe "Patient account requests", type: :request do
     expect(PatientAccountLink.where(patient_account: account).count).to eq(1)
   end
 
+  it "completes an approved registration after its historical reviewer is deactivated" do
+    membership.update!(access_level: "senior_staff_admin")
+    reviewer = create(:staff_member, practice: practice, access_level: "staff_admin")
+    account = create(:patient_account)
+    account.confirm
+    request_record = PatientRegistrationRequest.create!(
+      practice: practice, patient_account: account,
+      review_status: "approved", patient_route: "new_patient",
+      first_name: "Historical", last_name: "Reviewer",
+      date_of_birth: Date.new(1980, 1, 1),
+      reviewed_by: reviewer, approved_by: membership,
+      approved_at: Time.current, identity_verified_at: Time.current,
+      verification_method: "in_person"
+    )
+    reviewer.update!(active: false)
+
+    expect {
+      CompletePatientRegistrationJob.perform_now(request_record.id)
+    }.to change(PatientAccountLink, :count).by(1)
+    expect(request_record.reload.review_status).to eq("completed")
+    expect(PatientAccountLink.last.verified_by).to eq(reviewer)
+  end
+
   it "does not complete an approved registration if email confirmation is missing" do
     membership.update!(access_level: "senior_staff_admin")
     account = create(:patient_account)

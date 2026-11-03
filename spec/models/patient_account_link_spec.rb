@@ -283,5 +283,4 @@ RSpec.describe PatientAccountLink, type: :model do
     expect(link).not_to be_valid
     expect(link.errors[:verified_by]).to be_present
   end
-
 end

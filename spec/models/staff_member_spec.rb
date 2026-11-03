@@ -223,5 +223,4 @@ RSpec.describe StaffMember do
       expect(clinician.clinical_access?).to be true
     end
   end
-
 end

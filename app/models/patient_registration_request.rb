@@ -14,6 +14,13 @@ class PatientRegistrationRequest < ApplicationRecord
   validate :selected_patient_belongs_to_practice
   validate :reviewers_belong_to_practice
 
+  def possible_existing_patients
+    Patient.possible_existing_for(
+      practice: practice, first_name: first_name, last_name: last_name,
+      date_of_birth: date_of_birth
+    )
+  end
+
   private
 
   def selected_patient_belongs_to_practice

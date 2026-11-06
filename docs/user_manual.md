@@ -84,7 +84,18 @@ select that practice and use a patient record and available slot belonging
 to that location.
 
 Patient portal identity verification and account approvals remain
-practice-specific.
+practice-specific. When a registration request has the same first name, last name,
+and date of birth as a record in the selected practice (ignoring name casing and
+outer whitespace), **New patient** is disabled during identity review. Staff
+must independently verify whether the applicant is the existing patient before
+selecting a clinical record. A name and date-of-birth match alone does not
+establish identity. The application also checks for possible duplicates at
+approval and just before the registration job creates a patient.
+
+The direct **New patient** staff form likewise refuses a likely duplicate in
+the selected practice. Search for and inspect the existing clinical record rather
+than creating a new one; if two different people genuinely share these details,
+escalate the identity discrepancy for an approved resolution.
 
 ### Clinical confidentiality
 

@@ -33,7 +33,7 @@ RSpec.describe "Staff patient duplicate prevention", type: :request do
     document = Nokogiri::HTML(response.body)
     new_option = document.at_css('input[name="patient_route"][value="new_patient"]')
     expect(new_option).to be_present
-    expect(new_option["disabled"]).to be_present
+    expect(new_option.key?("disabled")).to be(true)
 
     post verify_practice_patient_account_request_path(request_record),
       params: { patient_route: "new_patient", verification_method: "in_person",

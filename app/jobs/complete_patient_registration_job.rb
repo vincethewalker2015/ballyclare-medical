@@ -29,6 +29,17 @@ class CompletePatientRegistrationJob < ApplicationJob
         return
       end
 
+      # Lock the practice so concurrent registration jobs and staff creation
+      # cannot both pass the duplicate check and create the same patient.
+      if request_record.patient_route == "new_patient"
+        request_record.practice.lock!
+        if request_record.possible_existing_patients.exists?
+          request_record.update!(review_status: "failed", processed_at: Time.current)
+          Rails.logger.warn("Patient registration possible duplicate blocked: request=#{request_record.id}")
+          return
+        end
+      end
+
       patient = if request_record.patient_route == "existing_patient"
         request_record.practice.patients.find(request_record.selected_patient_id)
       elsif request_record.patient_route == "new_patient"

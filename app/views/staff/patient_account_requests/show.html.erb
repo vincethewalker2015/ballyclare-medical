@@ -81,16 +81,21 @@
       <%= form_with url: verify_practice_patient_account_request_path(@registration_request), method: :post, class: "mt-6 space-y-6 text-sm text-medical-ink" do |form| %>
         <fieldset class="space-y-3">
           <legend class="font-semibold text-medical-navy">Registration type</legend>
-          <label class="flex items-center gap-2 text-sm text-medical-ink"><%= form.radio_button :patient_route, "new_patient", required: true %> New patient — create clinical record after approval</label>
-          <label class="block"><%= form.radio_button :patient_route, "existing_patient", required: true %> Existing patient — connect verified clinical record</label>
+          <label class="flex items-center gap-2 text-sm text-medical-ink"><%= form.radio_button :patient_route, "new_patient", required: true, disabled: @possible_existing_patients.any? %> New patient — create clinical record after approval</label>
+          <label class="block"><%= form.radio_button :patient_route, "existing_patient", required: true, checked: @possible_existing_patients.any? %> Existing patient — connect verified clinical record</label>
         </fieldset>
-        <% if @patient_search.present? && @matching_patients.empty? %>
+        <% if @possible_existing_patients.any? %>
+          <div class="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900" role="alert">
+            A possible existing patient was found with the same name and date of birth. New patient creation is disabled until the identity is resolved. A match is not proof of identity; verify independently before connecting a clinical record.
+          </div>
+        <% end %>
+        <% if @patient_search.present? && @matching_patients.empty? && @possible_existing_patients.empty? %>
           <p class="text-sm text-medical-muted">No matching existing clinical patient records.</p>
         <% end %>
-        <% if @matching_patients.any? %>
+        <% if @matching_patients.any? || @possible_existing_patients.any? %>
           <fieldset class="space-y-3">
             <legend class="font-semibold text-medical-navy">Existing clinical record (only if selected above)</legend>
-            <% @matching_patients.each do |patient| %>
+            <% (@possible_existing_patients + @matching_patients).uniq(&:id).each do |patient| %>
               <label class="block rounded-xl border border-medical-border p-3 text-sm">
                 <%= form.radio_button :patient_id, patient.id %>
                 <%= patient.first_name %> <%= patient.last_name %> — DOB <%= l(patient.date_of_birth) %> — <%= patient.patient_number %>

@@ -23,6 +23,16 @@ class Patient < ApplicationRecord
 
   validates :patient_number,
     uniqueness: { scope: :practice_id }
+
+  # A matching name and date of birth is a prompt for identity review, not proof
+  # that two people are the same. Never search outside the selected practice.
+  def self.possible_existing_for(practice:, first_name:, last_name:, date_of_birth:)
+    return none if practice.blank? || [ first_name, last_name, date_of_birth ].any?(&:blank?)
+
+    practice.patients.where(date_of_birth: date_of_birth)
+      .where("LOWER(TRIM(first_name)) = ? AND LOWER(TRIM(last_name)) = ?",
+        first_name.strip.downcase, last_name.strip.downcase)
+  end
   private
 
   def assign_patient_number

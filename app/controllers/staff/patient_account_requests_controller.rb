@@ -35,6 +35,8 @@ module Staff
         .where(patient_account_id: @registration_request.patient_account_id).first
 
       @patient_search = params[:patient_search].to_s.strip.first(100)
+      @possible_existing_patients = @registration_request.possible_existing_patients
+        .order(:last_name, :first_name).limit(20).to_a
       @matching_patients = []
       if @patient_search.present?
         term = "%#{ActiveRecord::Base.sanitize_sql_like(@patient_search)}%"
@@ -77,6 +79,11 @@ module Staff
         return redirect_to practice_patient_account_request_path(request_record),
           alert: "This registration has already been reviewed." unless request_record.review_status == "awaiting_review"
 
+        if route == "new_patient" && request_record.possible_existing_patients.exists?
+          return redirect_to practice_patient_account_request_path(request_record),
+            alert: "A possible existing patient record was found. Review and independently verify it before continuing; new patient creation is blocked."
+        end
+
         request_record.update!(
           review_status: "verified",
           patient_route: route,
@@ -115,8 +122,10 @@ module Staff
             request_record.identity_verified_at.present? &&
             PatientAccountLink::VERIFICATION_METHODS.include?(request_record.verification_method) &&
             PatientRegistrationRequest::PATIENT_ROUTES.include?(request_record.patient_route) &&
-            (request_record.patient_route == "new_patient" ||
-             request_record.selected_patient_id.present?)
+            (request_record.patient_route == "new_patient" ?
+              ([ request_record.first_name, request_record.last_name, request_record.date_of_birth ].all?(&:present?) &&
+               !request_record.possible_existing_patients.exists?) :
+              request_record.selected_patient_id.present?)
           request_record.update!(review_status: "approved", approved_by: current_staff_member,
             approved_at: Time.current)
           approved = true

@@ -120,7 +120,11 @@
         <p class="mt-2 text-medical-muted">Verified by <%= @registration_request.reviewed_by.full_name %> on <%= l(@registration_request.identity_verified_at, format: :long) %>.</p>
       <% end %>
     <% end %>
-    <% if @registration_request.review_status == "verified" && can_administer_current_group? %>
+    <% if @registration_request.review_status == "verified" && @registration_request.patient_route == "new_patient" && @possible_existing_patients.any? %>
+      <p class="mt-5 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900" role="alert">
+        A potential duplicate patient was found after identity verification. New patient approval is blocked. Review the existing clinical record and resolve the registration with an administrator.
+      </p>
+    <% elsif @registration_request.review_status == "verified" && can_administer_current_group? %>
       <%= button_to "Approve patient registration", approve_practice_patient_account_request_path(@registration_request), method: :post, class: "mt-5 cursor-pointer rounded-full bg-medical-teal px-6 py-3 font-semibold text-white", form: { data: { confirm_action: "patient_registration" } }, data: { turbo_confirm: "Approve this verified request and create or connect the clinical patient record?" , confirm_action: "patient_registration" } %>
     <% elsif @registration_request.review_status == "verified" %>
       <p class="mt-4 text-medical-muted">Awaiting Chief of Group or Senior Staff Admin approval.</p>

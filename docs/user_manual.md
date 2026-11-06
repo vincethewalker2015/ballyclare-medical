@@ -421,7 +421,7 @@ from appointment records in this case.
 
 ### When a payment appears
 
-The queue shows Stripe payments associated with your practice that have been **pending** or **processing** for at least 15 minutes and do not yet have an appointment attached. A payment can remain here when the booking process did not receive a definitive result from Stripe. The queue is limited to the 100 oldest matching payments.
+The queue shows Stripe payments associated with your practice that have been **pending** or **processing** for at least 15 minutes and do not yet have an appointment attached. It also shows locally **failed** booking payments with a recorded Stripe PaymentIntent after the appointment hold has expired, where Stripe cancellation has not yet been confirmed through this review workflow. A local failure does **not** prove that the Stripe PaymentIntent is cancelled. The queue is limited to the 100 oldest matching payments.
 
 **Do not assume that an unresolved payment means the patient has not been charged.** Before starting any replacement booking or payment attempt, investigate the existing payment outcome. A Stripe timeout or unavailable verification is not grounds for creating an unpaid appointment.
 
@@ -445,7 +445,7 @@ Use **Cancel abandoned payment** only when the original payment attempt is genui
 4. Read the confirmation dialog carefully and verify the exact PaymentIntent ID before continuing.
 5. Check the success message and the Stripe Dashboard. When cancellation is confirmed and the local outcome is reconciled, the payment disappears from the unresolved queue.
 
-The application also checks Stripe status, metadata, amount and currency before permitting cancellation. If the check or cancellation cannot be confirmed, the payment remains available for investigation; do not assume it was cancelled.
+The application also checks Stripe status, metadata, amount and currency before permitting cancellation. Locally failed booking payments can only be cancelled through this workflow **after their hold has expired**; pending and processing payments retain their existing eligibility rules. If the check or cancellation cannot be confirmed, the payment remains available for investigation; do not assume it was cancelled. If Stripe was already cancelled, use **Verify payment with Stripe** to record that outcome and remove the failed item from the review queue without issuing another cancellation.
 
 ### If Stripe is unavailable or the outcome is uncertain
 

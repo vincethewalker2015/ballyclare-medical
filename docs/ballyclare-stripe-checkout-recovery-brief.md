@@ -1,5 +1,8 @@
 # Ballyclare Medical — Stripe booking checkout recovery implementation brief
 
+## Decision — 6 November 2026
+The full customer-facing checkout-resume flow described below is **deferred**. Ballyclare Medical deliberately keeps its no-reopen/no-second-charge policy. The only implemented follow-up on this branch is a narrowly scoped staff recovery improvement: after the hold expires, administrators can discover locally failed booking payments with a saved Stripe PaymentIntent (once the 15-minute queue threshold is met), verify Stripe's current status, and cancel an intent that Stripe confirms is still at `requires_payment_method`. A confirmed prior cancellation is recorded and removed from the review queue. Payment success continues through the existing safe recovery/refund paths. The requirements below are retained as a possible future proposal, **not an implementation checklist for this branch**.
+
 ## Purpose
 Apply the Mercanti One payment recovery improvements to `vincethewalker2015/ballyclare-medical` without copying its branding or changing established booking/payment safety rules.
 

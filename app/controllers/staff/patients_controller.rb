@@ -35,6 +35,16 @@ module Staff
 
       begin
         Patient.transaction do
+          # Serialize direct patient creation with background registration.
+          current_practice.lock!
+          if Patient.possible_existing_for(practice: current_practice,
+              first_name: @patient.first_name, last_name: @patient.last_name,
+              date_of_birth: @patient.date_of_birth).exists?
+            @patient.errors.add(:base,
+              "A possible existing patient has the same name and date of birth. Review the existing clinical record before creating another patient.")
+            raise ActiveRecord::RecordInvalid, @patient
+          end
+
           @patient.save!
           if @invite_to_portal
             account = PatientAccounts::CreateInvitation.call!(

@@ -174,6 +174,13 @@ module Staff
         return
       end
 
+      if failed_expired_hold && intent.status == "canceled" &&
+          (intent.amount != payment.amount_cents || !intent.currency.casecmp?(payment.currency))
+        return respond_with_reconciliation(
+          alert: "Stripe payment amount or currency does not match. Cancellation could not be verified."
+        )
+      end
+
       AuditEvent.create!(
         practice: current_practice,
         user: current_user,

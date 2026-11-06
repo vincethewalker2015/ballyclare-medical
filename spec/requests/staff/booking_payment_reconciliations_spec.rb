@@ -913,6 +913,7 @@ RSpec.describe "Staff unresolved booking payment review", type: :request do
     hold.update!(expires_at: 1.minute.ago)
     intent = instance_double(Stripe::PaymentIntent,
       id: "pi_failed_already_canceled", status: "canceled",
+      amount: payment.amount_cents, currency: payment.currency.downcase,
       metadata: { "payment_id" => payment.id.to_s })
     allow(Stripe::PaymentIntent).to receive(:retrieve)
       .with("pi_failed_already_canceled").and_return(intent)
@@ -929,6 +930,28 @@ RSpec.describe "Staff unresolved booking payment review", type: :request do
 
     get practice_booking_payment_reconciliations_path
     expect(response.body).not_to include("pi_failed_already_canceled")
+  end
+
+  it "keeps failed payments visible when a cancelled Stripe intent has the wrong amount" do
+    hold, payment = failed_booking_payment(practice: practice, intent_id: "pi_failed_wrong_amount")
+    hold.update!(expires_at: 1.minute.ago)
+    intent = instance_double(Stripe::PaymentIntent,
+      id: "pi_failed_wrong_amount", status: "canceled",
+      amount: payment.amount_cents + 100, currency: payment.currency.downcase,
+      metadata: { "payment_id" => payment.id.to_s })
+    allow(Stripe::PaymentIntent).to receive(:retrieve)
+      .with("pi_failed_wrong_amount").and_return(intent)
+
+    sign_in user
+    post verify_practice_booking_payment_reconciliation_path(payment),
+      params: { payment_intent_id: "pi_failed_wrong_amount" }
+
+    expect(response).to redirect_to(practice_booking_payment_reconciliations_path)
+    expect(AuditEvent.where(practice: practice, auditable: payment,
+      action: "stripe_payment.verification_matched")).to be_empty
+
+    get practice_booking_payment_reconciliations_path
+    expect(response.body).to include("pi_failed_wrong_amount")
   end
 
   it "keeps a failed payment available for investigation when Stripe cancellation is unavailable" do

@@ -41,6 +41,28 @@ RSpec.describe "Clinician consultation entry", type: :request do
     expect(appointment.encounter).to be_nil
   end
 
+  it "hides completion and referral from administrators and rejects direct status changes" do
+    admin_user = create(:user)
+    create(:staff_member, user: admin_user, practice: practice,
+      staff_type: "administrator", access_level: "staff_admin")
+    appointment.update!(status: "in_consultation")
+
+    sign_out user
+    sign_in admin_user
+
+    get practice_appointment_path(appointment)
+    expect(response).to have_http_status(:ok)
+    expect(response.body).not_to include("Start consultation", ">Complete<", ">Refer<", "Cancel appointment")
+
+    %w[completed referred cancelled].each do |requested_status|
+      expect {
+        patch status_practice_appointment_path(appointment),
+          params: { status: requested_status }
+      }.not_to change { appointment.reload.status }
+      expect(response).not_to have_http_status(:success)
+    end
+  end
+
   it "redacts clinical note and patient document form fields from parameter logs" do
     filter = ActiveSupport::ParameterFilter.new(Rails.application.config.filter_parameters)
     filtered = filter.filter(

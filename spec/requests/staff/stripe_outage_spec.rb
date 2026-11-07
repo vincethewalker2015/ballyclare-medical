@@ -120,7 +120,7 @@ RSpec.describe "Senior staff Stripe outage controls", type: :request do
 
     get "/practice/stripe-outage"
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("Emergency unpaid online booking is active")
+    expect(response.body).to include("Emergency fallback active")
     expect(response.body).to include("End Stripe outage now")
     expect(response.body).not_to include("Declare Stripe outage for 30 minutes")
   end

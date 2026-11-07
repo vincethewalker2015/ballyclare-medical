@@ -19,7 +19,8 @@ module Consultations
         end
 
         encounter = appointment.encounter
-        unless appointment.status == "completed" && encounter &&
+        unless appointment.status == "completed" &&
+            Appointment.where(id: appointment.id, status: "completed").exists? && encounter &&
             encounter.practice_id == appointment.practice_id &&
             encounter.patient_id == appointment.patient_id &&
             encounter.clinician_id == clinician.id

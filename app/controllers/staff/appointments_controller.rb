@@ -4,6 +4,7 @@ module Staff
     before_action :require_local_diary_access, only: %i[index show]
     def index
       @practice = current_practice
+      @stripe_outage_suspected = Payments::StripeOutageMonitor.suspected_event(practice: current_practice) if current_staff_member.senior_administration_access?
       diary = Appointments::StaffDiary.new(
         practice: current_practice, staff_member: current_staff_member,
         view: params[:view], layout: params[:layout],

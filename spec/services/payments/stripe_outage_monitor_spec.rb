@@ -46,13 +46,35 @@ RSpec.describe Payments::StripeOutageMonitor do
     }.not_to have_enqueued_job(ActionMailer::MailDeliveryJob)
   end
 
-  it "does not combine failures across practices or medical groups" do
+  it "does not combine failures across practices, even in the same medical group" do
+    sibling_practice = create(:practice, medical_group: practice.medical_group)
+    2.times { fail_payment(payment_at(practice)) }
+    fail_payment(payment_at(sibling_practice))
+
+    expect(AuditEvent.where(action: described_class::SUSPECTED_ACTION)).to be_empty
+    expect(described_class.suspected_event(practice: sibling_practice)).to be_nil
+  end
+
+  it "does not combine failures across medical groups" do
     other_practice = create(:practice)
     2.times { fail_payment(payment_at(practice)) }
     fail_payment(payment_at(other_practice))
 
     expect(AuditEvent.where(action: described_class::SUSPECTED_ACTION)).to be_empty
-    expect(described_class.suspected_event(practice: other_practice)).to be_nil
+  end
+
+  it "expires the warning and permits a new alert after the cooldown" do
+    3.times { fail_payment(payment_at(practice)) }
+    expect(described_class.suspected_event(practice: practice)).to be_present
+
+    travel 31.minutes
+    expect(described_class.suspected_event(practice: practice)).to be_nil
+
+    expect {
+      3.times { fail_payment(payment_at(practice)) }
+    }.to have_enqueued_job(ActionMailer::MailDeliveryJob).exactly(:once)
+    expect(AuditEvent.where(practice: practice,
+      action: described_class::SUSPECTED_ACTION).count).to eq(2)
   end
 
   it "does not notify from a card decline or an existing declared outage" do

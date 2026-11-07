@@ -143,4 +143,54 @@ RSpec.describe "Senior staff Stripe outage controls", type: :request do
     expect(response).to have_http_status(:ok)
     expect(response.body).not_to include('href="/practice/stripe-outage"')
   end
+  it "shows a suspected outage to senior staff without activating emergency booking" do
+    3.times do
+      payment = create(:payment, appointment: create(:appointment, practice: practice))
+      Payments::StripeOutageMonitor.record_failure(
+        payment: payment, error: Stripe::APIConnectionError.new("Stripe unavailable"),
+        source: "payment_intent_create"
+      )
+    end
+
+    expect(Payments::StripeOutageDeclaration.active?(practice: practice)).to be(false)
+
+    get "/practice/stripe-outage"
+    expect(response.body).to include("Possible Stripe connectivity issue detected")
+    expect(response.body).to include("Normal payment mode")
+    expect(response.body).to include("Declare Stripe outage for 30 minutes")
+
+    get practice_appointments_path
+    expect(response.body).to include("Possible Stripe connectivity issue detected")
+    expect(response.body).to include("Review Stripe outage controls")
+
+    staff_member.update!(access_level: "staff_admin")
+    get practice_appointments_path
+    expect(response.body).not_to include("Possible Stripe connectivity issue detected")
+  end
+
+  it "keeps cross-practice outage declarations restricted to local senior staff" do
+    sibling = create(:practice, medical_group: practice.medical_group)
+    expect {
+      Payments::StripeOutageDeclaration.activate!(
+        practice: sibling, actor: staff_member, reason: "Confirmed"
+      )
+    }.to raise_error(Payments::StripeOutageDeclaration::Unauthorized)
+  end
+
+  it "does not show suspected outages belonging to a different medical group" do
+    other_practice = create(:practice)
+    3.times do
+      payment = create(:payment, appointment: create(:appointment, practice: other_practice))
+      Payments::StripeOutageMonitor.record_failure(
+        payment: payment, error: Stripe::APIConnectionError.new("Stripe unavailable"),
+        source: "payment_intent_create"
+      )
+    end
+
+    get "/practice/stripe-outage"
+    expect(response.body).not_to include("Possible Stripe connectivity issue detected")
+
+    get practice_appointments_path
+    expect(response.body).not_to include("Possible Stripe connectivity issue detected")
+  end
 end

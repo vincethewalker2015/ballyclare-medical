@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 430" role="img" aria-labelledby="title desc">
+<title id="title">Stripe outage management suspected issue and normal payment mode</title>
+<desc id="desc">Simplified illustrative user interface, not a screenshot.</desc>
+<rect width="1000" height="430" fill="#f5f3ef"/>
+<text x="35" y="62" font-family="Arial,sans-serif" font-size="37" font-weight="bold" fill="#193654">Stripe outage management</text>
+<rect x="35" y="93" width="930" height="184" rx="18" fill="#fffae9" stroke="#e9ad00" stroke-width="2"/>
+<text x="60" y="137" font-family="Arial,sans-serif" font-size="25" font-weight="bold" fill="#873809">Possible Stripe connectivity issue detected</text>
+<text x="60" y="175" font-family="Arial,sans-serif" font-size="17" fill="#873809">Independently verify Stripe availability before declaring an outage.</text>
+<text x="60" y="205" font-family="Arial,sans-serif" font-size="17" fill="#873809">The emergency unpaid-booking fallback has not been activated.</text>
+<text x="60" y="235" font-family="Arial,sans-serif" font-size="17" fill="#873809">This advisory remains visible for up to 30 minutes.</text>
+<rect x="35" y="301" width="930" height="110" rx="18" fill="white" stroke="#d5dfdf"/>
+<text x="60" y="350" font-family="Arial,sans-serif" font-size="25" font-weight="bold" fill="#193654">Current status</text>
+<rect x="708" y="320" width="227" height="47" rx="23" fill="#e5f2ef"/>
+<text x="728" y="350" font-family="Arial,sans-serif" font-size="19" font-weight="bold" fill="#216c64">Normal payment mode</text>
+<text x="60" y="386" font-family="Arial,sans-serif" font-size="16" fill="#647780">Emergency unpaid online booking is inactive.</text>
+</svg>

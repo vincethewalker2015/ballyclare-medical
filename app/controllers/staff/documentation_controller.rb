@@ -42,6 +42,10 @@ module Staff
         Rails.root.join("docs/images/user_manual/new-staff-member-illustration.png")
       when "staff-invitation-flow-illustration.png"
         Rails.root.join("docs/images/user_manual/staff-invitation-flow-illustration.png")
+      when "stripe-outage-diary-illustration.svg"
+        Rails.root.join("docs/images/user_manual/stripe-outage-diary-illustration.svg")
+      when "stripe-outage-management-illustration.svg"
+        Rails.root.join("docs/images/user_manual/stripe-outage-management-illustration.svg")
       end
 
       return head :not_found unless image_path&.file?

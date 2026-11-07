@@ -27,6 +27,11 @@ module Payments
         Payments::HandleFailed.new(payment_intent: intent).call unless payment.appointment_id.present?
       end
       payment.reload
+    rescue Stripe::APIConnectionError, Stripe::APIError => error
+      Payments::StripeOutageMonitor.record_failure(
+        payment: payment, error: error, source: "payment_intent_retrieve"
+      )
+      raise
     end
 
     private

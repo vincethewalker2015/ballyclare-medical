@@ -56,6 +56,12 @@ module PaymentProviders
         end
 
         payment_intent
+      rescue Stripe::APIConnectionError, Stripe::APIError => error
+        Payments::StripeOutageMonitor.record_failure(
+          payment: payment, error: error,
+          source: payment.provider_payment_id.present? ? "payment_intent_retrieve" : "payment_intent_create"
+        )
+        raise
       end
 
       private

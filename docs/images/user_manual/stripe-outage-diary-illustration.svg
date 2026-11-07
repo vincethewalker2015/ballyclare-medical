@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 430" role="img" aria-labelledby="title desc">
+<title id="title">Appointment diary suspected Stripe outage warning</title>
+<desc id="desc">Simplified illustrative user interface, not a screenshot.</desc>
+<rect width="1000" height="430" fill="#f5f3ef"/>
+<rect x="35" y="28" width="930" height="177" rx="18" fill="#fffae9" stroke="#e9ad00" stroke-width="2"/>
+<text x="60" y="70" font-family="Arial,sans-serif" font-size="25" font-weight="bold" fill="#873809">Possible Stripe connectivity issue detected</text>
+<text x="60" y="109" font-family="Arial,sans-serif" font-size="17" fill="#873809">Multiple payment attempts encountered Stripe API failures.</text>
+<text x="60" y="138" font-family="Arial,sans-serif" font-size="17" fill="#873809">Emergency unpaid bookings are not automatically enabled.</text>
+<text x="60" y="180" font-family="Arial,sans-serif" font-size="18" text-decoration="underline" fill="#873809">Review Stripe outage controls</text>
+<text x="40" y="264" font-family="Arial,sans-serif" font-size="16" letter-spacing="3" fill="#24776f">PRACTICE</text>
+<text x="40" y="316" font-family="Arial,sans-serif" font-size="42" font-weight="bold" fill="#193654">Appointments</text>
+<rect x="40" y="345" width="920" height="64" rx="13" fill="white" stroke="#d5dfdf"/>
+<text x="64" y="385" font-family="Arial,sans-serif" font-size="22" fill="#193654">Appointment diary</text>
+</svg>

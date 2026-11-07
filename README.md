@@ -2,6 +2,30 @@
 
 A Ruby on Rails medical practice application using PostgreSQL, Hotwire, and Stripe integration.
 
+## Contents
+
+- [Local development: first-time setup](#local-development-first-time-setup)
+  - [Subsequent development sessions](#subsequent-development-sessions)
+  - [Common setup problems](#common-setup-problems)
+- [Payments](#payments)
+- [Stripe suspected-outage testing (development only)](#stripe-suspected-outage-testing-development-only)
+  - [Automated detection and integration tests](#automated-detection-and-integration-tests)
+  - [Browser smoke test without creating payments](#browser-smoke-test-without-creating-payments)
+  - [Pitfalls from manual testing](#pitfalls-from-manual-testing)
+- [Stripe development setup](#stripe-development-setup)
+  - [Verify the Stripe sandbox](#verify-the-stripe-sandbox)
+  - [Recurring payment recovery in development](#recurring-payment-recovery-in-development)
+  - [Local webhooks](#local-webhooks)
+  - [Stripe sandbox refund verification](#stripe-sandbox-refund-verification)
+- [Development setup](#development-setup)
+- [Local development: create a second practice for booking isolation tests](#local-development-create-a-second-practice-for-booking-isolation-tests)
+- [Practice administration: initial administrator setup](#practice-administration-initial-administrator-setup)
+  - [Provisioning the first Senior Staff Admin](#provisioning-the-first-senior-staff-admin-platform-operators)
+  - [Staff invitation email configuration](#staff-invitation-email-configuration)
+  - [Guest refund exceptions: operational review](#guest-refund-exceptions-operational-review)
+
+---
+
 ## Local development: first-time setup
 
 These instructions are for a developer setting up a **local desktop or laptop**, especially macOS. They do not connect to the Render production database.
@@ -188,6 +212,117 @@ Add your Stripe test secret key when testing Stripe integration:
     STRIPE_SECRET_KEY=your_test_secret_key
 
 Do not commit `.env` or `.env.development` files containing credentials.
+
+## Stripe suspected-outage testing (development only)
+
+The suspected-outage monitor is **advisory**. Three distinct Stripe
+payments with connection/API errors within five minutes in one practice
+can produce a 30-minute warning for Senior Staff Admins. It must **never**
+automatically activate emergency unpaid bookings.
+
+### Automated detection and integration tests
+
+Run these first; they use test data and mocked Stripe failures:
+
+```bash
+bundle exec rspec spec/services/payments/stripe_outage_monitor_spec.rb \
+  spec/services/payments/stripe_outage_integration_spec.rb \
+  spec/requests/staff/stripe_outage_spec.rb \
+  spec/jobs/reconcile_processing_appointment_payments_job_spec.rb
+```
+
+The tests cover failure aggregation, practice isolation, notification
+behaviour and the separation between an advisory and a manual declaration.
+Running RSpec is **not** a substitute for verifying the browser presentation.
+
+### Browser smoke test without creating payments
+
+Use this **only against a disposable/local development database containing
+fictional test data**. The following test inserts **one synthetic audit event**
+for the selected practice; it does not contact Stripe, create patients,
+appointments or payments, queue an alert email, or activate the fallback.
+It checks the *UI presentation*, **not** the automatic failure detector.
+
+Start `bin/rails console` in the local development environment and run:
+
+```ruby
+raise "Development only" unless Rails.env.development?
+
+# Use the practice you are actually viewing in the browser.
+# Find it by ID to avoid surprises from trailing spaces in names.
+practice = Practice.find_by!(id: "REPLACE_WITH_LOCAL_PRACTICE_ID")
+raise "Outage fallback already active" if Payments::StripeOutageDeclaration.active?(practice: practice)
+
+event = AuditEvent.create!(
+  practice: practice,
+  auditable: practice,
+  action: Payments::StripeOutageMonitor::SUSPECTED_ACTION,
+  metadata: {
+    distinct_payments: 3,
+    window_minutes: 5,
+    source: "manual_browser_smoke_test"
+  }
+)
+
+puts "Practice: #{practice.name.strip}"
+puts "Warning present: #{Payments::StripeOutageMonitor.suspected_event(practice: practice).present?}"
+puts "Emergency fallback active: #{Payments::StripeOutageDeclaration.active?(practice: practice)}"
+puts "Test event ID: #{event.id}"
+```
+
+Expected results: `Warning present: true` and
+`Emergency fallback active: false`.
+
+Sign in as an **authorised Senior Staff Admin**, select that **same
+practice** under **Working at**, then refresh:
+
+- `/practice/appointments` — amber **Possible Stripe connectivity issue
+  detected** banner and **Review Stripe outage controls** link.
+- `/practice/stripe-outage` — amber advisory **and** **Normal payment mode**.
+
+The banner expires after 30 minutes. An alert created for another practice
+will **not** appear in the currently selected practice, even if both belong
+to the same medical group. See the illustrated operator walkthrough in
+[the user manual](docs/user_manual.md#suspected-stripe-outage-notifications).
+
+Check for existing recent synthetic alerts before starting a repeat test.
+After creating the event, verify that the monitor selects **this event**:
+
+```ruby
+raise "Unexpected alert selected" unless Payments::StripeOutageMonitor.suspected_event(practice: practice)&.id == event.id
+```
+
+**Clean up the synthetic event** in the *same console session* after the
+browser check (do not delete real monitoring events):
+
+```ruby
+raise "Development only" unless Rails.env.development?
+raise "Not the synthetic test event" unless event&.metadata&.fetch("source", nil) == "manual_browser_smoke_test"
+AuditEvent.where(id: event.id, practice: practice,
+  action: Payments::StripeOutageMonitor::SUSPECTED_ACTION).delete_all
+```
+
+If the console session was closed, find the exact synthetic event by its
+printed ID and verify its `metadata["source"]` before removing it.
+
+### Pitfalls from manual testing
+
+- `Practice.first!` may select **a different practice** from the one
+  shown in the browser. Use the correct local practice ID; a name may
+  contain trailing whitespace.
+- Creating new patients with factories can fail with **Email has already
+  been taken**. Creating payment records can fail with **Idempotency key
+  has already been taken**. Do **not** bypass uniqueness checks or attach
+  cross-practice records just to make a banner appear.
+- Artificial pending payments on existing appointments can alter financial
+  and reconciliation displays. Prefer the synthetic audit-event UI test
+  above, then remove that event.
+- A queued or executed mailer job does **not** prove external email
+  delivery; outgoing SMTP configuration must be verified separately.
+- Do **not** declare a real emergency outage as part of this UI test.
+  The manual 30-minute fallback must remain off.
+
+---
 
 ## Stripe development setup
 

@@ -4,9 +4,12 @@ module Staff
 
     def show
       @outage_active = Payments::StripeOutageDeclaration.active?(practice: current_practice)
+      @suspected_outage = Payments::StripeOutageMonitor.suspected_event(practice: current_practice)
+      @can_declare_outage = current_staff_member.practice_id == current_practice.id
     end
 
     def create
+      return head :forbidden unless current_staff_member.practice_id == current_practice.id
       Payments::StripeOutageDeclaration.activate!(
         practice: current_practice,
         actor: current_staff_member,
@@ -20,6 +23,7 @@ module Staff
     end
 
     def update
+      return head :forbidden unless current_staff_member.practice_id == current_practice.id
       Payments::StripeOutageDeclaration.deactivate!(
         practice: current_practice,
         actor: current_staff_member,

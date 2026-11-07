@@ -2,6 +2,13 @@
 <%= turbo_stream_from [@practice, :appointments] %>
 
 <div class="space-y-8">
+  <% if @stripe_outage_suspected %>
+    <div role="alert" class="rounded-2xl border border-amber-300 bg-amber-50 p-5 text-amber-900">
+      <p class="font-semibold">Possible Stripe connectivity issue detected</p>
+      <p class="mt-2 text-sm">Multiple payment attempts encountered Stripe API failures. Check Stripe independently. Emergency unpaid bookings are not automatically enabled.</p>
+      <%= link_to "Review Stripe outage controls", practice_stripe_outage_path, class: "mt-3 inline-block text-sm font-semibold underline" %>
+    </div>
+  <% end %>
   <header class="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
     <div>
       <p class="mb-2 text-sm font-semibold uppercase tracking-[0.16em] text-medical-teal">

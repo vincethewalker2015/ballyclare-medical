@@ -277,6 +277,11 @@ RSpec.describe ReconcileProcessingAppointmentPaymentsJob, type: :job do
 
       expect(unavailable_payment.reload.status).to eq("processing")
       expect(recovered_payment.reload.status).to eq("succeeded")
+      monitoring = AuditEvent.find_by!(
+        practice: appointment.practice, action: Payments::StripeOutageMonitor::FAILURE_ACTION
+      )
+      expect(monitoring.metadata.fetch("payment_id")).to eq(unavailable_payment.id)
+      expect(monitoring.metadata.fetch("source")).to eq("appointment_reconciliation")
     end
   end
 end

@@ -9,7 +9,9 @@ module Payments
     SUSPECTED_ACTION = "stripe_outage.suspected"
 
     def self.record_failure(payment:, error:, source:)
-      return unless payment&.provider == "stripe"
+      # Only persisted payment records can be attributed to a practice.
+      # Do not let monitoring inspect lightweight payment test doubles.
+      return unless payment.is_a?(Payment) && payment.persisted? && payment.provider == "stripe"
       return unless error.is_a?(Stripe::APIConnectionError) || error.is_a?(Stripe::APIError)
 
       practice = payment.appointment&.practice ||

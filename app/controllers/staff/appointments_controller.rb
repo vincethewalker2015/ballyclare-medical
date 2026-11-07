@@ -115,7 +115,7 @@ module Staff
     def status
       # Clinical consultations must be started through Consultations::Start,
       # which enforces assigned-clinician access and creates the encounter/audit.
-      if params[:status] == "in_consultation"
+      if %w[in_consultation completed referred].include?(params[:status])
         return head :forbidden
       end
 

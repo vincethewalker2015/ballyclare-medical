@@ -35,6 +35,7 @@
     <% end %>
   </section>
 
+  <% if @can_declare_outage %>
   <section class="mt-6 rounded-2xl border border-medical-border bg-white p-6 sm:p-8" aria-labelledby="stripe-outage-action">
     <% if @outage_active %>
       <h2 id="stripe-outage-action" class="text-xl font-semibold text-medical-navy">End the outage declaration</h2>
@@ -62,6 +63,10 @@
       <% end %>
     <% end %>
   </section>
+
+  <% else %>
+    <p class="mt-6 text-sm text-medical-muted" role="status">Only a Senior Staff Admin assigned to this practice can declare or end its emergency fallback.</p>
+  <% end %>
 
   <p class="mt-6 text-sm text-medical-muted">After Stripe recovers, use <%= link_to "Booking payment reconciliations", practice_booking_payment_reconciliations_path, class: "font-semibold text-medical-teal-dark underline" %> to investigate outstanding or uncertain payment outcomes.</p>
 </div>

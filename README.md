@@ -285,6 +285,13 @@ will **not** appear in the currently selected practice, even if both belong
 to the same medical group. See the illustrated operator walkthrough in
 [the user manual](docs/user_manual.md#suspected-stripe-outage-notifications).
 
+Check for existing recent synthetic alerts before starting a repeat test.
+After creating the event, verify that the monitor selects **this event**:
+
+```ruby
+raise "Unexpected alert selected" unless Payments::StripeOutageMonitor.suspected_event(practice: practice)&.id == event.id
+```
+
 **Clean up the synthetic event** in the *same console session* after the
 browser check (do not delete real monitoring events):
 

@@ -106,6 +106,31 @@ RSpec.describe Payments::StripeOutageMonitor do
     expect(AuditEvent.where(action: described_class::SUSPECTED_ACTION)).to be_empty
   end
 
+  it "ignores invalid Stripe requests, authentication and rate limits" do
+    errors = [
+      Stripe::InvalidRequestError.new("Invalid parameter", "amount"),
+      Stripe::AuthenticationError.new("Bad credentials"),
+      Stripe::RateLimitError.new("Rate limited")
+    ]
+    errors.each { |error| expect(fail_payment(payment_at(practice), error: error)).to be_nil }
+    expect(AuditEvent.where(practice: practice, action: described_class::FAILURE_ACTION)).to be_empty
+  end
+
+  it "retries notification enqueue on a subsequent failure without another alert" do
+    2.times { fail_payment(payment_at(practice)) }
+    allow(StripeOutageAlertMailer).to receive(:suspected).and_raise(StandardError, "Queue unavailable")
+    expect(fail_payment(payment_at(practice))).to be(false)
+    alert = AuditEvent.where(practice: practice, action: described_class::SUSPECTED_ACTION).sole
+    expect(alert.metadata.fetch("notification_queued")).to be(false)
+
+    allow(StripeOutageAlertMailer).to receive(:suspected).and_call_original
+    expect {
+      expect(fail_payment(payment_at(practice))).to be(true)
+    }.to have_enqueued_job(ActionMailer::MailDeliveryJob).exactly(:once)
+    expect(alert.reload.metadata.fetch("notification_queued")).to be(true)
+    expect(AuditEvent.where(practice: practice, action: described_class::SUSPECTED_ACTION).count).to eq(1)
+  end
+
   it "uses only authorized group administrators as email recipients" do
     sibling = create(:practice, medical_group: practice.medical_group)
     sibling_senior = create(:staff_member, practice: sibling,

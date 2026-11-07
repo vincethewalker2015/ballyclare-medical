@@ -168,6 +168,15 @@ RSpec.describe "Senior staff Stripe outage controls", type: :request do
     expect(response.body).not_to include("Possible Stripe connectivity issue detected")
   end
 
+  it "keeps cross-practice outage declarations restricted to local senior staff" do
+    sibling = create(:practice, medical_group: practice.medical_group)
+    expect {
+      Payments::StripeOutageDeclaration.activate!(
+        practice: sibling, actor: staff_member, reason: "Confirmed"
+      )
+    }.to raise_error(Payments::StripeOutageDeclaration::Unauthorized)
+  end
+
   it "does not show suspected outages belonging to a different medical group" do
     other_practice = create(:practice)
     3.times do

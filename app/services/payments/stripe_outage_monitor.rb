@@ -12,14 +12,13 @@ module Payments
       # Only persisted payment records can be attributed to a practice.
       # Do not let monitoring inspect lightweight payment test doubles.
       return unless payment.is_a?(Payment) && payment.persisted? && payment.provider == "stripe"
-      return unless error.is_a?(Stripe::APIConnectionError) || error.is_a?(Stripe::APIError)
+      return unless eligible_error?(error)
 
       practice = payment.appointment&.practice ||
         payment.appointment_hold&.appointment_slot&.practice ||
         payment.guest_booking&.practice
       return unless practice
 
-      suspected = false
       practice.with_lock do
         events = AuditEvent.where(practice: practice, auditable: practice,
           action: FAILURE_ACTION).where("created_at > ?", WINDOW.ago)
@@ -41,18 +40,33 @@ module Payments
           AuditEvent.create!(
             practice: practice, auditable: practice, action: SUSPECTED_ACTION,
             metadata: { distinct_payments: affected_payments.size,
-                        window_minutes: WINDOW.in_minutes }
+                        window_minutes: WINDOW.in_minutes, notification_queued: false }
           )
-          suspected = true
         end
       end
 
-      StripeOutageAlertMailer.suspected(practice: practice).deliver_later if suspected
-      suspected
+      # Keep a pending notification marker if enqueue fails; a later failure
+      # retries without creating another advisory. Lock prevents concurrent queues.
+      practice.with_lock do
+        alert = AuditEvent.where(practice: practice, auditable: practice,
+          action: SUSPECTED_ACTION).where("created_at > ?", ALERT_COOLDOWN.ago)
+          .order(created_at: :desc, id: :desc).first
+        return false unless alert && alert.metadata["notification_queued"] == false
+
+        StripeOutageAlertMailer.suspected(practice: practice).deliver_later
+        alert.update!(metadata: alert.metadata.merge("notification_queued" => true))
+        true
+      end
     rescue StandardError => monitor_error
       # Monitoring must never mask Stripe's original failure.
       Rails.logger.error("Stripe outage monitoring unavailable: #{monitor_error.class}")
       false
+    end
+
+    def self.eligible_error?(error)
+      return true if error.is_a?(Stripe::APIConnectionError)
+      error.is_a?(Stripe::APIError) &&
+        (error.http_status.nil? || (500..599).cover?(error.http_status))
     end
 
     def self.suspected_event(practice:)

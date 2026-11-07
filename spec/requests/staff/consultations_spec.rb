@@ -333,7 +333,7 @@ RSpec.describe "Clinician consultation entry", type: :request do
 
     it "forbids non-clinical administration and colleagues" do
       other_user = create(:user)
-      other = create(:staff_member, user: other_user, practice: practice, staff_type: "doctor", access_level: "staff_clinician")
+      create(:staff_member, user: other_user, practice: practice, staff_type: "doctor", access_level: "staff_clinician")
       sign_out user
       sign_in other_user
       expect {

@@ -17,6 +17,7 @@ Ballyclare Medical. It is being expanded as new features become available.
 - [Booking an Appointment](#booking-an-appointment)
 - [Cancelling an Appointment](#cancelling-an-appointment)
 - [Payments and Refunds](#payments-and-refunds)
+- [Suspected Stripe Outage Notifications](#suspected-stripe-outage-notifications)
 - [Stripe Booking Payment Reconciliation](#stripe-booking-payment-reconciliation)
 - [Clinical Consultations and Patient Documents](#clinical-consultations-and-patient-documents)
 - [Clinician Availability](#clinician-availability)

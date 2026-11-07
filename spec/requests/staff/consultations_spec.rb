@@ -363,7 +363,7 @@ RSpec.describe "Clinician consultation entry", type: :request do
       amendment = ClinicalNoteAmendment.last
       expect(amendment.update(body: "Overwritten")).to be(false)
       expect(amendment.reload.body).to eq("Recorded correction")
-      expect(amendment.destroy).to be(false)
+      expect(amendment.destroy.destroyed?).to be(false)
       expect(ClinicalNoteAmendment.where(id: amendment.id)).to exist
     end
 

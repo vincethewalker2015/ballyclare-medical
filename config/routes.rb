@@ -28,6 +28,7 @@ Rails.application.routes.draw do
   patch "/patient-portal/appointments/:appointment_id/reschedule", to: "patient_portal/appointment_reschedules#update", as: :patient_portal_appointment_reschedule
   patch "/patient-portal/appointments/:appointment_id/cancel", to: "patient_portal/appointment_cancellations#update", as: :patient_portal_cancel_appointment
   get "/patient-portal/clinical-documents", to: "patient_portal/clinical_documents#index", as: :patient_portal_clinical_documents
+  get "/patient-portal/clinical-documents/:id/download", to: "patient_portal/clinical_documents#download", as: :download_patient_portal_clinical_document
   get "/patient-portal/appointment-history", to: "patient_portal/appointment_history#index", as: :patient_portal_appointment_history
   get "/patient-portal/appointments", to: "patient_portal/appointments#index", as: :patient_portal_appointments
   get "/patient-portal/appointments/:appointment_id/outstanding-payment", to: "patient_portal/outstanding_payments#show", as: :patient_portal_outstanding_payment

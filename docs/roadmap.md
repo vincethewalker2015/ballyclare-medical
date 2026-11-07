@@ -733,6 +733,44 @@ part of this initial consultation milestone.
 
 ## Phase 7 --- Charges, Services, and Practice Fee Catalogue
 
+### Phase 7 priority: Clinician patient record and longitudinal history
+
+**Status: Planned — proposed first Phase 7 work package (November 2026).**
+
+Enable authorised clinicians to find and review a patient's clinical history
+independently of an active appointment or consultation. The existing
+practice-scoped patient search and demographic detail screen are the starting
+point; they do not yet provide a complete longitudinal clinical record.
+
+- Provide a clinician-accessible patient search by name and patient number,
+  linking to a dedicated read-only clinical record screen.
+- Show patient identity and demographics, chronological past encounters and
+  consultations, signed clinical notes, immutable amendments, and explicitly
+  released clinical documents where relevant. Distinguish internal notes from
+  patient-facing releases; do not silently publish internal clinical material.
+- Permit history review before, during and after an appointment without
+  starting or changing consultation state.
+- Enforce server-side practice isolation and clinical-record authorisation
+  on every search, record, note and document query. Operational access to
+  demographic records must not imply access to clinical content.
+- Audit clinical-record views and sensitive access without copying clinical
+  note contents into audit metadata. Avoid leaking records through search
+  results, URLs, caching or error responses.
+- Preserve signed-note immutability and the existing amendment workflow;
+  historical views are read-only.
+- Include request/service/system regression coverage for clinician access,
+  unauthorised staff, cross-practice access, revoked access where applicable,
+  history ordering, amendments and empty records; verify accessibility and
+  usability in the browser.
+
+**Acceptance outcome:** A clinician can locate a patient and review the
+authorised longitudinal record without opening a consultation, while
+administrative-only users and other practices cannot view clinical history.
+
+This work package is scheduled first for Phase 7 planning; the existing
+charges, services and fee-catalogue scope remains in Phase 7 and is not
+removed or considered delivered by this addition.
+
 **Status: Planned — initial consultation-fee configuration pulled forward**
 
 **Confirmed product decision (October 2026):** configure fees **per clinician

@@ -2,6 +2,7 @@ class ClinicalNote < ApplicationRecord
   belongs_to :patient
   belongs_to :encounter
   belongs_to :author, class_name: "StaffMember"
+  has_many :amendments, class_name: "ClinicalNoteAmendment", dependent: :restrict_with_error
 
   validates :note_type, presence: true
   validates :status, inclusion: { in: %w[draft signed] }

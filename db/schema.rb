@@ -159,9 +159,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_170000) do
     t.string "title", null: false
     t.text "body", null: false
     t.datetime "released_at", null: false
-    t.boolean "printable", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "printable", default: false, null: false
     t.index ["encounter_id"], name: "index_clinical_document_releases_on_encounter_id"
     t.index ["patient_id"], name: "index_clinical_document_releases_on_patient_id"
     t.index ["practice_id", "patient_id", "released_at"], name: "index_clinical_releases_for_patient"
@@ -178,6 +178,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_170000) do
     t.datetime "updated_at", null: false
     t.index ["author_id"], name: "index_clinical_note_amendments_on_author_id"
     t.index ["clinical_note_id", "created_at"], name: "index_clinical_note_amendments_on_note_and_created_at"
+    t.index ["clinical_note_id"], name: "index_clinical_note_amendments_on_clinical_note_id"
   end
 
   create_table "clinical_notes", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|

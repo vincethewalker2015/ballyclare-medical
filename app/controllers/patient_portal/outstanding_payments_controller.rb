@@ -14,10 +14,10 @@ module PatientPortal
         intent = PaymentProviders::StripeProvider::CreatePayment.new(payment: payment).call
         if intent.status.in?(%w[requires_payment_method requires_confirmation requires_action])
           @payment, @client_secret = payment, intent.client_secret
-          return render :confirm
+          render :confirm
         elsif intent.status == "succeeded"
           Payments::HandleSucceeded.new(payment_intent: intent).call
-          return redirect_to patient_portal_payment_path(payment)
+          redirect_to patient_portal_payment_path(payment)
         elsif intent.status == "canceled"
           Payments::ReconcileAppointmentPayment.new(payment: payment).call
           @in_progress = @appointment.payments.where(status: %w[pending processing]).exists?

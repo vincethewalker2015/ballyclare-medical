@@ -5,6 +5,7 @@ module Staff
     def show
       @draft = @appointment.encounter&.clinical_notes&.find_by(note_type: "consultation", status: "draft")
       @signed_note = @appointment.encounter&.clinical_notes&.find_by(note_type: "consultation", status: "signed")
+      @amendments = @signed_note ? @signed_note.amendments.includes(:author).order(:created_at, :id) : []
       # Previous notes remain inside this practice; neither administration nor
       # patient-portal endpoints inherit this clinical-record permission.
       @previous_encounters = current_practice.encounters
@@ -58,6 +59,19 @@ module Staff
       redirect_to practice_appointment_consultation_path(@appointment), alert: "Draft has changed. Review the latest version before signing."
     rescue Consultations::SignAndComplete::InvalidState => error
       redirect_to practice_appointment_consultation_path(@appointment), alert: error.message
+    end
+
+    def amend
+      Consultations::AddAmendment.new(
+        appointment: @appointment, clinician: current_staff_member, user: current_user,
+        body: params.require(:clinical_note_amendment).fetch(:body),
+        reason: params.require(:clinical_note_amendment).fetch(:reason)
+      ).call
+      redirect_to practice_appointment_consultation_path(@appointment), notice: "Signed-note amendment recorded."
+    rescue Consultations::AddAmendment::InvalidState => error
+      redirect_to practice_appointment_consultation_path(@appointment), alert: error.message
+    rescue ActiveRecord::RecordInvalid
+      redirect_to practice_appointment_consultation_path(@appointment), alert: "Enter a reason and amendment text."
     end
 
     def release_document

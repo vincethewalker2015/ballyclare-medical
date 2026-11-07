@@ -1,6 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Payments::StripeOutageMonitor do
+  include ActiveSupport::Testing::TimeHelpers
   let(:practice) { create(:practice) }
   let!(:senior) { create(:staff_member, practice: practice, access_level: "senior_staff_admin") }
   let(:timeout) { Stripe::APIConnectionError.new("Connection timed out") }

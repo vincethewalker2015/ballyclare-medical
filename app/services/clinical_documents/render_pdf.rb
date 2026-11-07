@@ -1,12 +1,23 @@
 module ClinicalDocuments
   class RenderPdf
+    FONT_PATHS = [
+      "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+      "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+      "/Library/Fonts/Arial Unicode.ttf",
+      "/System/Library/Fonts/Supplemental/Arial Unicode.ttf"
+    ].freeze
+
     def initialize(release:)
       @release = release
     end
 
     def call
+      font_path = ENV["CLINICAL_PDF_FONT_PATH"].presence || FONT_PATHS.find { |path| File.file?(path) }
+      raise "Clinical PDF Unicode font missing; set CLINICAL_PDF_FONT_PATH" unless font_path && File.file?(font_path)
+
       Prawn::Document.new(page_size: "A4", margin: 54) do |pdf|
-        pdf.font "Helvetica"
+        pdf.font_families.update("ClinicalUnicode" => { normal: font_path, bold: font_path })
+        pdf.font "ClinicalUnicode"
         pdf.text @release.practice.name, size: 17, style: :bold
         pdf.move_down 22
         pdf.text @release.title, size: 15, style: :bold

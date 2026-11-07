@@ -59,6 +59,36 @@ RSpec.describe "Patient portal clinical document releases", type: :request do
     expect(response).to have_http_status(:not_found)
   end
 
+  it "renders Unicode patient details and a long multi-page document" do
+    approve_link
+    patient.update!(first_name: "José", last_name: "Müller")
+    release = release_for(patient_record: patient, clinician_record: clinician,
+      title: "Résumé – consultation", body: ("Café, naïve, £, € and clinical follow-up.\n" * 350))
+    release.update!(printable: true)
+    sign_in account, scope: :patient_account
+
+    get download_patient_portal_clinical_document_path(release)
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to start_with("%PDF")
+    expect(response.body.scan(%r{/Type /Page\b}).size).to be > 1
+  end
+
+  it "does not record a successful download audit when PDF rendering fails" do
+    approve_link
+    release = release_for(patient_record: patient, clinician_record: clinician,
+      title: "Guidance", body: "Private medical advice")
+    release.update!(printable: true)
+    sign_in account, scope: :patient_account
+    allow_any_instance_of(ClinicalDocuments::RenderPdf).to receive(:call)
+      .and_raise(StandardError, "PDF rendering failed")
+
+    expect {
+      expect {
+        get download_patient_portal_clinical_document_path(release)
+      }.to raise_error(StandardError, "PDF rendering failed")
+    }.not_to change { AuditEvent.where(action: "clinical.patient_document_downloaded").count }
+  end
+
   it "denies PDF downloads after the patient's approval is revoked" do
     link = approve_link
     release = release_for(patient_record: patient, clinician_record: clinician,

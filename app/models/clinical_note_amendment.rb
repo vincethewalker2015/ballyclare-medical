@@ -6,6 +6,7 @@ class ClinicalNoteAmendment < ApplicationRecord
   validates :reason, length: { maximum: 500 }
   validate :signed_consultation_and_matching_author
   validate :immutable_after_creation, on: :update
+  before_destroy :prevent_destruction
 
   private
 
@@ -17,6 +18,11 @@ class ClinicalNoteAmendment < ApplicationRecord
         author.active? && author.clinical_access?
       errors.add(:base, "Amendments require an authorised signed consultation note")
     end
+  end
+
+  def prevent_destruction
+    errors.add(:base, "Clinical note amendments cannot be deleted")
+    throw :abort
   end
 
   def immutable_after_creation

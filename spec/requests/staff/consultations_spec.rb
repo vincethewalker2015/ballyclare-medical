@@ -12,6 +12,22 @@ RSpec.describe "Clinician consultation entry", type: :request do
 
   before { sign_in user }
 
+  it "shows the consultation link only after arrival or for an existing consultation" do
+    %w[booked confirmed cancelled completed referred].each do |status|
+      appointment.update!(status: status)
+      get practice_appointment_path(appointment)
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include("Open consultation")
+    end
+
+    %w[arrived in_consultation consultation_interrupted].each do |status|
+      appointment.update!(status: status)
+      get practice_appointment_path(appointment)
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Open consultation")
+    end
+  end
+
   it "hides the consultation start status action from administrators and blocks direct status requests" do
     admin_user = create(:user)
     create(:staff_member, user: admin_user, practice: practice,

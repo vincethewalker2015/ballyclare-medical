@@ -2,6 +2,30 @@
 
 A Ruby on Rails medical practice application using PostgreSQL, Hotwire, and Stripe integration.
 
+## Contents
+
+- [Local development: first-time setup](#local-development-first-time-setup)
+  - [Subsequent development sessions](#subsequent-development-sessions)
+  - [Common setup problems](#common-setup-problems)
+- [Payments](#payments)
+- [Stripe suspected-outage testing (development only)](#stripe-suspected-outage-testing-development-only)
+  - [Automated detection and integration tests](#automated-detection-and-integration-tests)
+  - [Browser smoke test without creating payments](#browser-smoke-test-without-creating-payments)
+  - [Pitfalls from manual testing](#pitfalls-from-manual-testing)
+- [Stripe development setup](#stripe-development-setup)
+  - [Verify the Stripe sandbox](#verify-the-stripe-sandbox)
+  - [Recurring payment recovery in development](#recurring-payment-recovery-in-development)
+  - [Local webhooks](#local-webhooks)
+  - [Stripe sandbox refund verification](#stripe-sandbox-refund-verification)
+- [Development setup](#development-setup)
+- [Local development: create a second practice for booking isolation tests](#local-development-create-a-second-practice-for-booking-isolation-tests)
+- [Practice administration: initial administrator setup](#practice-administration-initial-administrator-setup)
+  - [Provisioning the first Senior Staff Admin](#provisioning-the-first-senior-staff-admin-platform-operators)
+  - [Staff invitation email configuration](#staff-invitation-email-configuration)
+  - [Guest refund exceptions: operational review](#guest-refund-exceptions-operational-review)
+
+---
+
 ## Local development: first-time setup
 
 These instructions are for a developer setting up a **local desktop or laptop**, especially macOS. They do not connect to the Render production database.

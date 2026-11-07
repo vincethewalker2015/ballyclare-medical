@@ -12,7 +12,7 @@ module Staff
       @previous_encounters = current_practice.encounters
         .where(patient_id: @appointment.patient_id)
         .where("appointment_id IS NULL OR appointment_id <> ?", @appointment.id)
-        .includes(:clinician, clinical_notes: [:author, { amendments: :author }])
+        .includes(:clinician, clinical_notes: [ :author, { amendments: :author } ])
         .order(started_at: :desc, created_at: :desc)
 
       AuditEvent.create!(

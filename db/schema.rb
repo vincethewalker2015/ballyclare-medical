@@ -173,10 +173,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_190000) do
     t.uuid "clinical_note_id", null: false
     t.uuid "author_id", null: false
     t.string "reason", null: false
-    t.string "submission_token"
     t.text "body", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "submission_token"
     t.index ["author_id"], name: "index_clinical_note_amendments_on_author_id"
     t.index ["clinical_note_id", "created_at"], name: "index_clinical_note_amendments_on_note_and_created_at"
     t.index ["clinical_note_id", "submission_token"], name: "index_clinical_note_amendments_on_note_and_submission", unique: true

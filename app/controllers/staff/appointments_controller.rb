@@ -113,6 +113,12 @@ module Staff
     end
 
     def status
+      # Clinical consultations must be started through Consultations::Start,
+      # which enforces assigned-clinician access and creates the encounter/audit.
+      if %w[in_consultation consultation_interrupted completed referred].include?(params[:status])
+        return head :forbidden
+      end
+
       appointment = current_practice.appointments.find(params[:id])
 
       if current_staff_member.access_level == "staff_clinician" && appointment.clinician_id != current_staff_member.id

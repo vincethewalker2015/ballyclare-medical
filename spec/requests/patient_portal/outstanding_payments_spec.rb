@@ -31,14 +31,18 @@ RSpec.describe "Patient portal outstanding payments", type: :request do
     create(:appointment_charge, appointment: appointment, patient: patient, practice: patient.practice,
       amount_cents: 6_500)
     sign_in account, scope: :patient_account
-    intent = instance_double(Stripe::PaymentIntent, id: "pi_balance_test", client_secret: "pi_balance_secret")
+    intent = instance_double(Stripe::PaymentIntent, id: "pi_balance_test", client_secret: "pi_balance_secret", status: "requires_payment_method")
     expect(Stripe::PaymentIntent).to receive(:create).once.and_return(intent)
+    allow(Stripe::PaymentIntent).to receive(:retrieve).with("pi_balance_test").and_return(intent)
 
     get patient_portal_outstanding_payment_path(appointment)
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("£65.00")
 
     expect { post patient_portal_outstanding_payment_path(appointment) }.to change(Payment, :count).by(1)
+    expect(response).to have_http_status(:see_other)
+    expect(response).to redirect_to(patient_portal_outstanding_payment_path(appointment))
+    get patient_portal_outstanding_payment_path(appointment)
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("pi_balance_secret")
     payment = Payment.last
@@ -66,9 +70,30 @@ RSpec.describe "Patient portal outstanding payments", type: :request do
     sign_in account, scope: :patient_account
 
     expect { post patient_portal_outstanding_payment_path(appointment) }.not_to change(Payment, :count)
+    expect(response).to have_http_status(:see_other)
+    expect(response).to redirect_to(patient_portal_outstanding_payment_path(appointment))
+    allow(Stripe::PaymentIntent).to receive(:retrieve).with("pi_recovered").and_return(intent)
+    get patient_portal_outstanding_payment_path(appointment)
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("pi_recovered_secret")
     expect(pending.reload.provider_payment_id).to eq("pi_recovered")
+  end
+
+  it "reopens an existing processing PaymentIntent without another charge" do
+    create(:appointment_charge, appointment: appointment, patient: patient, practice: patient.practice,
+      amount_cents: 4_000)
+    payment = create(:payment, appointment: appointment, patient: patient,
+      amount_cents: 4_000, status: "processing", provider_payment_id: "pi_existing")
+    intent = instance_double(Stripe::PaymentIntent, id: "pi_existing",
+      client_secret: "pi_existing_secret", status: "requires_payment_method")
+    expect(Stripe::PaymentIntent).to receive(:retrieve).with("pi_existing").and_return(intent)
+    expect(Stripe::PaymentIntent).not_to receive(:create)
+    sign_in account, scope: :patient_account
+
+    expect { get patient_portal_outstanding_payment_path(appointment) }.not_to change(Payment, :count)
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("pi_existing_secret")
+    expect(payment.reload.status).to eq("processing")
   end
 
   it "rejects another patient's and another practice's appointments before Stripe" do

@@ -601,13 +601,14 @@ Planned capabilities include:
 
 ## Phase 6 --- Appointment Lifecycle and Clinical Workflow
 
-**Status: In progress — Phase 5 code-security gate completed; clinician consultation workflow is next**
+**Status: In progress — clinician consultation, amendments, patient document release/PDF and interrupted-session workflow implemented on feature branch; final tests and manual acceptance pending**
 
 Appointment transitions and status history have a staff-facing foundation.
-`Encounter` and `ClinicalNote` models also exist, but clinical consultation
-routes, documentation workflows, stricter clinical permissions and amendment/
-audit review remain future work. Do not equate existing models with a completed
-clinical-record feature.
+`Encounter` and `ClinicalNote` support the implemented clinician-only consultation
+workflow. Signed-note amendments, explicit pause/resume of unfinished encounters,
+and deliberate patient-document release with optional PDF download are included
+on the Phase 6 feature branch. Final acceptance is still required before the
+phase is marked complete.
 
 Formalise operational appointment transitions.
 
@@ -675,7 +676,7 @@ Future work should include:
 
 ### Clinician consultation workspace — required before Phase 7
 
-**Status: Planned — Phase 6 completion requirement**
+**Status: Implemented on feature branch — tests and browser acceptance pending**
 
 Build a clinician-focused workflow within the existing `/practice` workspace.
 A clinician must be able to open an authorised appointment, begin its clinical
@@ -731,6 +732,44 @@ part of this initial consultation milestone.
 ------------------------------------------------------------------------
 
 ## Phase 7 --- Charges, Services, and Practice Fee Catalogue
+
+### Phase 7 priority: Clinician patient record and longitudinal history
+
+**Status: Planned — proposed first Phase 7 work package (November 2026).**
+
+Enable authorised clinicians to find and review a patient's clinical history
+independently of an active appointment or consultation. The existing
+practice-scoped patient search and demographic detail screen are the starting
+point; they do not yet provide a complete longitudinal clinical record.
+
+- Provide a clinician-accessible patient search by name and patient number,
+  linking to a dedicated read-only clinical record screen.
+- Show patient identity and demographics, chronological past encounters and
+  consultations, signed clinical notes, immutable amendments, and explicitly
+  released clinical documents where relevant. Distinguish internal notes from
+  patient-facing releases; do not silently publish internal clinical material.
+- Permit history review before, during and after an appointment without
+  starting or changing consultation state.
+- Enforce server-side practice isolation and clinical-record authorisation
+  on every search, record, note and document query. Operational access to
+  demographic records must not imply access to clinical content.
+- Audit clinical-record views and sensitive access without copying clinical
+  note contents into audit metadata. Avoid leaking records through search
+  results, URLs, caching or error responses.
+- Preserve signed-note immutability and the existing amendment workflow;
+  historical views are read-only.
+- Include request/service/system regression coverage for clinician access,
+  unauthorised staff, cross-practice access, revoked access where applicable,
+  history ordering, amendments and empty records; verify accessibility and
+  usability in the browser.
+
+**Acceptance outcome:** A clinician can locate a patient and review the
+authorised longitudinal record without opening a consultation, while
+administrative-only users and other practices cannot view clinical history.
+
+This work package is scheduled first for Phase 7 planning; the existing
+charges, services and fee-catalogue scope remains in Phase 7 and is not
+removed or considered delivered by this addition.
 
 **Status: Planned — initial consultation-fee configuration pulled forward**
 

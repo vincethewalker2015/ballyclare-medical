@@ -13,6 +13,9 @@
         <h2 class="text-lg font-semibold text-medical-navy"><%= release.title %></h2>
         <p class="mt-1 text-xs text-medical-muted">Released <%= release.released_at.in_time_zone(release.practice.timezone).strftime("%d %B %Y at %H:%M") %></p>
         <p class="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-medical-ink"><%= release.body %></p>
+        <% if release.printable? %>
+          <%= link_to "Download PDF", download_patient_portal_clinical_document_path(release), class: "mt-4 inline-block rounded-xl bg-medical-navy px-4 py-2 text-sm font-semibold text-white" %>
+        <% end %>
       </article>
     <% end %>
   <% else %>

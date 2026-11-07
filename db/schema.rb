@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_03_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_07_190000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -161,11 +161,26 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_130000) do
     t.datetime "released_at", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "printable", default: false, null: false
     t.index ["encounter_id"], name: "index_clinical_document_releases_on_encounter_id"
     t.index ["patient_id"], name: "index_clinical_document_releases_on_patient_id"
     t.index ["practice_id", "patient_id", "released_at"], name: "index_clinical_releases_for_patient"
     t.index ["practice_id"], name: "index_clinical_document_releases_on_practice_id"
     t.index ["released_by_id"], name: "index_clinical_document_releases_on_released_by_id"
+  end
+
+  create_table "clinical_note_amendments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "clinical_note_id", null: false
+    t.uuid "author_id", null: false
+    t.string "reason", null: false
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "submission_token"
+    t.index ["author_id"], name: "index_clinical_note_amendments_on_author_id"
+    t.index ["clinical_note_id", "created_at"], name: "index_clinical_note_amendments_on_note_and_created_at"
+    t.index ["clinical_note_id", "submission_token"], name: "index_clinical_note_amendments_on_note_and_submission", unique: true
+    t.index ["clinical_note_id"], name: "index_clinical_note_amendments_on_clinical_note_id"
   end
 
   create_table "clinical_notes", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -674,6 +689,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_130000) do
   add_foreign_key "clinical_document_releases", "patients"
   add_foreign_key "clinical_document_releases", "practices"
   add_foreign_key "clinical_document_releases", "staff_members", column: "released_by_id"
+  add_foreign_key "clinical_note_amendments", "clinical_notes"
+  add_foreign_key "clinical_note_amendments", "staff_members", column: "author_id"
   add_foreign_key "clinical_notes", "encounters"
   add_foreign_key "clinical_notes", "patients"
   add_foreign_key "clinical_notes", "staff_members", column: "author_id"

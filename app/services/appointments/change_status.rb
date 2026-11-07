@@ -8,6 +8,7 @@ module Appointments
       "confirmed" => %w[arrived cancelled did_not_attend],
       "arrived" => %w[in_consultation cancelled],
       "in_consultation" => %w[completed referred],
+      "consultation_interrupted" => [],
       "completed" => [],
       "cancelled" => [],
       "referred" => [],

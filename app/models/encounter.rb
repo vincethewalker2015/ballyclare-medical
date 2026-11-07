@@ -5,6 +5,7 @@ class Encounter < ApplicationRecord
   belongs_to :clinician, class_name: "StaffMember"
 
   has_many :clinical_notes, dependent: :restrict_with_error
+  has_many :clinical_note_amendments, through: :clinical_notes, source: :amendments
 
   validates :encounter_type, :started_at, presence: true
 

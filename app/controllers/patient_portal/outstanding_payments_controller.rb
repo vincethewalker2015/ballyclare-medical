@@ -6,6 +6,24 @@ module PatientPortal
     def show
       @balance = Billing::AppointmentBalance.new(appointment: @appointment).call
       @in_progress = @appointment.payments.where(status: %w[pending processing]).exists?
+      payment = @appointment.payments.where(status: "processing")
+        .where.not(provider_payment_id: nil).order(created_at: :desc).first
+      return unless payment && !Payments::StripeOutageDeclaration.active?(practice: @link.practice)
+
+      result = Payments::ResumeOutstandingPayment.new(payment: payment).call
+      case result.status
+      when :checkout
+        @payment, @client_secret = payment, result.client_secret
+        render :confirm
+      when :succeeded
+        redirect_to patient_portal_payment_path(payment)
+      when :cancelled
+        @in_progress = @appointment.payments.where(status: %w[pending processing]).exists?
+      else
+        @in_progress = true
+      end
+    rescue Stripe::StripeError
+      @in_progress = true
     end
 
     def create
@@ -43,7 +61,7 @@ module PatientPortal
         end
         @payment = pending
         @client_secret = intent.client_secret
-        return render :confirm
+        return redirect_to patient_portal_outstanding_payment_path(@appointment), status: :see_other
       end
 
       result = Payments::TakeAppointmentPayment.new(
@@ -51,7 +69,7 @@ module PatientPortal
       ).call
       @payment = result.payment
       @client_secret = result.payment_intent.client_secret
-      render :confirm
+      redirect_to patient_portal_outstanding_payment_path(@appointment), status: :see_other
     rescue Payments::CreateForAppointment::AmountExceedsBalance,
            Payments::CreateForAppointment::PaymentInProgress,
            Payments::CreateForAppointment::AppointmentCancelled

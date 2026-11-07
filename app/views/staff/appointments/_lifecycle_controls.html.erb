@@ -1,5 +1,5 @@
 <div id="appointment_lifecycle_controls">
-  <% if allowed_status_transitions.any? %>
+  <% if (allowed_status_transitions - %w[in_consultation consultation_interrupted completed referred]).any? %>
     <div class="mt-8 border-t border-medical-border pt-6">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -13,7 +13,7 @@
         </div>
 
         <div class="flex flex-wrap gap-3">
-          <% allowed_status_transitions.each do |next_status| %>
+          <% allowed_status_transitions.reject { |status| %w[in_consultation consultation_interrupted completed referred].include?(status) }.each do |next_status| %>
             <%= button_to(
                   case next_status
                   when "confirmed" then "Confirm"

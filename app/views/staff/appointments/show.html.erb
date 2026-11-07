@@ -198,7 +198,7 @@
         </div>
       </dl>
 
-      <% if @current_staff_member.access_level == "staff_clinician" && @appointment.clinician_id == @current_staff_member.id %>
+      <% if @current_staff_member.access_level == "staff_clinician" && @appointment.clinician_id == @current_staff_member.id && @appointment.status.in?(%w[arrived in_consultation consultation_interrupted]) %>
         <%= link_to "Open consultation", practice_appointment_consultation_path(@appointment),
           class: "mt-6 inline-flex items-center justify-center rounded-full bg-medical-navy px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-medical-navy-deep focus:outline-none focus:ring-2 focus:ring-medical-teal focus:ring-offset-2" %>
       <% end %>

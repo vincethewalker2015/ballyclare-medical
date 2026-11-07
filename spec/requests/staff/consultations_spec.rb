@@ -12,6 +12,93 @@ RSpec.describe "Clinician consultation entry", type: :request do
 
   before { sign_in user }
 
+  it "shows the consultation link only after arrival or for an existing consultation" do
+    %w[booked confirmed cancelled completed referred].each do |status|
+      appointment.update!(status: status)
+      get practice_appointment_path(appointment)
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include("Open consultation")
+    end
+
+    %w[arrived in_consultation consultation_interrupted].each do |status|
+      appointment.update!(status: status)
+      get practice_appointment_path(appointment)
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Open consultation")
+    end
+  end
+
+  it "hides the consultation start status action from administrators and blocks direct status requests" do
+    admin_user = create(:user)
+    create(:staff_member, user: admin_user, practice: practice,
+      staff_type: "administrator", access_level: "staff_admin")
+    appointment.update!(status: "arrived")
+
+    sign_out user
+    sign_in admin_user
+
+    get practice_appointment_path(appointment)
+    expect(response).to have_http_status(:ok)
+    expect(response.body).not_to include("Start consultation")
+
+    expect {
+      patch status_practice_appointment_path(appointment), params: { status: "in_consultation" }
+    }.not_to change { appointment.reload.status }
+    expect(response).to have_http_status(:forbidden)
+    expect(appointment.encounter).to be_nil
+  end
+
+  it "blocks the generic status endpoint from starting a consultation even for the assigned clinician" do
+    appointment.update!(status: "arrived")
+    expect {
+      patch status_practice_appointment_path(appointment), params: { status: "in_consultation" }
+    }.not_to change { appointment.reload.status }
+    expect(response).to have_http_status(:forbidden)
+    expect(appointment.encounter).to be_nil
+  end
+
+  it "hides completion and referral from administrators and rejects direct status changes" do
+    admin_user = create(:user)
+    create(:staff_member, user: admin_user, practice: practice,
+      staff_type: "administrator", access_level: "staff_admin")
+    appointment.update!(status: "in_consultation")
+
+    sign_out user
+    sign_in admin_user
+
+    get practice_appointment_path(appointment)
+    expect(response).to have_http_status(:ok)
+    expect(response.body).not_to include("Start consultation", ">Complete<", ">Refer<", "Cancel appointment")
+
+    %w[completed referred cancelled].each do |requested_status|
+      expect {
+        patch status_practice_appointment_path(appointment),
+          params: { status: requested_status }
+      }.not_to change { appointment.reload.status }
+      expect(response).not_to have_http_status(:success)
+    end
+  end
+
+  it "recovers a legacy in-consultation appointment missing its encounter" do
+    appointment.update!(status: "in_consultation")
+    expect(appointment.encounter).to be_nil
+
+    get practice_appointment_consultation_path(appointment)
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Start consultation")
+
+    expect {
+      post practice_appointment_consultation_path(appointment)
+    }.to change(Encounter, :count).by(1)
+    expect(appointment.reload.status).to eq("in_consultation")
+    expect(appointment.encounter.clinician_id).to eq(clinician.id)
+    expect(appointment.consultation_started_at).to be_present
+
+    expect {
+      post practice_appointment_consultation_path(appointment)
+    }.not_to change(Encounter, :count)
+  end
+
   it "redacts clinical note and patient document form fields from parameter logs" do
     filter = ActiveSupport::ParameterFilter.new(Rails.application.config.filter_parameters)
     filtered = filter.filter(
@@ -223,6 +310,73 @@ RSpec.describe "Clinician consultation entry", type: :request do
       expect(response).to have_http_status(:forbidden)
     end
   end
+  describe "interrupted consultations" do
+    before do
+      appointment.update!(status: "arrived")
+      post practice_appointment_consultation_path(appointment)
+      patch draft_practice_appointment_consultation_path(appointment),
+        params: { clinical_note: { body: "Saved unfinished assessment", lock_version: 0 } }
+    end
+
+    it "pauses and resumes the same encounter and draft without completing or signing" do
+      encounter = appointment.reload.encounter
+      draft = encounter.clinical_notes.find_by!(status: "draft")
+      expect {
+        post pause_practice_appointment_consultation_path(appointment)
+      }.to change { AuditEvent.where(action: "clinical.consultation_paused").count }.by(1)
+      expect(appointment.reload.status).to eq("consultation_interrupted")
+      expect(encounter.reload.ended_at).to be_nil
+      expect(draft.reload.body).to eq("Saved unfinished assessment")
+
+      get practice_appointment_consultation_path(appointment)
+      expect(response.body).to include("Consultation paused", "Resume consultation", "Saved unfinished assessment")
+      expect(response.body).not_to include("Sign note and complete consultation")
+
+      patch draft_practice_appointment_consultation_path(appointment),
+        params: { clinical_note: { body: "Must not overwrite", lock_version: draft.lock_version } }
+      expect(draft.reload.body).to eq("Saved unfinished assessment")
+
+      expect {
+        post resume_practice_appointment_consultation_path(appointment)
+      }.to change { AuditEvent.where(action: "clinical.consultation_resumed").count }.by(1)
+      expect(appointment.reload.status).to eq("in_consultation")
+      expect(appointment.encounter.id).to eq(encounter.id)
+      expect(appointment.encounter.clinical_notes.find_by!(status: "draft").id).to eq(draft.id)
+
+      post resume_practice_appointment_consultation_path(appointment)
+      expect(AuditEvent.where(action: "clinical.consultation_resumed", auditable: encounter).count).to eq(1)
+    end
+
+    it "prevents signing while paused" do
+      draft = appointment.reload.encounter.clinical_notes.find_by!(status: "draft")
+      post pause_practice_appointment_consultation_path(appointment)
+      post sign_and_complete_practice_appointment_consultation_path(appointment),
+        params: { clinical_note: { lock_version: draft.lock_version } }
+      expect(appointment.reload.status).to eq("consultation_interrupted")
+      expect(draft.reload.status).to eq("draft")
+    end
+
+    it "rejects administrator pause and resume actions" do
+      clinician.update!(access_level: "staff_admin")
+      post pause_practice_appointment_consultation_path(appointment)
+      expect(response).to have_http_status(:forbidden)
+      expect(appointment.reload.status).to eq("in_consultation")
+      clinician.update!(access_level: "staff_clinician")
+      post pause_practice_appointment_consultation_path(appointment)
+      clinician.update!(access_level: "staff_admin")
+      post resume_practice_appointment_consultation_path(appointment)
+      expect(response).to have_http_status(:forbidden)
+      expect(appointment.reload.status).to eq("consultation_interrupted")
+    end
+
+    it "does not allow the generic appointment status endpoint to resume" do
+      post pause_practice_appointment_consultation_path(appointment)
+      patch status_practice_appointment_path(appointment), params: { status: "in_consultation" }
+      expect(response).to have_http_status(:forbidden)
+      expect(appointment.reload.status).to eq("consultation_interrupted")
+    end
+  end
+
   describe "signing and completing a consultation" do
     let(:draft_path) { draft_practice_appointment_consultation_path(appointment) }
     let(:sign_path) { sign_and_complete_practice_appointment_consultation_path(appointment) }
@@ -284,6 +438,134 @@ RSpec.describe "Clinician consultation entry", type: :request do
       expect(note.reload.status).to eq("draft")
     end
   end
+  describe "signed-note amendments" do
+    let(:amend_path) { amend_practice_appointment_consultation_path(appointment) }
+
+    before do
+      appointment.update!(status: "arrived")
+      post practice_appointment_consultation_path(appointment)
+      patch draft_practice_appointment_consultation_path(appointment),
+        params: { clinical_note: { body: "Original signed assessment", lock_version: 0 } }
+      note = appointment.reload.encounter.clinical_notes.last
+      post sign_and_complete_practice_appointment_consultation_path(appointment),
+        params: { clinical_note: { lock_version: note.lock_version } }
+    end
+
+    it "records an attributed, audited append-only amendment and preserves the original" do
+      note = appointment.reload.encounter.clinical_notes.find_by!(status: "signed")
+      original_timestamp = note.signed_at
+      expect {
+        post amend_path, params: { clinical_note_amendment: { submission_token: SecureRandom.uuid, reason: "Correct medication history", body: "Corrected history" } }
+      }.to change(ClinicalNoteAmendment, :count).by(1)
+        .and change { AuditEvent.where(action: "clinical.note_amended").count }.by(1)
+      amendment = note.amendments.last
+      expect(response).to redirect_to(practice_appointment_consultation_path(appointment))
+      expect(amendment.author).to eq(clinician)
+      expect(amendment.reason).to eq("Correct medication history")
+      expect(amendment.body).to eq("Corrected history")
+      expect(note.reload.body).to eq("Original signed assessment")
+      expect(note.status).to eq("signed")
+      expect(note.signed_at).to eq(original_timestamp)
+      expect(AuditEvent.where(action: "clinical.note_amended", auditable: amendment, practice: practice)).to exist
+      get practice_appointment_consultation_path(appointment)
+      expect(response.body).to include("Amendment history", "Original signed assessment", "Corrected history")
+    end
+
+    it "deduplicates a retried amendment and its audit event" do
+      token = SecureRandom.uuid
+      params = { clinical_note_amendment: { submission_token: token, reason: "Correction", body: "Details" } }
+      expect { 2.times { post amend_path, params: params } }
+        .to change(ClinicalNoteAmendment, :count).by(1)
+        .and change { AuditEvent.where(action: "clinical.note_amended").count }.by(1)
+      post amend_path, params: { clinical_note_amendment: {
+        submission_token: token, reason: "Correction", body: "Different"
+      } }
+      expect(ClinicalNoteAmendment.count).to eq(1)
+    end
+
+    it "rejects missing reason and empty amendments" do
+      expect {
+        post amend_path, params: { clinical_note_amendment: { submission_token: SecureRandom.uuid, reason: " ", body: "Correction" } }
+        post amend_path, params: { clinical_note_amendment: { submission_token: SecureRandom.uuid, reason: "Correction", body: " " } }
+      }.not_to change(ClinicalNoteAmendment, :count)
+    end
+
+    it "rejects amendments to an unfinished consultation with an unsigned draft" do
+      separate_availability = create(
+        :availability_block, practice: practice, clinician: clinician,
+        starts_at: 2.days.from_now.change(hour: 9, min: 0),
+        ends_at: 2.days.from_now.change(hour: 17, min: 0)
+      )
+      separate_slot = create(
+        :appointment_slot, practice: practice, clinician: clinician,
+        availability_block: separate_availability,
+        starts_at: 2.days.from_now.change(hour: 10, min: 0),
+        ends_at: 2.days.from_now.change(hour: 10, min: 20)
+      )
+      unfinished = create(
+        :appointment, practice: practice, clinician: clinician,
+        appointment_slot: separate_slot, status: "arrived"
+      )
+      post practice_appointment_consultation_path(unfinished)
+      expect(unfinished.reload.status).to eq("in_consultation")
+
+      patch draft_practice_appointment_consultation_path(unfinished),
+        params: { clinical_note: { body: "Unsigned consultation draft", lock_version: 0 } }
+      expect(unfinished.encounter.clinical_notes.find_by!(note_type: "consultation").status).to eq("draft")
+
+      expect {
+        post amend_practice_appointment_consultation_path(unfinished),
+          params: { clinical_note_amendment: { submission_token: SecureRandom.uuid, reason: "Correction", body: "Text" } }
+      }.not_to change(ClinicalNoteAmendment, :count)
+      expect(unfinished.reload.status).to eq("in_consultation")
+      expect(AuditEvent.where(action: "clinical.note_amended", practice: practice)).not_to exist
+    end
+
+    it "forbids non-clinical administration and colleagues" do
+      other_user = create(:user)
+      create(:staff_member, user: other_user, practice: practice, staff_type: "doctor", access_level: "staff_clinician")
+      sign_out user
+      sign_in other_user
+      expect {
+        post amend_path, params: { clinical_note_amendment: { submission_token: SecureRandom.uuid, reason: "Correction", body: "Text" } }
+      }.not_to change(ClinicalNoteAmendment, :count)
+      expect(response).to have_http_status(:forbidden)
+
+      sign_out other_user
+      sign_in user
+      clinician.update!(access_level: "senior_staff_admin")
+      post amend_path, params: { clinical_note_amendment: { submission_token: SecureRandom.uuid, reason: "Correction", body: "Text" } }
+      expect(response).to have_http_status(:forbidden)
+      expect(ClinicalNoteAmendment.count).to eq(0)
+    end
+
+    it "returns not found for another practice's appointment" do
+      sibling_appointment = create(:appointment, practice: sibling)
+      expect {
+        post amend_practice_appointment_consultation_path(sibling_appointment),
+          params: { clinical_note_amendment: { submission_token: SecureRandom.uuid, reason: "Correction", body: "Text" } }
+      }.not_to change(ClinicalNoteAmendment, :count)
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "keeps amendments immutable and refuses deletion" do
+      post amend_path, params: { clinical_note_amendment: { submission_token: SecureRandom.uuid, reason: "Correction", body: "Recorded correction" } }
+      amendment = ClinicalNoteAmendment.last
+      expect(amendment.update(body: "Overwritten")).to be(false)
+      expect(amendment.reload.body).to eq("Recorded correction")
+      expect(amendment.destroy).to be(false)
+      expect(amendment.reload).to be_persisted
+      expect(ClinicalNoteAmendment.where(id: amendment.id)).to exist
+    end
+
+    it "keeps amendment text out of the patient-facing release workflow" do
+      post amend_path, params: { clinical_note_amendment: { submission_token: SecureRandom.uuid, reason: "Correction", body: "Internal amended details" } }
+      get practice_appointment_consultation_path(appointment)
+      expect(response.body).to include("Internal amended details")
+      expect(ClinicalDocumentRelease.where(patient: appointment.patient, body: "Internal amended details")).not_to exist
+    end
+  end
+
   describe "releasing patient-facing clinical documents" do
     before do
       appointment.update!(status: "arrived")

@@ -5,12 +5,14 @@ module Staff
     def show
       @draft = @appointment.encounter&.clinical_notes&.find_by(note_type: "consultation", status: "draft")
       @signed_note = @appointment.encounter&.clinical_notes&.find_by(note_type: "consultation", status: "signed")
+      @amendment_submission_token = SecureRandom.uuid
+      @amendments = @signed_note ? @signed_note.amendments.includes(:author).order(:created_at, :id) : []
       # Previous notes remain inside this practice; neither administration nor
       # patient-portal endpoints inherit this clinical-record permission.
       @previous_encounters = current_practice.encounters
         .where(patient_id: @appointment.patient_id)
         .where("appointment_id IS NULL OR appointment_id <> ?", @appointment.id)
-        .includes(:clinician, clinical_notes: :author)
+        .includes(:clinician, clinical_notes: [ :author, { amendments: :author } ])
         .order(started_at: :desc, created_at: :desc)
 
       AuditEvent.create!(
@@ -48,6 +50,24 @@ module Staff
       redirect_to practice_appointment_consultation_path(@appointment), alert: "This consultation is not open for editing."
     end
 
+    def pause
+      Consultations::Pause.new(
+        appointment: @appointment, clinician: current_staff_member, user: current_user
+      ).call
+      redirect_to practice_appointment_consultation_path(@appointment), notice: "Consultation paused. Your saved draft is preserved."
+    rescue Consultations::Pause::InvalidState => error
+      redirect_to practice_appointment_consultation_path(@appointment), alert: error.message
+    end
+
+    def resume
+      Consultations::Resume.new(
+        appointment: @appointment, clinician: current_staff_member, user: current_user
+      ).call
+      redirect_to practice_appointment_consultation_path(@appointment), notice: "Consultation resumed."
+    rescue Consultations::Resume::InvalidState => error
+      redirect_to practice_appointment_consultation_path(@appointment), alert: error.message
+    end
+
     def sign_and_complete
       Consultations::SignAndComplete.new(
         appointment: @appointment, clinician: current_staff_member, user: current_user,
@@ -60,11 +80,26 @@ module Staff
       redirect_to practice_appointment_consultation_path(@appointment), alert: error.message
     end
 
+    def amend
+      Consultations::AddAmendment.new(
+        appointment: @appointment, clinician: current_staff_member, user: current_user,
+        body: params.require(:clinical_note_amendment).fetch(:body),
+        reason: params.require(:clinical_note_amendment).fetch(:reason),
+        submission_token: params.require(:clinical_note_amendment).fetch(:submission_token)
+      ).call
+      redirect_to practice_appointment_consultation_path(@appointment), notice: "Signed-note amendment recorded."
+    rescue Consultations::AddAmendment::InvalidState => error
+      redirect_to practice_appointment_consultation_path(@appointment), alert: error.message
+    rescue ActiveRecord::RecordInvalid
+      redirect_to practice_appointment_consultation_path(@appointment), alert: "Enter a reason and amendment text."
+    end
+
     def release_document
       Consultations::ReleaseDocument.new(
         appointment: @appointment, clinician: current_staff_member, user: current_user,
         title: params.require(:clinical_document_release).fetch(:title),
-        body: params.require(:clinical_document_release).fetch(:body)
+        body: params.require(:clinical_document_release).fetch(:body),
+        printable: params.require(:clinical_document_release).fetch(:printable, false)
       ).call
       redirect_to practice_appointment_consultation_path(@appointment), notice: "Document released to the patient portal."
     rescue Consultations::ReleaseDocument::InvalidState => error

@@ -367,10 +367,11 @@ RSpec.describe "Clinician consultation entry", type: :request do
       expect(ClinicalNoteAmendment.where(id: amendment.id)).to exist
     end
 
-    it "does not show amendments in the patient portal by default" do
+    it "keeps amendment text out of the patient-facing release workflow" do
       post amend_path, params: { clinical_note_amendment: { reason: "Correction", body: "Internal amended details" } }
-      get patient_portal_clinical_documents_path
-      expect(response.body).not_to include("Internal amended details")
+      get practice_appointment_consultation_path(appointment)
+      expect(response.body).to include("Internal amended details")
+      expect(ClinicalDocumentRelease.where(patient: appointment.patient, body: "Internal amended details")).not_to exist
     end
   end
 

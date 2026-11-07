@@ -90,7 +90,16 @@ outer whitespace), **New patient** is disabled during identity review. Staff
 must independently verify whether the applicant is the existing patient before
 selecting a clinical record. A name and date-of-birth match alone does not
 establish identity. The application also checks for possible duplicates at
-approval and just before the registration job creates a patient.
+approval and just before the registration job creates a patient. If a matching
+record appears after verification, a Senior Staff Admin can **Reopen identity
+review** with an audited reason. The previous identity verification and approval
+details are cleared, and staff must independently verify the applicant again.
+This also provides a recovery path for failed new-patient registration requests.
+The system never automatically links a patient account to a matching record.
+
+Patient portal login email addresses are unique at the account level. Clinical
+patient email addresses are contact details, not unique patient identifiers:
+multiple patients may legitimately share a family or carer email address.
 
 The direct **New patient** staff form likewise refuses a likely duplicate in
 the selected practice. Search for and inspect the existing clinical record rather

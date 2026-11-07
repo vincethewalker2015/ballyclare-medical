@@ -17,10 +17,28 @@ module Staff
 
       @payment_search = params[:payment_search].to_s.strip.first(100)
 
-      @payments = Payment
+      base_scope = Payment
         .where(id: practice_payment_ids.select(:id))
-        .where(appointment_id: nil, provider: "stripe", status: %w[pending processing])
+        .where(appointment_id: nil, provider: "stripe")
         .where("payments.updated_at <= ?", 15.minutes.ago)
+
+      confirmed_cancellations = AuditEvent.where(
+        practice: current_practice, auditable_type: "Payment",
+        action: "stripe_payment.abandoned_cancelled"
+      ).select(:auditable_id)
+      verified_cancellations = AuditEvent.where(
+        practice: current_practice, auditable_type: "Payment",
+        action: "stripe_payment.verification_matched"
+      ).where("metadata ->> 'stripe_status' = ?", "canceled").select(:auditable_id)
+
+      failed_awaiting_cancellation = base_scope
+        .where(status: "failed")
+        .where.not(provider_payment_id: nil)
+        .where(appointment_hold_id: AppointmentHold.expired.select(:id))
+        .where.not(id: confirmed_cancellations)
+        .where.not(id: verified_cancellations)
+
+      @payments = base_scope.where(status: %w[pending processing]).or(failed_awaiting_cancellation)
 
       if @payment_search.present?
         term = "%#{ActiveRecord::Base.sanitize_sql_like(@payment_search)}%"
@@ -66,7 +84,9 @@ module Staff
       ).find(params[:id])
 
       intent_id = params[:payment_intent_id].to_s.strip
-      unless payment.provider == "stripe" && payment.status.in?(%w[pending processing]) &&
+      failed_expired_hold = payment.status == "failed" && payment.appointment_hold&.expired?
+      unless payment.provider == "stripe" &&
+          (payment.status.in?(%w[pending processing]) || failed_expired_hold) &&
           payment.appointment_id.nil? && payment.provider_payment_id == intent_id &&
           intent_id.match?(/\Api_[a-zA-Z0-9_]+\z/)
         return respond_with_reconciliation(alert: "Payment is not eligible for cancellation.")
@@ -128,7 +148,10 @@ module Staff
       ).find(params[:id])
 
       intent_id = params[:payment_intent_id].to_s.strip
-      if payment.provider != "stripe" || !payment.status.in?(%w[pending processing]) ||
+      failed_expired_hold = payment.status == "failed" &&
+        payment.provider_payment_id.present? && payment.appointment_hold&.expired?
+      if payment.provider != "stripe" ||
+          !(payment.status.in?(%w[pending processing]) || failed_expired_hold) ||
           payment.appointment_id.present? || !intent_id.match?(/\Api_[a-zA-Z0-9_]+\z/)
         respond_with_reconciliation(alert: "Payment is not eligible for verification.")
         return
@@ -149,6 +172,13 @@ module Staff
         )
         respond_with_reconciliation(alert: "Stripe PaymentIntent does not match this payment.")
         return
+      end
+
+      if failed_expired_hold && intent.status == "canceled" &&
+          (intent.amount != payment.amount_cents || !intent.currency.casecmp?(payment.currency))
+        return respond_with_reconciliation(
+          alert: "Stripe payment amount or currency does not match. Cancellation could not be verified."
+        )
       end
 
       AuditEvent.create!(

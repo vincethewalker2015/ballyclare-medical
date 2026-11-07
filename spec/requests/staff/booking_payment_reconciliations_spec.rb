@@ -837,4 +837,155 @@ RSpec.describe "Staff unresolved booking payment review", type: :request do
     expect(response.body).to include("Stripe cancellation could not be confirmed")
     expect(payment.reload.status).to eq("processing")
   end
+
+  def failed_booking_payment(practice:, intent_id:)
+    slot = create(:appointment_slot, practice: practice)
+    patient = create(:patient, practice: practice)
+    hold = slot.hold_for!(patient: patient)
+    payment = create(:payment, appointment: nil, appointment_hold: hold, patient: patient,
+      status: "failed", provider_payment_id: intent_id)
+    payment.update_columns(updated_at: 20.minutes.ago)
+    [ hold, payment ]
+  end
+
+  it "shows a locally failed Stripe booking payment only after its hold expires" do
+    hold, payment = failed_booking_payment(practice: practice, intent_id: "pi_failed_open")
+    sign_in user
+
+    get practice_booking_payment_reconciliations_path
+    expect(response.body).not_to include("pi_failed_open")
+
+    hold.update!(expires_at: 1.minute.ago)
+    get practice_booking_payment_reconciliations_path
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include(payment.id.to_s, "pi_failed_open", "Local failure")
+    expect(response.body).to include("Cancel abandoned payment")
+  end
+
+  it "cancels a locally failed payment with an expired hold only after Stripe confirms it" do
+    hold, payment = failed_booking_payment(practice: practice, intent_id: "pi_failed_cancellable")
+    hold.update!(expires_at: 1.minute.ago)
+    intent = instance_double(Stripe::PaymentIntent,
+      id: "pi_failed_cancellable", status: "requires_payment_method",
+      amount: payment.amount_cents, currency: payment.currency.downcase,
+      metadata: { "payment_id" => payment.id.to_s })
+    cancelled_intent = instance_double(Stripe::PaymentIntent,
+      id: "pi_failed_cancellable", status: "canceled",
+      amount: payment.amount_cents, currency: payment.currency.downcase,
+      metadata: { "payment_id" => payment.id.to_s })
+    allow(Stripe::PaymentIntent).to receive(:retrieve)
+      .with("pi_failed_cancellable").and_return(intent)
+    expect(Stripe::PaymentIntent).to receive(:cancel)
+      .with("pi_failed_cancellable").and_return(cancelled_intent)
+    expect(Stripe::PaymentIntent).not_to receive(:create)
+
+    sign_in user
+    expect {
+      post cancel_practice_booking_payment_reconciliation_path(payment),
+        params: { payment_intent_id: "pi_failed_cancellable" }
+    }.not_to change(Appointment, :count)
+
+    expect(response).to redirect_to(practice_booking_payment_reconciliations_path)
+    expect(payment.reload.status).to eq("failed")
+    expect(AuditEvent.where(practice: practice, auditable: payment,
+      action: "stripe_payment.abandoned_cancelled").count).to eq(1)
+
+    get practice_booking_payment_reconciliations_path
+    expect(response.body).not_to include("pi_failed_cancellable")
+  end
+
+  it "requires an expired hold before cancelling a locally failed payment" do
+    _hold, payment = failed_booking_payment(practice: practice, intent_id: "pi_failed_active_hold")
+    sign_in user
+    expect(Stripe::PaymentIntent).not_to receive(:retrieve)
+    expect(Stripe::PaymentIntent).not_to receive(:cancel)
+
+    post cancel_practice_booking_payment_reconciliation_path(payment),
+      params: { payment_intent_id: "pi_failed_active_hold" }
+
+    expect(response).to redirect_to(practice_booking_payment_reconciliations_path)
+    expect(payment.reload.status).to eq("failed")
+  end
+
+  it "removes a failed payment from review after Stripe cancellation is verified" do
+    hold, payment = failed_booking_payment(practice: practice, intent_id: "pi_failed_already_canceled")
+    hold.update!(expires_at: 1.minute.ago)
+    intent = instance_double(Stripe::PaymentIntent,
+      id: "pi_failed_already_canceled", status: "canceled",
+      amount: payment.amount_cents, currency: payment.currency.downcase,
+      metadata: { "payment_id" => payment.id.to_s })
+    allow(Stripe::PaymentIntent).to receive(:retrieve)
+      .with("pi_failed_already_canceled").and_return(intent)
+    expect(Stripe::PaymentIntent).not_to receive(:cancel)
+
+    sign_in user
+    get practice_booking_payment_reconciliations_path
+    expect(response.body).to include("pi_failed_already_canceled")
+
+    post verify_practice_booking_payment_reconciliation_path(payment),
+      params: { payment_intent_id: "pi_failed_already_canceled" }
+    expect(response).to redirect_to(practice_booking_payment_reconciliations_path)
+    expect(payment.reload.status).to eq("failed")
+
+    get practice_booking_payment_reconciliations_path
+    expect(response.body).not_to include("pi_failed_already_canceled")
+  end
+
+  it "keeps failed payments visible when a cancelled Stripe intent has the wrong amount" do
+    hold, payment = failed_booking_payment(practice: practice, intent_id: "pi_failed_wrong_amount")
+    hold.update!(expires_at: 1.minute.ago)
+    intent = instance_double(Stripe::PaymentIntent,
+      id: "pi_failed_wrong_amount", status: "canceled",
+      amount: payment.amount_cents + 100, currency: payment.currency.downcase,
+      metadata: { "payment_id" => payment.id.to_s })
+    allow(Stripe::PaymentIntent).to receive(:retrieve)
+      .with("pi_failed_wrong_amount").and_return(intent)
+
+    sign_in user
+    post verify_practice_booking_payment_reconciliation_path(payment),
+      params: { payment_intent_id: "pi_failed_wrong_amount" }
+
+    expect(response).to redirect_to(practice_booking_payment_reconciliations_path)
+    expect(AuditEvent.where(practice: practice, auditable: payment,
+      action: "stripe_payment.verification_matched")).to be_empty
+
+    get practice_booking_payment_reconciliations_path
+    expect(response.body).to include("pi_failed_wrong_amount")
+  end
+
+  it "keeps a failed payment available for investigation when Stripe cancellation is unavailable" do
+    hold, payment = failed_booking_payment(practice: practice, intent_id: "pi_failed_stripe_timeout")
+    hold.update!(expires_at: 1.minute.ago)
+    allow(Stripe::PaymentIntent).to receive(:retrieve)
+      .with("pi_failed_stripe_timeout")
+      .and_raise(Stripe::APIConnectionError.new("timeout"))
+
+    sign_in user
+    post cancel_practice_booking_payment_reconciliation_path(payment),
+      params: { payment_intent_id: "pi_failed_stripe_timeout" }
+
+    expect(payment.reload.status).to eq("failed")
+    expect(AuditEvent.where(practice: practice, auditable: payment,
+      action: "stripe_payment.abandoned_cancelled")).to be_empty
+
+    get practice_booking_payment_reconciliations_path
+    expect(response.body).to include("pi_failed_stripe_timeout")
+  end
+
+  it "keeps failed booking payments isolated from administrators at other practices" do
+    other_practice = create(:practice)
+    hold, payment = failed_booking_payment(practice: other_practice,
+      intent_id: "pi_failed_other_practice")
+    hold.update!(expires_at: 1.minute.ago)
+    sign_in user
+
+    get practice_booking_payment_reconciliations_path
+    expect(response.body).not_to include("pi_failed_other_practice")
+
+    expect(Stripe::PaymentIntent).not_to receive(:retrieve)
+    post cancel_practice_booking_payment_reconciliation_path(payment),
+      params: { payment_intent_id: "pi_failed_other_practice" }
+    expect(response).to have_http_status(:not_found)
+  end
 end

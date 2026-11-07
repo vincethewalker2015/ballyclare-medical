@@ -84,7 +84,27 @@ select that practice and use a patient record and available slot belonging
 to that location.
 
 Patient portal identity verification and account approvals remain
-practice-specific.
+practice-specific. When a registration request has the same first name, last name,
+and date of birth as a record in the selected practice (ignoring name casing and
+outer whitespace), **New patient** is disabled during identity review. Staff
+must independently verify whether the applicant is the existing patient before
+selecting a clinical record. A name and date-of-birth match alone does not
+establish identity. The application also checks for possible duplicates at
+approval and just before the registration job creates a patient. If a matching
+record appears after verification, a Senior Staff Admin can **Reopen identity
+review** with an audited reason. The previous identity verification and approval
+details are cleared, and staff must independently verify the applicant again.
+This also provides a recovery path for failed new-patient registration requests.
+The system never automatically links a patient account to a matching record.
+
+Patient portal login email addresses are unique at the account level. Clinical
+patient email addresses are contact details, not unique patient identifiers:
+multiple patients may legitimately share a family or carer email address.
+
+The direct **New patient** staff form likewise refuses a likely duplicate in
+the selected practice. Search for and inspect the existing clinical record rather
+than creating a new one; if two different people genuinely share these details,
+escalate the identity discrepancy for an approved resolution.
 
 ### Clinical confidentiality
 
@@ -421,7 +441,7 @@ from appointment records in this case.
 
 ### When a payment appears
 
-The queue shows Stripe payments associated with your practice that have been **pending** or **processing** for at least 15 minutes and do not yet have an appointment attached. A payment can remain here when the booking process did not receive a definitive result from Stripe. The queue is limited to the 100 oldest matching payments.
+The queue shows Stripe payments associated with your practice that have been **pending** or **processing** for at least 15 minutes and do not yet have an appointment attached. It also shows locally **failed** booking payments with a recorded Stripe PaymentIntent after the appointment hold has expired, where Stripe cancellation has not yet been confirmed through this review workflow. A local failure does **not** prove that the Stripe PaymentIntent is cancelled. The queue is limited to the 100 oldest matching payments.
 
 **Do not assume that an unresolved payment means the patient has not been charged.** Before starting any replacement booking or payment attempt, investigate the existing payment outcome. A Stripe timeout or unavailable verification is not grounds for creating an unpaid appointment.
 
@@ -445,7 +465,7 @@ Use **Cancel abandoned payment** only when the original payment attempt is genui
 4. Read the confirmation dialog carefully and verify the exact PaymentIntent ID before continuing.
 5. Check the success message and the Stripe Dashboard. When cancellation is confirmed and the local outcome is reconciled, the payment disappears from the unresolved queue.
 
-The application also checks Stripe status, metadata, amount and currency before permitting cancellation. If the check or cancellation cannot be confirmed, the payment remains available for investigation; do not assume it was cancelled.
+The application also checks Stripe status, metadata, amount and currency before permitting cancellation. Locally failed booking payments can only be cancelled through this workflow **after their hold has expired**; pending and processing payments retain their existing eligibility rules. If the check or cancellation cannot be confirmed, the payment remains available for investigation; do not assume it was cancelled. If Stripe was already cancelled, use **Verify payment with Stripe** to record that outcome and remove the failed item from the review queue without issuing another cancellation.
 
 ### If Stripe is unavailable or the outcome is uncertain
 

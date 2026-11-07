@@ -72,6 +72,7 @@ Rails.application.routes.draw do
     member do
       post :verify
       post :approve
+      patch :reset_identity_review
       patch :revoke
       patch :reinstate
     end

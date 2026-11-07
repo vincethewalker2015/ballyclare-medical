@@ -1,24 +1,59 @@
-<h1>Stripe outage fallback</h1>
+<% content_for :title, "Stripe outage management | Ballyclare Medical" %>
 
-<% if @outage_active %>
-  <p>Emergency unpaid online booking is active. The declaration expires automatically after 30 minutes.</p>
-  <%= form_with url: practice_stripe_outage_path, method: :patch do |form| %>
-    <div>
-      <%= form.label :reason, "Reason for ending the Stripe outage" %>
-      <%= form.text_area :reason, required: true %>
-    </div>
-    <%= form.submit "End Stripe outage now" %>
-  <% end %>
-<% else %>
-  <p>Emergency unpaid online booking is inactive. Normal online bookings require Stripe payment.</p>
-<% end %>
+<div class="mx-auto max-w-3xl">
+  <%= link_to "Back to booking payment reconciliations", practice_booking_payment_reconciliations_path,
+    class: "text-sm font-semibold text-medical-teal-dark hover:underline" %>
 
-<% unless @outage_active %>
-  <%= form_with url: practice_stripe_outage_path, method: :post do |form| %>
-    <div>
-      <%= form.label :reason, "Reason for declaring Stripe unavailable" %>
-      <%= form.text_area :reason, required: true %>
+  <h1 class="mt-6 text-3xl font-semibold text-medical-navy">Stripe outage management</h1>
+  <p class="mt-3 text-medical-muted">Use this practice-specific emergency fallback only when Stripe payment processing is independently confirmed to be unavailable. Declarations are audited.</p>
+
+  <section class="mt-8 rounded-2xl border border-medical-border bg-white p-6 sm:p-8" aria-labelledby="stripe-outage-status">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <h2 id="stripe-outage-status" class="text-xl font-semibold text-medical-navy">Current status</h2>
+      <% if @outage_active %>
+        <span class="rounded-full bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-900">Emergency fallback active</span>
+      <% else %>
+        <span class="rounded-full bg-medical-teal-soft px-4 py-2 text-sm font-semibold text-medical-teal-dark">Normal payment mode</span>
+      <% end %>
     </div>
-    <%= form.submit "Declare Stripe outage for 30 minutes", data: { turbo_confirm: "Only declare an independently confirmed Stripe outage. Emergency bookings will be unpaid." } %>
-  <% end %>
-<% end %>
+
+    <% if @outage_active %>
+      <div class="mt-5 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900" role="status">
+        <p class="font-semibold">Stripe checkout is temporarily disabled for this practice.</p>
+        <p class="mt-2">Eligible guest bookings without an existing payment attempt can be completed without immediate payment. The outage declaration expires automatically 30 minutes after activation unless ended earlier.</p>
+      </div>
+    <% else %>
+      <p class="mt-4 text-medical-muted">Emergency unpaid online booking is inactive. Normal online bookings require Stripe payment.</p>
+    <% end %>
+  </section>
+
+  <section class="mt-6 rounded-2xl border border-medical-border bg-white p-6 sm:p-8" aria-labelledby="stripe-outage-action">
+    <% if @outage_active %>
+      <h2 id="stripe-outage-action" class="text-xl font-semibold text-medical-navy">End the outage declaration</h2>
+      <p class="mt-3 text-sm text-medical-muted">Only end the declaration after confirming that Stripe is available again. Unresolved payments still require verification; ending the declaration does not reconcile them automatically.</p>
+      <%= form_with url: practice_stripe_outage_path, method: :patch, class: "mt-6 space-y-5" do |form| %>
+        <div>
+          <%= form.label :reason, "Reason for ending the Stripe outage", class: "block text-sm font-semibold text-medical-navy" %>
+          <%= form.text_area :reason, required: true, rows: 3, placeholder: "For example: Stripe connectivity restored and verified", class: "mt-2 w-full rounded-xl border border-medical-border bg-white px-4 py-3 text-medical-ink focus:border-medical-teal focus:ring-medical-teal" %>
+        </div>
+        <%= form.submit "End Stripe outage now",
+          data: { turbo_confirm: "Confirm Stripe is available again and end the emergency unpaid booking fallback for this practice?" },
+          class: "cursor-pointer rounded-full bg-medical-navy px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90" %>
+      <% end %>
+    <% else %>
+      <h2 id="stripe-outage-action" class="text-xl font-semibold text-medical-navy">Declare a Stripe outage</h2>
+      <p class="mt-3 text-sm text-medical-muted">This temporarily disables normal Stripe checkout and allows eligible guest bookings without an existing payment attempt to proceed with an outstanding charge. It does not cancel or refund any payments.</p>
+      <%= form_with url: practice_stripe_outage_path, method: :post, class: "mt-6 space-y-5" do |form| %>
+        <div>
+          <%= form.label :reason, "Reason for declaring Stripe unavailable", class: "block text-sm font-semibold text-medical-navy" %>
+          <%= form.text_area :reason, required: true, rows: 3, placeholder: "Describe how the Stripe outage was confirmed", class: "mt-2 w-full rounded-xl border border-medical-border bg-white px-4 py-3 text-medical-ink focus:border-medical-teal focus:ring-medical-teal" %>
+        </div>
+        <%= form.submit "Declare Stripe outage for 30 minutes",
+          data: { turbo_confirm: "Only declare an independently confirmed Stripe outage. Eligible emergency guest bookings will be unpaid. Continue?" },
+          class: "cursor-pointer rounded-full bg-medical-teal px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90" %>
+      <% end %>
+    <% end %>
+  </section>
+
+  <p class="mt-6 text-sm text-medical-muted">After Stripe recovers, use <%= link_to "Booking payment reconciliations", practice_booking_payment_reconciliations_path, class: "font-semibold text-medical-teal-dark underline" %> to investigate outstanding or uncertain payment outcomes.</p>
+</div>

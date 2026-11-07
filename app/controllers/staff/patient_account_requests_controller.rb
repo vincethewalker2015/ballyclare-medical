@@ -35,6 +35,8 @@ module Staff
         .where(patient_account_id: @registration_request.patient_account_id).first
 
       @patient_search = params[:patient_search].to_s.strip.first(100)
+      @possible_existing_patients = @registration_request.possible_existing_patients
+        .order(:last_name, :first_name).limit(20).to_a
       @matching_patients = []
       if @patient_search.present?
         term = "%#{ActiveRecord::Base.sanitize_sql_like(@patient_search)}%"
@@ -77,6 +79,11 @@ module Staff
         return redirect_to practice_patient_account_request_path(request_record),
           alert: "This registration has already been reviewed." unless request_record.review_status == "awaiting_review"
 
+        if route == "new_patient" && request_record.possible_existing_patients.exists?
+          return redirect_to practice_patient_account_request_path(request_record),
+            alert: "A possible existing patient record was found. Review and independently verify it before continuing; new patient creation is blocked."
+        end
+
         request_record.update!(
           review_status: "verified",
           patient_route: route,
@@ -115,8 +122,10 @@ module Staff
             request_record.identity_verified_at.present? &&
             PatientAccountLink::VERIFICATION_METHODS.include?(request_record.verification_method) &&
             PatientRegistrationRequest::PATIENT_ROUTES.include?(request_record.patient_route) &&
-            (request_record.patient_route == "new_patient" ||
-             request_record.selected_patient_id.present?)
+            (request_record.patient_route == "new_patient" ?
+              ([ request_record.first_name, request_record.last_name, request_record.date_of_birth ].all?(&:present?) &&
+               !request_record.possible_existing_patients.exists?) :
+              request_record.selected_patient_id.present?)
           request_record.update!(review_status: "approved", approved_by: current_staff_member,
             approved_at: Time.current)
           approved = true
@@ -128,6 +137,42 @@ module Staff
       CompletePatientRegistrationJob.perform_later(request_record.id)
       redirect_to practice_patient_account_request_path(request_record),
         notice: "Registration approved. Clinical record processing has been queued."
+    end
+
+    def reset_identity_review
+      return head :forbidden unless can_administer_current_group?
+
+      request_record = current_practice.patient_registration_requests.find(params[:id])
+      reason = params[:reason].to_s.strip.first(500)
+      if reason.length < 10
+        return redirect_to practice_patient_account_request_path(request_record),
+          alert: "A reason of at least 10 characters is required to reopen identity review."
+      end
+
+      reset = false
+      request_record.with_lock do
+        eligible = request_record.patient_route == "new_patient" &&
+          (request_record.review_status == "failed" ||
+           (request_record.review_status == "verified" && request_record.possible_existing_patients.exists?))
+        if eligible && !PatientAccountLink.exists?(patient_account_id: request_record.patient_account_id)
+          request_record.update!(
+            review_status: "awaiting_review", patient_route: nil,
+            selected_patient: nil, reviewed_by: nil, identity_verified_at: nil,
+            verification_method: nil, approved_by: nil, approved_at: nil,
+            processed_at: nil
+          )
+          AuditEvent.create!(
+            practice: current_practice, user: current_user, auditable: request_record,
+            action: "patient_account.identity_review_reopened",
+            metadata: { reason: reason, staff_member_id: current_staff_member.id }
+          )
+          reset = true
+        end
+      end
+
+      redirect_to practice_patient_account_request_path(request_record),
+        (reset ? { notice: "Identity review reopened. Verify the applicant again before selecting a clinical record." } :
+          { alert: "This registration is not eligible for identity re-review." })
     end
 
     def reinstate

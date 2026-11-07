@@ -435,6 +435,30 @@ If Stripe collects payment but an online appointment cannot be created
 `requires_refund`. Payment and refund history is retained separately
 from appointment records in this case.
 
+## Suspected Stripe Outage Notifications
+
+Ballyclare watches connection errors and Stripe API errors when creating PaymentIntents
+and checking their status. When **three different payments** encounter such errors
+within **five minutes** in the same practice, the system creates an audited
+**possible Stripe connectivity issue** warning. Repeated attempts for one payment
+do not count as separate affected payments. A repeat warning is suppressed for
+30 minutes, and warnings expire after 30 minutes.
+
+- Senior Staff Admins can see the warning on the appointment diary and
+  **Stripe outage** page. This is an advisory, not proof of a Stripe-wide outage.
+- An email notification is queued for active senior administrators within the
+  medical group and an active Chief of Group. **Email delivery requires
+  production outgoing mail and a valid sender address to be configured.**
+- Independently check Stripe availability and your network before declaring an
+  outage. Only an authorised Senior Staff Admin can manually enable the
+  existing 30-minute emergency unpaid booking fallback.
+- Neither the monitoring warning nor its email starts new payments, retries
+  failed payments, changes appointment holds, cancels payments, or enables
+  unpaid booking. Existing payment reconciliation rules remain in effect.
+
+Detection is based on actual payment API failures, not a continuous independent
+health check: a Stripe outage with no payment activity might not trigger an alert.
+
 ## Stripe Booking Payment Reconciliation
 
 **For Staff Admins and Senior Staff Admins.** Open **Booking payment reconciliation** from the practice navigation, or visit `/practice/booking_payment_reconciliations`. This is an administrative review queue for unresolved **online Stripe booking payments**, not a tool for taking a new payment or issuing a refund.

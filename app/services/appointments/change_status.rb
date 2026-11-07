@@ -7,7 +7,7 @@ module Appointments
       "booked" => %w[confirmed cancelled],
       "confirmed" => %w[arrived cancelled did_not_attend],
       "arrived" => %w[in_consultation cancelled],
-      "in_consultation" => %w[completed referred],
+      "in_consultation" => %w[completed referred cancelled],
       "completed" => [],
       "cancelled" => [],
       "referred" => [],
@@ -28,6 +28,7 @@ module Appointments
     def call
       appointment.with_lock do
         validate_transition!
+        validate_clinical_transition!
         validate_patient_cancellation!
         ensure_no_payment_in_progress!
 
@@ -99,6 +100,18 @@ module Appointments
 
       raise InvalidTransition,
             "Cannot change appointment from #{appointment.status} to #{to_status}"
+    end
+
+    def validate_clinical_transition!
+      if %w[completed referred].include?(to_status)
+        raise InvalidTransition, "Clinical completion and referral require the assigned clinician's workflow"
+      end
+
+      return unless to_status == "cancelled" && appointment.status == "in_consultation"
+
+      if appointment.encounter&.clinical_notes&.where(status: "signed")&.exists?
+        raise InvalidTransition, "Cannot cancel a consultation with signed clinical notes"
+      end
     end
 
     def validate_patient_cancellation!

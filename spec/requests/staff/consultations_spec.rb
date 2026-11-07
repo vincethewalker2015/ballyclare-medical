@@ -324,12 +324,21 @@ RSpec.describe "Clinician consultation entry", type: :request do
       }.not_to change(ClinicalNoteAmendment, :count)
     end
 
-    it "rejects unsigned and non-completed consultation records" do
-      appointment.update!(status: "in_consultation")
-      expect(appointment.reload.status).to eq("in_consultation")
+    it "rejects amendments to an unfinished consultation with an unsigned draft" do
+      unfinished = create(:appointment, practice: practice, clinician: clinician, status: "arrived")
+      post practice_appointment_consultation_path(unfinished)
+      expect(unfinished.reload.status).to eq("in_consultation")
+
+      patch draft_practice_appointment_consultation_path(unfinished),
+        params: { clinical_note: { body: "Unsigned consultation draft", lock_version: 0 } }
+      expect(unfinished.encounter.clinical_notes.find_by!(note_type: "consultation").status).to eq("draft")
+
       expect {
-        post amend_path, params: { clinical_note_amendment: { reason: "Correction", body: "Text" } }
+        post amend_practice_appointment_consultation_path(unfinished),
+          params: { clinical_note_amendment: { reason: "Correction", body: "Text" } }
       }.not_to change(ClinicalNoteAmendment, :count)
+      expect(unfinished.reload.status).to eq("in_consultation")
+      expect(AuditEvent.where(action: "clinical.note_amended", practice: practice)).not_to exist
     end
 
     it "forbids non-clinical administration and colleagues" do

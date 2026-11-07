@@ -30,6 +30,46 @@ RSpec.describe "Patient portal clinical document releases", type: :request do
     )
   end
 
+  it "allows PDF downloads only for printable releases linked to the approved patient" do
+    approve_link
+    printable = release_for(patient_record: patient, clinician_record: clinician,
+      title: "Medical certificate", body: "Patient-facing certificate")
+    printable.update_columns(printable: true)
+    private_release = release_for(patient_record: patient, clinician_record: clinician,
+      title: "Private guidance", body: "Not downloadable")
+    other_patient = create(:patient, practice: practice)
+    other_release = release_for(patient_record: other_patient, clinician_record: clinician,
+      title: "Other patient's certificate", body: "Restricted")
+    other_release.update_columns(printable: true)
+
+    sign_in account, scope: :patient_account
+    get patient_portal_clinical_documents_path
+    expect(response.body).to include(download_patient_portal_clinical_document_path(printable))
+    expect(response.body).not_to include(download_patient_portal_clinical_document_path(private_release))
+
+    get download_patient_portal_clinical_document_path(printable)
+    expect(response).to have_http_status(:ok)
+    expect(response.media_type).to eq("application/pdf")
+    expect(response.body).to start_with("%PDF")
+    expect(response.headers["Cache-Control"]).to include("no-store")
+
+    get download_patient_portal_clinical_document_path(private_release)
+    expect(response).to have_http_status(:not_found)
+    get download_patient_portal_clinical_document_path(other_release)
+    expect(response).to have_http_status(:not_found)
+  end
+
+  it "denies PDF downloads after the patient's approval is revoked" do
+    link = approve_link
+    release = release_for(patient_record: patient, clinician_record: clinician,
+      title: "Certificate", body: "Patient information")
+    release.update_columns(printable: true)
+    sign_in account, scope: :patient_account
+    link.update!(status: "revoked")
+    get download_patient_portal_clinical_document_path(release)
+    expect(response).to have_http_status(:forbidden)
+  end
+
   it "subscribes only the approved patient link to document refreshes" do
     link = approve_link
     sign_in account, scope: :patient_account

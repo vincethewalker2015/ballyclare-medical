@@ -139,6 +139,42 @@ module Staff
         notice: "Registration approved. Clinical record processing has been queued."
     end
 
+    def reset_identity_review
+      return head :forbidden unless can_administer_current_group?
+
+      request_record = current_practice.patient_registration_requests.find(params[:id])
+      reason = params[:reason].to_s.strip.first(500)
+      if reason.length < 10
+        return redirect_to practice_patient_account_request_path(request_record),
+          alert: "A reason of at least 10 characters is required to reopen identity review."
+      end
+
+      reset = false
+      request_record.with_lock do
+        eligible = request_record.patient_route == "new_patient" &&
+          (request_record.review_status == "failed" ||
+           (request_record.review_status == "verified" && request_record.possible_existing_patients.exists?))
+        if eligible && !PatientAccountLink.exists?(patient_account_id: request_record.patient_account_id)
+          request_record.update!(
+            review_status: "awaiting_review", patient_route: nil,
+            selected_patient: nil, reviewed_by: nil, identity_verified_at: nil,
+            verification_method: nil, approved_by: nil, approved_at: nil,
+            processed_at: nil
+          )
+          AuditEvent.create!(
+            practice: current_practice, user: current_user, auditable: request_record,
+            action: "patient_account.identity_review_reopened",
+            metadata: { reason: reason, staff_member_id: current_staff_member.id }
+          )
+          reset = true
+        end
+      end
+
+      redirect_to practice_patient_account_request_path(request_record),
+        (reset ? { notice: "Identity review reopened. Verify the applicant again before selecting a clinical record." } :
+          { alert: "This registration is not eligible for identity re-review." })
+    end
+
     def reinstate
       return head :forbidden unless can_administer_current_group?
 

@@ -325,7 +325,21 @@ RSpec.describe "Clinician consultation entry", type: :request do
     end
 
     it "rejects amendments to an unfinished consultation with an unsigned draft" do
-      unfinished = create(:appointment, practice: practice, clinician: clinician, status: "arrived")
+      separate_availability = create(
+        :availability_block, practice: practice, clinician: clinician,
+        starts_at: 2.days.from_now.change(hour: 9, min: 0),
+        ends_at: 2.days.from_now.change(hour: 17, min: 0)
+      )
+      separate_slot = create(
+        :appointment_slot, practice: practice, clinician: clinician,
+        availability_block: separate_availability,
+        starts_at: 2.days.from_now.change(hour: 10, min: 0),
+        ends_at: 2.days.from_now.change(hour: 10, min: 20)
+      )
+      unfinished = create(
+        :appointment, practice: practice, clinician: clinician,
+        appointment_slot: separate_slot, status: "arrived"
+      )
       post practice_appointment_consultation_path(unfinished)
       expect(unfinished.reload.status).to eq("in_consultation")
 

@@ -4,6 +4,7 @@ module Staff
 
     def show
       @outage_active = Payments::StripeOutageDeclaration.active?(practice: current_practice)
+      @suspected_outage = Payments::StripeOutageMonitor.suspected_event(practice: current_practice)
     end
 
     def create

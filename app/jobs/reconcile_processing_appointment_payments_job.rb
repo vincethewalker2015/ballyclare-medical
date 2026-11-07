@@ -55,6 +55,9 @@ class ReconcileProcessingAppointmentPaymentsJob < ApplicationJob
       end
     end
   rescue StandardError => error
+    Payments::StripeOutageMonitor.record_failure(
+      payment: payment, error: error, source: "appointment_reconciliation"
+    )
     Rails.logger.error(
       "Failed to reconcile appointment payment " \
       "#{payment.id}: #{error.class}: #{error.message}"

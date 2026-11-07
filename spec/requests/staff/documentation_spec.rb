@@ -57,8 +57,13 @@ RSpec.describe "Staff user manual", type: :request do
     ].each do |filename|
       path = "/docs/images/user_manual/#{filename}"
       expect(response.body).to include("src=\"#{path}\"")
+    end
 
-      get path
+    %w[
+      stripe-outage-diary-illustration.svg
+      stripe-outage-management-illustration.svg
+    ].each do |filename|
+      get "/docs/images/user_manual/#{filename}"
       expect(response).to have_http_status(:success)
       expect(response.media_type).to eq("image/svg+xml")
       expect(response.body).to include("<svg")

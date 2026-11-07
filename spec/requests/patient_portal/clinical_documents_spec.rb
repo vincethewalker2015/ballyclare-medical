@@ -64,7 +64,7 @@ RSpec.describe "Patient portal clinical document releases", type: :request do
     patient.update!(first_name: "José", last_name: "Müller")
     release = release_for(patient_record: patient, clinician_record: clinician,
       title: "Résumé – consultation", body: ("Café, naïve, £, € and clinical follow-up.\n" * 350))
-    release.update!(printable: true)
+    release.update_columns(printable: true)
     sign_in account, scope: :patient_account
 
     get download_patient_portal_clinical_document_path(release)
@@ -77,7 +77,7 @@ RSpec.describe "Patient portal clinical document releases", type: :request do
     approve_link
     release = release_for(patient_record: patient, clinician_record: clinician,
       title: "Guidance", body: "Private medical advice")
-    release.update!(printable: true)
+    release.update_columns(printable: true)
     sign_in account, scope: :patient_account
     allow_any_instance_of(ClinicalDocuments::RenderPdf).to receive(:call)
       .and_raise(StandardError, "PDF rendering failed")

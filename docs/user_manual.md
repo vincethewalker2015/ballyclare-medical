@@ -438,27 +438,80 @@ from appointment records in this case.
 
 ## Suspected Stripe Outage Notifications
 
-Ballyclare watches connection errors and Stripe API errors when creating PaymentIntents
-and checking their status. When **three different payments** encounter such errors
-within **five minutes** in the same practice, the system creates an audited
-**possible Stripe connectivity issue** warning. Repeated attempts for one payment
-do not count as separate affected payments. A repeat warning is suppressed for
-30 minutes, and warnings expire after 30 minutes.
+**For Senior Staff Admins.** Ballyclare watches Stripe connection and API errors during
+payment creation and status checks. If **three distinct Stripe payments** fail in
+**five minutes** for the **same practice**, it records an audited suspected-outage
+alert. Repeated failures for one payment count only once. Alerts remain visible
+for up to **30 minutes**, and duplicate alerts are suppressed during that period.
+An alert is a warning, **not confirmation of a Stripe-wide outage**.
 
-- Senior Staff Admins can see the warning on the appointment diary and
-  **Stripe outage** page. This is an advisory, not proof of a Stripe-wide outage.
-- An email notification is queued for active senior administrators within the
-  medical group and an active Chief of Group. **Email delivery requires
-  production outgoing mail and a valid sender address to be configured.**
-- Independently check Stripe availability and your network before declaring an
-  outage. Only an authorised Senior Staff Admin can manually enable the
-  existing 30-minute emergency unpaid booking fallback.
-- Neither the monitoring warning nor its email starts new payments, retries
-  failed payments, changes appointment holds, cancels payments, or enables
-  unpaid booking. Existing payment reconciliation rules remain in effect.
+### 1. Recognise the warning in the appointment diary
 
-Detection is based on actual payment API failures, not a continuous independent
-health check: a Stripe outage with no payment activity might not trigger an alert.
+Open **Appointments** for the practice you are working at
+(`/practice/appointments`). An amber banner headed
+**Possible Stripe connectivity issue detected** appears above the diary.
+Select **Review Stripe outage controls** to open the management page.
+
+![Illustration of the suspected Stripe outage banner on the appointment diary](images/user_manual/stripe-outage-diary-illustration.svg)
+
+*Illustration: The warning is advisory; it does not change the appointment
+diary or enable unpaid bookings.*
+
+### 2. Review the management page
+
+On **Stripe outage management** (`/practice/stripe-outage`), read the
+suspected-issue notice and the **Current status** panel. When the panel says
+**Normal payment mode**, the emergency unpaid online-booking fallback is
+**inactive** and ordinary online bookings still require Stripe payment.
+
+![Illustration of the Stripe outage management advisory and normal payment mode](images/user_manual/stripe-outage-management-illustration.svg)
+
+*Illustration: A warning and **Normal payment mode** can appear together.
+The warning never activates emergency booking automatically.*
+
+### 3. Independently investigate before taking action
+
+1. Confirm the **Working at** practice is the affected practice. Alerts are
+   **practice-specific**: an alert at another practice in the same medical
+   group does not appear in the current practice's diary.
+2. Check Stripe's official service status, your practice's internet/network
+   connection, and any known local connectivity problems. Investigate payment
+   outcomes using the normal reconciliation process; do **not** assume that
+   a failed API request means no payment was collected.
+3. If the problem is unconfirmed, **leave Normal payment mode unchanged**.
+   Escalate or monitor according to your practice's incident procedure.
+4. **Only after independently confirming Stripe payment processing is
+   unavailable**, an authorised Senior Staff Admin may enter a meaningful
+   reason and select **Declare Stripe outage for 30 minutes** on the
+   management page. The declaration is audited and enables the existing
+   time-limited emergency unpaid online-booking fallback for that practice.
+   Inform the appropriate operational staff that unpaid bookings require
+   later payment follow-up.
+5. Once service is restored, use **End Stripe outage now** with a reason,
+   rather than waiting for the 30-minute period to expire. Check unresolved
+   payments and emergency bookings through the established procedures.
+
+**Never** enable the fallback merely because an amber warning appears.
+Do not retry uncertain charges, issue duplicate refunds, or use emergency
+booking to bypass a payment already in progress.
+
+### Notifications and limitations
+
+An alert queues email for eligible active Senior Staff Admins in the medical
+group and an eligible Chief of Group. **Actual email delivery requires
+production outgoing-mail configuration**; a queued mail job alone does not
+prove an email was delivered. No patient information is included in the
+alert email.
+
+The monitor is triggered by actual payment API failures; it is **not** a
+continuous independent Stripe health check. An outage with no payment
+activity may produce no alert. Neither the warning nor its email changes
+payments, retries charges, changes holds, or enables unpaid bookings.
+
+If the warning is missing during a known incident, first check the selected
+practice and your Senior Staff Admin access. A warning naturally expires
+after 30 minutes. Ordinary staff may not see the advisory. Contact the
+platform operator if you suspect an access or configuration issue.
 
 ## Stripe Booking Payment Reconciliation
 

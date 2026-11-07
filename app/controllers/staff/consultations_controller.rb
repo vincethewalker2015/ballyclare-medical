@@ -49,6 +49,24 @@ module Staff
       redirect_to practice_appointment_consultation_path(@appointment), alert: "This consultation is not open for editing."
     end
 
+    def pause
+      Consultations::Pause.new(
+        appointment: @appointment, clinician: current_staff_member, user: current_user
+      ).call
+      redirect_to practice_appointment_consultation_path(@appointment), notice: "Consultation paused. Your saved draft is preserved."
+    rescue Consultations::Pause::InvalidState => error
+      redirect_to practice_appointment_consultation_path(@appointment), alert: error.message
+    end
+
+    def resume
+      Consultations::Resume.new(
+        appointment: @appointment, clinician: current_staff_member, user: current_user
+      ).call
+      redirect_to practice_appointment_consultation_path(@appointment), notice: "Consultation resumed."
+    rescue Consultations::Resume::InvalidState => error
+      redirect_to practice_appointment_consultation_path(@appointment), alert: error.message
+    end
+
     def sign_and_complete
       Consultations::SignAndComplete.new(
         appointment: @appointment, clinician: current_staff_member, user: current_user,

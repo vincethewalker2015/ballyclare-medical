@@ -3,9 +3,9 @@ module Consultations
     class InvalidState < StandardError; end
     class Unauthorized < StandardError; end
 
-    def initialize(appointment:, clinician:, user:, title:, body:)
+    def initialize(appointment:, clinician:, user:, title:, body:, printable: false)
       @appointment, @clinician, @user = appointment, clinician, user
-      @title, @body = title, body
+      @title, @body, @printable = title, body, printable
     end
 
     def call
@@ -27,7 +27,7 @@ module Consultations
         release = ClinicalDocumentRelease.create!(
           practice: appointment.practice, patient: appointment.patient,
           encounter: encounter, released_by: clinician,
-          title: @title, body: @body, released_at: Time.current
+          title: @title, body: @body, printable: ActiveModel::Type::Boolean.new.cast(@printable), released_at: Time.current
         )
         AuditEvent.create!(
           practice: appointment.practice, user: user, auditable: release,

@@ -3,7 +3,6 @@ class ClinicalNoteAmendment < ApplicationRecord
   belongs_to :author, class_name: "StaffMember"
 
   validates :reason, :body, presence: true
-  validates :body, length: { maximum: 20_000 }
   validates :reason, length: { maximum: 500 }
   validate :signed_consultation_and_matching_author
   validate :immutable_after_creation, on: :update

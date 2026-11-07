@@ -4,6 +4,7 @@ class Appointment < ApplicationRecord
     confirmed
     arrived
     in_consultation
+    consultation_interrupted
     completed
     cancelled
     referred

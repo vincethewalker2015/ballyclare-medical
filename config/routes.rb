@@ -95,6 +95,7 @@ Rails.application.routes.draw do
   resource :consultation, only: %i[show create], controller: "consultations" do
     patch :draft
     post :sign_and_complete
+    post :amend
     post :release_document
   end
   resource :reschedule, only: %i[edit update], controller: "appointment_reschedules"

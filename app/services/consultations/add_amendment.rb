@@ -3,9 +3,9 @@ module Consultations
     class InvalidState < StandardError; end
     class Unauthorized < StandardError; end
 
-    def initialize(appointment:, clinician:, user:, reason:, body:)
+    def initialize(appointment:, clinician:, user:, reason:, body:, submission_token:)
       @appointment, @clinician, @user = appointment, clinician, user
-      @reason, @body = reason, body
+      @reason, @body, @submission_token = reason, body, submission_token
     end
 
     def call
@@ -30,7 +30,16 @@ module Consultations
         note = encounter.clinical_notes.find_by(note_type: "consultation", status: "signed")
         raise InvalidState, "A signed consultation note is required" unless note
 
-        amendment = note.amendments.create!(author: clinician, reason: @reason, body: @body)
+        existing = note.amendments.find_by(submission_token: @submission_token)
+        if existing
+          unless existing.author_id == clinician.id && existing.reason == @reason && existing.body == @body
+            raise InvalidState, "Submission token already used for another amendment"
+          end
+          return existing
+        end
+        amendment = note.amendments.create!(
+          author: clinician, reason: @reason, body: @body, submission_token: @submission_token
+        )
         AuditEvent.create!(
           practice: appointment.practice, user: user, auditable: amendment,
           action: "clinical.note_amended",

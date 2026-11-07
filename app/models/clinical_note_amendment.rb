@@ -2,7 +2,8 @@ class ClinicalNoteAmendment < ApplicationRecord
   belongs_to :clinical_note
   belongs_to :author, class_name: "StaffMember"
 
-  validates :reason, :body, presence: true
+  validates :reason, :body, :submission_token, presence: true
+  validates :submission_token, uniqueness: { scope: :clinical_note_id }
   validates :reason, length: { maximum: 500 }
   validate :signed_consultation_and_matching_author
   validate :immutable_after_creation, on: :update

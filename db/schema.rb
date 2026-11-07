@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_07_170000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_07_190000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "pg_catalog.plpgsql"
@@ -173,11 +173,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_170000) do
     t.uuid "clinical_note_id", null: false
     t.uuid "author_id", null: false
     t.string "reason", null: false
+    t.string "submission_token"
     t.text "body", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["author_id"], name: "index_clinical_note_amendments_on_author_id"
     t.index ["clinical_note_id", "created_at"], name: "index_clinical_note_amendments_on_note_and_created_at"
+    t.index ["clinical_note_id", "submission_token"], name: "index_clinical_note_amendments_on_note_and_submission", unique: true
     t.index ["clinical_note_id"], name: "index_clinical_note_amendments_on_clinical_note_id"
   end
 

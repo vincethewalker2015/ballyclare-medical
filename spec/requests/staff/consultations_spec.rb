@@ -455,7 +455,7 @@ RSpec.describe "Clinician consultation entry", type: :request do
       note = appointment.reload.encounter.clinical_notes.find_by!(status: "signed")
       original_timestamp = note.signed_at
       expect {
-        post amend_path, params: { clinical_note_amendment: { reason: "Correct medication history", body: "Corrected history" } }
+        post amend_path, params: { clinical_note_amendment: { submission_token: SecureRandom.uuid, reason: "Correct medication history", body: "Corrected history" } }
       }.to change(ClinicalNoteAmendment, :count).by(1)
         .and change { AuditEvent.where(action: "clinical.note_amended").count }.by(1)
       amendment = note.amendments.last
@@ -471,10 +471,22 @@ RSpec.describe "Clinician consultation entry", type: :request do
       expect(response.body).to include("Amendment history", "Original signed assessment", "Corrected history")
     end
 
+    it "deduplicates a retried amendment and its audit event" do
+      token = SecureRandom.uuid
+      params = { clinical_note_amendment: { submission_token: token, reason: "Correction", body: "Details" } }
+      expect { 2.times { post amend_path, params: params } }
+        .to change(ClinicalNoteAmendment, :count).by(1)
+        .and change { AuditEvent.where(action: "clinical.note_amended").count }.by(1)
+      post amend_path, params: { clinical_note_amendment: {
+        submission_token: token, reason: "Correction", body: "Different"
+      } }
+      expect(ClinicalNoteAmendment.count).to eq(1)
+    end
+
     it "rejects missing reason and empty amendments" do
       expect {
-        post amend_path, params: { clinical_note_amendment: { reason: " ", body: "Correction" } }
-        post amend_path, params: { clinical_note_amendment: { reason: "Correction", body: " " } }
+        post amend_path, params: { clinical_note_amendment: { submission_token: SecureRandom.uuid, reason: " ", body: "Correction" } }
+        post amend_path, params: { clinical_note_amendment: { submission_token: SecureRandom.uuid, reason: "Correction", body: " " } }
       }.not_to change(ClinicalNoteAmendment, :count)
     end
 
@@ -503,7 +515,7 @@ RSpec.describe "Clinician consultation entry", type: :request do
 
       expect {
         post amend_practice_appointment_consultation_path(unfinished),
-          params: { clinical_note_amendment: { reason: "Correction", body: "Text" } }
+          params: { clinical_note_amendment: { submission_token: SecureRandom.uuid, reason: "Correction", body: "Text" } }
       }.not_to change(ClinicalNoteAmendment, :count)
       expect(unfinished.reload.status).to eq("in_consultation")
       expect(AuditEvent.where(action: "clinical.note_amended", practice: practice)).not_to exist
@@ -515,14 +527,14 @@ RSpec.describe "Clinician consultation entry", type: :request do
       sign_out user
       sign_in other_user
       expect {
-        post amend_path, params: { clinical_note_amendment: { reason: "Correction", body: "Text" } }
+        post amend_path, params: { clinical_note_amendment: { submission_token: SecureRandom.uuid, reason: "Correction", body: "Text" } }
       }.not_to change(ClinicalNoteAmendment, :count)
       expect(response).to have_http_status(:forbidden)
 
       sign_out other_user
       sign_in user
       clinician.update!(access_level: "senior_staff_admin")
-      post amend_path, params: { clinical_note_amendment: { reason: "Correction", body: "Text" } }
+      post amend_path, params: { clinical_note_amendment: { submission_token: SecureRandom.uuid, reason: "Correction", body: "Text" } }
       expect(response).to have_http_status(:forbidden)
       expect(ClinicalNoteAmendment.count).to eq(0)
     end
@@ -531,13 +543,13 @@ RSpec.describe "Clinician consultation entry", type: :request do
       sibling_appointment = create(:appointment, practice: sibling)
       expect {
         post amend_practice_appointment_consultation_path(sibling_appointment),
-          params: { clinical_note_amendment: { reason: "Correction", body: "Text" } }
+          params: { clinical_note_amendment: { submission_token: SecureRandom.uuid, reason: "Correction", body: "Text" } }
       }.not_to change(ClinicalNoteAmendment, :count)
       expect(response).to have_http_status(:not_found)
     end
 
     it "keeps amendments immutable and refuses deletion" do
-      post amend_path, params: { clinical_note_amendment: { reason: "Correction", body: "Recorded correction" } }
+      post amend_path, params: { clinical_note_amendment: { submission_token: SecureRandom.uuid, reason: "Correction", body: "Recorded correction" } }
       amendment = ClinicalNoteAmendment.last
       expect(amendment.update(body: "Overwritten")).to be(false)
       expect(amendment.reload.body).to eq("Recorded correction")
@@ -547,7 +559,7 @@ RSpec.describe "Clinician consultation entry", type: :request do
     end
 
     it "keeps amendment text out of the patient-facing release workflow" do
-      post amend_path, params: { clinical_note_amendment: { reason: "Correction", body: "Internal amended details" } }
+      post amend_path, params: { clinical_note_amendment: { submission_token: SecureRandom.uuid, reason: "Correction", body: "Internal amended details" } }
       get practice_appointment_consultation_path(appointment)
       expect(response.body).to include("Internal amended details")
       expect(ClinicalDocumentRelease.where(patient: appointment.patient, body: "Internal amended details")).not_to exist

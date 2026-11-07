@@ -78,7 +78,8 @@ module Staff
       Consultations::ReleaseDocument.new(
         appointment: @appointment, clinician: current_staff_member, user: current_user,
         title: params.require(:clinical_document_release).fetch(:title),
-        body: params.require(:clinical_document_release).fetch(:body)
+        body: params.require(:clinical_document_release).fetch(:body),
+        printable: params.require(:clinical_document_release).fetch(:printable, false)
       ).call
       redirect_to practice_appointment_consultation_path(@appointment), notice: "Document released to the patient portal."
     rescue Consultations::ReleaseDocument::InvalidState => error

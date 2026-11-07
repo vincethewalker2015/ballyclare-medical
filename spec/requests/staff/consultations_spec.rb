@@ -294,6 +294,73 @@ RSpec.describe "Clinician consultation entry", type: :request do
       expect(response).to have_http_status(:forbidden)
     end
   end
+  describe "interrupted consultations" do
+    before do
+      appointment.update!(status: "arrived")
+      post practice_appointment_consultation_path(appointment)
+      patch draft_practice_appointment_consultation_path(appointment),
+        params: { clinical_note: { body: "Saved unfinished assessment", lock_version: 0 } }
+    end
+
+    it "pauses and resumes the same encounter and draft without completing or signing" do
+      encounter = appointment.reload.encounter
+      draft = encounter.clinical_notes.find_by!(status: "draft")
+      expect {
+        post pause_practice_appointment_consultation_path(appointment)
+      }.to change { AuditEvent.where(action: "clinical.consultation_paused").count }.by(1)
+      expect(appointment.reload.status).to eq("consultation_interrupted")
+      expect(encounter.reload.ended_at).to be_nil
+      expect(draft.reload.body).to eq("Saved unfinished assessment")
+
+      get practice_appointment_consultation_path(appointment)
+      expect(response.body).to include("Consultation paused", "Resume consultation", "Saved unfinished assessment")
+      expect(response.body).not_to include("Sign note and complete consultation")
+
+      patch draft_practice_appointment_consultation_path(appointment),
+        params: { clinical_note: { body: "Must not overwrite", lock_version: draft.lock_version } }
+      expect(draft.reload.body).to eq("Saved unfinished assessment")
+
+      expect {
+        post resume_practice_appointment_consultation_path(appointment)
+      }.to change { AuditEvent.where(action: "clinical.consultation_resumed").count }.by(1)
+      expect(appointment.reload.status).to eq("in_consultation")
+      expect(appointment.encounter.id).to eq(encounter.id)
+      expect(appointment.encounter.clinical_notes.find_by!(status: "draft").id).to eq(draft.id)
+
+      post resume_practice_appointment_consultation_path(appointment)
+      expect(AuditEvent.where(action: "clinical.consultation_resumed", auditable: encounter).count).to eq(1)
+    end
+
+    it "prevents signing while paused" do
+      draft = appointment.reload.encounter.clinical_notes.find_by!(status: "draft")
+      post pause_practice_appointment_consultation_path(appointment)
+      post sign_and_complete_practice_appointment_consultation_path(appointment),
+        params: { clinical_note: { lock_version: draft.lock_version } }
+      expect(appointment.reload.status).to eq("consultation_interrupted")
+      expect(draft.reload.status).to eq("draft")
+    end
+
+    it "rejects administrator pause and resume actions" do
+      clinician.update!(access_level: "staff_admin")
+      post pause_practice_appointment_consultation_path(appointment)
+      expect(response).to have_http_status(:forbidden)
+      expect(appointment.reload.status).to eq("in_consultation")
+      clinician.update!(access_level: "staff_clinician")
+      post pause_practice_appointment_consultation_path(appointment)
+      clinician.update!(access_level: "staff_admin")
+      post resume_practice_appointment_consultation_path(appointment)
+      expect(response).to have_http_status(:forbidden)
+      expect(appointment.reload.status).to eq("consultation_interrupted")
+    end
+
+    it "does not allow the generic appointment status endpoint to resume" do
+      post pause_practice_appointment_consultation_path(appointment)
+      patch status_practice_appointment_path(appointment), params: { status: "in_consultation" }
+      expect(response).to have_http_status(:forbidden)
+      expect(appointment.reload.status).to eq("consultation_interrupted")
+    end
+  end
+
   describe "signing and completing a consultation" do
     let(:draft_path) { draft_practice_appointment_consultation_path(appointment) }
     let(:sign_path) { sign_and_complete_practice_appointment_consultation_path(appointment) }

@@ -119,4 +119,66 @@ RSpec.describe "Staff patient duplicate prevention", type: :request do
 
     expect(response).to redirect_to(practice_patients_path)
   end
+  it "allows a senior administrator to reopen a verified request blocked by a late duplicate" do
+    request_record = registration_request
+    post verify_practice_patient_account_request_path(request_record),
+      params: { patient_route: "new_patient", verification_method: "in_person",
+                identity_checked: "1" }
+    existing = create(:patient, practice: practice, **details)
+
+    expect {
+      patch reset_identity_review_practice_patient_account_request_path(request_record),
+        params: { reason: "A matching clinical record appeared after verification" }
+    }.to change {
+      AuditEvent.where(practice: practice, auditable: request_record,
+        action: "patient_account.identity_review_reopened").count
+    }.by(1)
+
+    expect(request_record.reload.review_status).to eq("awaiting_review")
+    expect(request_record.patient_route).to be_nil
+    expect(request_record.identity_verified_at).to be_nil
+    expect(request_record.reviewed_by).to be_nil
+
+    post verify_practice_patient_account_request_path(request_record),
+      params: { patient_route: "existing_patient", patient_id: existing.id,
+                verification_method: "in_person", identity_checked: "1" }
+    expect(request_record.reload.review_status).to eq("verified")
+    expect(request_record.selected_patient).to eq(existing)
+  end
+
+  it "allows a senior administrator to reopen a failed new-patient registration" do
+    request_record = registration_request
+    request_record.update!(review_status: "failed", patient_route: "new_patient",
+      processed_at: Time.current)
+
+    patch reset_identity_review_practice_patient_account_request_path(request_record),
+      params: { reason: "Resolve a failed registration after duplicate detection" }
+
+    expect(request_record.reload.review_status).to eq("awaiting_review")
+    expect(request_record.processed_at).to be_nil
+  end
+
+  it "rejects short reasons and ordinary staff reopening identity review" do
+    request_record = registration_request
+    request_record.update!(review_status: "failed", patient_route: "new_patient")
+
+    patch reset_identity_review_practice_patient_account_request_path(request_record),
+      params: { reason: "short" }
+    expect(request_record.reload.review_status).to eq("failed")
+
+    membership.update!(access_level: "staff_admin")
+    patch reset_identity_review_practice_patient_account_request_path(request_record),
+      params: { reason: "I verified this registration needs review" }
+    expect(response).to have_http_status(:forbidden)
+    expect(request_record.reload.review_status).to eq("failed")
+  end
+
+  it "does not reopen an already completed and linked registration" do
+    request_record = registration_request
+    request_record.update!(review_status: "completed", patient_route: "new_patient")
+    patch reset_identity_review_practice_patient_account_request_path(request_record),
+      params: { reason: "Request a new identity review for this account" }
+    expect(request_record.reload.review_status).to eq("completed")
+  end
+
 end

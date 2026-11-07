@@ -184,5 +184,4 @@ RSpec.describe "Senior staff Stripe outage controls", type: :request do
     get practice_appointments_path
     expect(response.body).not_to include("Possible Stripe connectivity issue detected")
   end
-
 end

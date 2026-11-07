@@ -54,10 +54,10 @@
       </p>
     <% else %>
       <p class="mt-2 text-sm leading-6 text-medical-muted">
-        Consultation not yet started. Mark the patient as arrived before starting.
+        Consultation record not yet created.
       </p>
     <% end %>
-    <% if @appointment.status == "arrived" && @appointment.encounter.nil? %>
+    <% if @appointment.status.in?(%w[arrived in_consultation]) && @appointment.encounter.nil? %>
       <%= button_to "Start consultation", practice_appointment_consultation_path(@appointment),
         method: :post,
         class: "mt-5 inline-flex cursor-pointer items-center justify-center rounded-full bg-medical-navy px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-medical-navy-deep focus:outline-none focus:ring-2 focus:ring-medical-teal focus:ring-offset-2" %>

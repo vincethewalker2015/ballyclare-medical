@@ -180,5 +180,4 @@ RSpec.describe "Staff patient duplicate prevention", type: :request do
       params: { reason: "Request a new identity review for this account" }
     expect(request_record.reload.review_status).to eq("completed")
   end
-
 end

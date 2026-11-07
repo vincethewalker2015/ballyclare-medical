@@ -14,6 +14,7 @@ class ClinicalNoteAmendment < ApplicationRecord
     return if clinical_note.blank? || author.blank?
 
     unless clinical_note.status == "signed" && clinical_note.note_type == "consultation" &&
+        clinical_note.encounter.present? &&
         author.practice_id == clinical_note.encounter.practice_id &&
         author.active? && author.clinical_access?
       errors.add(:base, "Amendments require an authorised signed consultation note")

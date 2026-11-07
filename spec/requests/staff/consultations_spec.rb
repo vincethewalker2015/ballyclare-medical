@@ -63,6 +63,26 @@ RSpec.describe "Clinician consultation entry", type: :request do
     end
   end
 
+  it "recovers a legacy in-consultation appointment missing its encounter" do
+    appointment.update!(status: "in_consultation")
+    expect(appointment.encounter).to be_nil
+
+    get practice_appointment_consultation_path(appointment)
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Start consultation")
+
+    expect {
+      post practice_appointment_consultation_path(appointment)
+    }.to change(Encounter, :count).by(1)
+    expect(appointment.reload.status).to eq("in_consultation")
+    expect(appointment.encounter.clinician_id).to eq(clinician.id)
+    expect(appointment.consultation_started_at).to be_present
+
+    expect {
+      post practice_appointment_consultation_path(appointment)
+    }.not_to change(Encounter, :count)
+  end
+
   it "redacts clinical note and patient document form fields from parameter logs" do
     filter = ActiveSupport::ParameterFilter.new(Rails.application.config.filter_parameters)
     filtered = filter.filter(

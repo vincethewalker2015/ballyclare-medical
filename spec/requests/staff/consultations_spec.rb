@@ -358,6 +358,15 @@ RSpec.describe "Clinician consultation entry", type: :request do
       expect(response).to have_http_status(:not_found)
     end
 
+    it "keeps amendments immutable and refuses deletion" do
+      post amend_path, params: { clinical_note_amendment: { reason: "Correction", body: "Recorded correction" } }
+      amendment = ClinicalNoteAmendment.last
+      expect(amendment.update(body: "Overwritten")).to be(false)
+      expect(amendment.reload.body).to eq("Recorded correction")
+      expect(amendment.destroy).to be(false)
+      expect(ClinicalNoteAmendment.where(id: amendment.id)).to exist
+    end
+
     it "does not show amendments in the patient portal by default" do
       post amend_path, params: { clinical_note_amendment: { reason: "Correction", body: "Internal amended details" } }
       get patient_portal_clinical_documents_path

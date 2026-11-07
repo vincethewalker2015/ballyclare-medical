@@ -64,6 +64,17 @@
     <% elsif @appointment.encounter.nil? %>
       <p class="mt-3 text-sm text-medical-muted">Mark the patient as arrived in the appointment before starting.</p>
     <% end %>
+    <% if @appointment.status == "consultation_interrupted" && @appointment.encounter.present? %>
+      <div class="mt-6 rounded-xl border border-medical-border bg-medical-cream p-5">
+        <h3 class="font-semibold text-medical-navy">Consultation paused — unfinished</h3>
+        <p class="mt-2 text-sm text-medical-muted">The encounter and saved draft remain private and unchanged. Resume to continue documenting. This appointment has not been completed.</p>
+        <% if @draft.present? %>
+          <p class="mt-4 whitespace-pre-wrap break-words text-sm text-medical-ink"><%= @draft.body %></p>
+        <% end %>
+        <%= button_to "Resume consultation", resume_practice_appointment_consultation_path(@appointment),
+          method: :post, class: "mt-5 cursor-pointer rounded-full bg-medical-navy px-6 py-3 text-sm font-semibold text-white" %>
+      </div>
+    <% end %>
     <% if @appointment.status == "in_consultation" && @appointment.encounter.present? %>
       <div class="mt-6 border-t border-medical-border pt-6">
         <h3 class="text-base font-semibold text-medical-navy">Draft clinical notes</h3>
@@ -78,6 +89,10 @@
           </div>
           <%= form.submit "Save draft", class: "cursor-pointer rounded-full bg-medical-navy px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-medical-navy-deep focus:outline-none focus:ring-2 focus:ring-medical-teal focus:ring-offset-2" %>
         <% end %>
+        <%= button_to "Pause consultation", pause_practice_appointment_consultation_path(@appointment),
+          method: :post,
+          form: { data: { turbo_confirm: "Pause this unfinished consultation? Save any changes to the draft first." } },
+          class: "mt-4 mr-3 cursor-pointer rounded-full border border-medical-border bg-white px-6 py-3 text-sm font-semibold text-medical-navy" %>
         <% if @draft.present? %>
           <%= button_to "Sign note and complete consultation",
             sign_and_complete_practice_appointment_consultation_path(@appointment),

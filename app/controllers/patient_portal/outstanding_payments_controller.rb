@@ -6,6 +6,25 @@ module PatientPortal
     def show
       @balance = Billing::AppointmentBalance.new(appointment: @appointment).call
       @in_progress = @appointment.payments.where(status: %w[pending processing]).exists?
+      # A Stripe intent may have been created even if the Turbo response showing
+      # the payment form was lost. Resume the same intent, never create another.
+      payment = @appointment.payments.where(status: "processing")
+        .where.not(provider_payment_id: nil).order(created_at: :desc).first
+      if payment && !Payments::StripeOutageDeclaration.active?(practice: @link.practice)
+        intent = PaymentProviders::StripeProvider::CreatePayment.new(payment: payment).call
+        if intent.status.in?(%w[requires_payment_method requires_confirmation requires_action])
+          @payment, @client_secret = payment, intent.client_secret
+          return render :confirm
+        elsif intent.status == "succeeded"
+          Payments::HandleSucceeded.new(payment_intent: intent).call
+          return redirect_to patient_portal_payment_path(payment)
+        elsif intent.status == "canceled"
+          Payments::ReconcileAppointmentPayment.new(payment: payment).call
+          @in_progress = @appointment.payments.where(status: %w[pending processing]).exists?
+        end
+      end
+    rescue Stripe::StripeError
+      @in_progress = true
     end
 
     def create
@@ -43,7 +62,7 @@ module PatientPortal
         end
         @payment = pending
         @client_secret = intent.client_secret
-        return render :confirm
+        return redirect_to patient_portal_outstanding_payment_path(@appointment), status: :see_other
       end
 
       result = Payments::TakeAppointmentPayment.new(
@@ -51,7 +70,7 @@ module PatientPortal
       ).call
       @payment = result.payment
       @client_secret = result.payment_intent.client_secret
-      render :confirm
+      redirect_to patient_portal_outstanding_payment_path(@appointment), status: :see_other
     rescue Payments::CreateForAppointment::AmountExceedsBalance,
            Payments::CreateForAppointment::PaymentInProgress,
            Payments::CreateForAppointment::AppointmentCancelled

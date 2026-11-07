@@ -326,6 +326,7 @@ RSpec.describe "Clinician consultation entry", type: :request do
 
     it "rejects unsigned and non-completed consultation records" do
       appointment.update!(status: "in_consultation")
+      expect(appointment.reload.status).to eq("in_consultation")
       expect {
         post amend_path, params: { clinical_note_amendment: { reason: "Correction", body: "Text" } }
       }.not_to change(ClinicalNoteAmendment, :count)
@@ -363,7 +364,8 @@ RSpec.describe "Clinician consultation entry", type: :request do
       amendment = ClinicalNoteAmendment.last
       expect(amendment.update(body: "Overwritten")).to be(false)
       expect(amendment.reload.body).to eq("Recorded correction")
-      expect(amendment.destroy.destroyed?).to be(false)
+      expect(amendment.destroy).to be(false)
+      expect(amendment.reload).to be_persisted
       expect(ClinicalNoteAmendment.where(id: amendment.id)).to exist
     end
 

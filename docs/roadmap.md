@@ -601,13 +601,14 @@ Planned capabilities include:
 
 ## Phase 6 --- Appointment Lifecycle and Clinical Workflow
 
-**Status: In progress — Phase 5 code-security gate completed; clinician consultation workflow is next**
+**Status: In progress — clinician consultation, amendments, patient document release/PDF and interrupted-session workflow implemented on feature branch; final tests and manual acceptance pending**
 
 Appointment transitions and status history have a staff-facing foundation.
-`Encounter` and `ClinicalNote` models also exist, but clinical consultation
-routes, documentation workflows, stricter clinical permissions and amendment/
-audit review remain future work. Do not equate existing models with a completed
-clinical-record feature.
+`Encounter` and `ClinicalNote` support the implemented clinician-only consultation
+workflow. Signed-note amendments, explicit pause/resume of unfinished encounters,
+and deliberate patient-document release with optional PDF download are included
+on the Phase 6 feature branch. Final acceptance is still required before the
+phase is marked complete.
 
 Formalise operational appointment transitions.
 
@@ -675,7 +676,7 @@ Future work should include:
 
 ### Clinician consultation workspace — required before Phase 7
 
-**Status: Planned — Phase 6 completion requirement**
+**Status: Implemented on feature branch — tests and browser acceptance pending**
 
 Build a clinician-focused workflow within the existing `/practice` workspace.
 A clinician must be able to open an authorised appointment, begin its clinical

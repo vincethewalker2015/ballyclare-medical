@@ -284,6 +284,87 @@ RSpec.describe "Clinician consultation entry", type: :request do
       expect(note.reload.status).to eq("draft")
     end
   end
+  describe "signed-note amendments" do
+    let(:amend_path) { amend_practice_appointment_consultation_path(appointment) }
+
+    before do
+      appointment.update!(status: "arrived")
+      post practice_appointment_consultation_path(appointment)
+      patch draft_practice_appointment_consultation_path(appointment),
+        params: { clinical_note: { body: "Original signed assessment", lock_version: 0 } }
+      note = appointment.reload.encounter.clinical_notes.last
+      post sign_and_complete_practice_appointment_consultation_path(appointment),
+        params: { clinical_note: { lock_version: note.lock_version } }
+    end
+
+    it "records an attributed, audited append-only amendment and preserves the original" do
+      note = appointment.reload.encounter.clinical_notes.find_by!(status: "signed")
+      original_timestamp = note.signed_at
+      expect {
+        post amend_path, params: { clinical_note_amendment: { reason: "Correct medication history", body: "Corrected history" } }
+      }.to change(ClinicalNoteAmendment, :count).by(1)
+        .and change { AuditEvent.where(action: "clinical.note_amended").count }.by(1)
+      amendment = note.amendments.last
+      expect(response).to redirect_to(practice_appointment_consultation_path(appointment))
+      expect(amendment.author).to eq(clinician)
+      expect(amendment.reason).to eq("Correct medication history")
+      expect(amendment.body).to eq("Corrected history")
+      expect(note.reload.body).to eq("Original signed assessment")
+      expect(note.status).to eq("signed")
+      expect(note.signed_at).to eq(original_timestamp)
+      expect(AuditEvent.where(action: "clinical.note_amended", auditable: amendment, practice: practice)).to exist
+      get practice_appointment_consultation_path(appointment)
+      expect(response.body).to include("Amendment history", "Original signed assessment", "Corrected history")
+    end
+
+    it "rejects missing reason and empty amendments" do
+      expect {
+        post amend_path, params: { clinical_note_amendment: { reason: " ", body: "Correction" } }
+        post amend_path, params: { clinical_note_amendment: { reason: "Correction", body: " " } }
+      }.not_to change(ClinicalNoteAmendment, :count)
+    end
+
+    it "rejects unsigned and non-completed consultation records" do
+      appointment.update!(status: "in_consultation")
+      expect {
+        post amend_path, params: { clinical_note_amendment: { reason: "Correction", body: "Text" } }
+      }.not_to change(ClinicalNoteAmendment, :count)
+    end
+
+    it "forbids non-clinical administration and colleagues" do
+      other_user = create(:user)
+      other = create(:staff_member, user: other_user, practice: practice, staff_type: "doctor", access_level: "staff_clinician")
+      sign_out user
+      sign_in other_user
+      expect {
+        post amend_path, params: { clinical_note_amendment: { reason: "Correction", body: "Text" } }
+      }.not_to change(ClinicalNoteAmendment, :count)
+      expect(response).to have_http_status(:forbidden)
+
+      sign_out other_user
+      sign_in user
+      clinician.update!(access_level: "senior_staff_admin")
+      post amend_path, params: { clinical_note_amendment: { reason: "Correction", body: "Text" } }
+      expect(response).to have_http_status(:forbidden)
+      expect(ClinicalNoteAmendment.count).to eq(0)
+    end
+
+    it "returns not found for another practice's appointment" do
+      sibling_appointment = create(:appointment, practice: sibling)
+      expect {
+        post amend_practice_appointment_consultation_path(sibling_appointment),
+          params: { clinical_note_amendment: { reason: "Correction", body: "Text" } }
+      }.not_to change(ClinicalNoteAmendment, :count)
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "does not show amendments in the patient portal by default" do
+      post amend_path, params: { clinical_note_amendment: { reason: "Correction", body: "Internal amended details" } }
+      get patient_portal_clinical_documents_path
+      expect(response.body).not_to include("Internal amended details")
+    end
+  end
+
   describe "releasing patient-facing clinical documents" do
     before do
       appointment.update!(status: "arrived")

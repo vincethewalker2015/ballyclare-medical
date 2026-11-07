@@ -22,9 +22,13 @@ module Consultations
         existing = appointment.encounter
         return existing if existing && appointment.status == "in_consultation"
 
-        unless appointment.status == "arrived" && existing.nil?
+        unless appointment.status.in?(%w[arrived in_consultation]) && existing.nil?
           raise InvalidState, "The patient must be marked arrived before starting a consultation"
         end
+
+        # Repair legacy appointments marked in consultation through the old
+        # generic status endpoint without creating a clinical encounter.
+        # Only the assigned clinician may perform this repair.
 
         started_at = Time.current
         encounter = Encounter.create!(
@@ -36,12 +40,16 @@ module Consultations
           started_at: started_at
         )
 
-        appointment.update!(status: "in_consultation", consultation_started_at: started_at)
-        appointment.appointment_status_changes.create!(
-          from_status: "arrived",
-          to_status: "in_consultation",
-          changed_by: user
-        )
+        if appointment.status == "arrived"
+          appointment.update!(status: "in_consultation", consultation_started_at: started_at)
+          appointment.appointment_status_changes.create!(
+            from_status: "arrived",
+            to_status: "in_consultation",
+            changed_by: user
+          )
+        else
+          appointment.update!(consultation_started_at: started_at) if appointment.consultation_started_at.nil?
+        end
         AuditEvent.create!(
           practice: appointment.practice,
           user: user,
